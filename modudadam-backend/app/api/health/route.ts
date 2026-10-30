@@ -1,8 +1,12 @@
 import { corsPreflightResponse, jsonResponse } from "@/lib/http";
+import { query } from "@/lib/db";
 
-export function GET() {
+export async function GET() {
+  let database = "connected";
+  try { await query("SELECT 1"); } catch { database = "unavailable"; }
   return jsonResponse({
-    status: "ok",
+    status: database === "connected" ? "ok" : "degraded",
+    database,
     service: "modudadam-backend",
     timestamp: new Date().toISOString(),
   });

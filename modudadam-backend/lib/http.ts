@@ -5,7 +5,13 @@ function corsHeaders() {
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Credentials": "true",
   };
+}
+
+export function errorResponse(message: string, status = 400) {
+  const headers = new Headers(corsHeaders());
+  return Response.json({ success: false, error: { message } }, { status, headers });
 }
 
 export function jsonResponse<T>(data: T, init: ResponseInit = {}) {

@@ -6,15 +6,20 @@
     "dev": "next dev -p 3004",
     "build": "next build",
     "start": "next start -p 3004",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:apply": "node --env-file=.env scripts/apply-db.mjs"
   },
   "dependencies": {
     "next": "16.4.3",
+    "nodemailer": "^10.3.0",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
