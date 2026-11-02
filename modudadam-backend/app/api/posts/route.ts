@@ -29,12 +29,16 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireSessionUser(request);
     const body = await request.json();
-    if (!body.categoryCode || !body.title?.trim() || !body.content?.trim()) return errorResponse("카테고리, 제목, 내용을 입력해 주세요.");
+    const title = String(body.title || "").trim();
+    const content = String(body.content || "").trim();
+    const summary = String(body.summary || "").trim() || null;
+    if (!body.categoryCode || !title || !content) return errorResponse("카테고리, 제목, 내용을 입력해 주세요.");
+    if (title.length > 200 || content.length > 10000 || (summary?.length || 0) > 500) return errorResponse("입력 가능한 글자 수를 확인해 주세요.");
     const result = await query<{ id: string }>(
       `INSERT INTO posts(category_id,author_id,title,summary,content,post_type,attributes,published_at)
        SELECT id,$1,$2,$3,$4,$5,$6::jsonb,now() FROM categories WHERE code=$7
        RETURNING id`,
-      [user.id, body.title.trim(), body.summary?.trim() || null, body.content.trim(), body.postType || "community", JSON.stringify(body.attributes || {}), body.categoryCode],
+      [user.id, title, summary, content, body.postType || "community", JSON.stringify(body.attributes || {}), body.categoryCode],
     );
     if (!result.rows[0]) return errorResponse("존재하지 않는 카테고리입니다.");
     return jsonResponse({ id: result.rows[0].id }, { status: 201 });

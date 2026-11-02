@@ -100,7 +100,8 @@ export function SignupForm({ returnTo }: { returnTo: string }) {
           agreeTerms: values.agreeTerms, agreePrivacy: values.agreePrivacy,
         }),
       });
-      router.push(returnTo); router.refresh();
+      const loginUrl = `/login?registered=true&returnTo=${encodeURIComponent(returnTo)}`;
+      router.replace(loginUrl);
     } catch (caught) {
       setServerError(caught instanceof Error ? caught.message : "회원가입을 완료하지 못했습니다.");
     } finally { setPending(false); }

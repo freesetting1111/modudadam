@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { registerLocalUser } from "@/domains/auth/auth.repository";
-import { sessionCookie } from "@/domains/auth/session";
+import { sendWelcomeEmail } from "@/domains/auth/email";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 
 const LOGIN_ID_PATTERN = /^(?!.*[A-Z])[\x21-\x7E]{4,12}$/;
@@ -25,10 +25,14 @@ export async function POST(request: NextRequest) {
     if (!EMAIL_PATTERN.test(email) || email.length > 254) return errorResponse("이메일 형식을 확인해 주세요.");
     if (!body.agreeTerms || !body.agreePrivacy) return errorResponse("이용약관과 개인정보 수집에 동의해 주세요.");
 
-    const token = await registerLocalUser({ loginId, password, realName, phoneNumber, email }, request.headers.get("user-agent") || undefined);
-    const response = jsonResponse({ registered: true }, { status: 201 });
-    response.headers.append("Set-Cookie", sessionCookie(token));
-    return response;
+    await registerLocalUser({ loginId, password, realName, phoneNumber, email });
+    try {
+      await sendWelcomeEmail(email, realName, loginId);
+    } catch (emailError) {
+      console.error("[welcome-email] 환영 메일 발송 실패", emailError);
+    }
+
+    return jsonResponse({ registered: true }, { status: 201 });
   } catch (error) {
     if (typeof error === "object" && error && "code" in error && error.code === "23505") return errorResponse("이미 사용 중인 아이디, 이메일 또는 휴대폰 번호입니다.", 409);
     console.error("[local-register]", error);

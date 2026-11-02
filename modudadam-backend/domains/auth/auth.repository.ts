@@ -67,14 +67,14 @@ type RegisterInput = {
   email: string;
 };
 
-export async function registerLocalUser(input: RegisterInput, userAgent?: string) {
+export async function registerLocalUser(input: RegisterInput) {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
     const passwordHash = await hashPassword(input.password);
     const user = await client.query<{ id: string }>(
-      `INSERT INTO users(nickname,email,real_name,phone_number,terms_agreed_at,privacy_agreed_at,last_login_at)
-       VALUES($1,$2,$3,$4,now(),now(),now()) RETURNING id`,
+      `INSERT INTO users(nickname,email,real_name,phone_number,terms_agreed_at,privacy_agreed_at)
+       VALUES($1,$2,$3,$4,now(),now()) RETURNING id`,
       [input.loginId, input.email, input.realName, input.phoneNumber],
     );
     const userId = user.rows[0].id;
@@ -82,9 +82,7 @@ export async function registerLocalUser(input: RegisterInput, userAgent?: string
       `INSERT INTO user_local_accounts(user_id,login_id,password_hash) VALUES($1,$2,$3)`,
       [userId, input.loginId, passwordHash],
     );
-    const sessionToken = await createSession(userId, userAgent, client);
     await client.query("COMMIT");
-    return sessionToken;
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -108,9 +106,11 @@ export async function loginLocalUser(loginId: string, password: string, userAgen
       [loginId],
     );
     const account = result.rows[0];
-    if (!account || (account.locked_until && account.locked_until > new Date())) throw new Error("INVALID_CREDENTIALS");
+    if (!account) throw new Error("INVALID_CREDENTIALS");
+    if (account.locked_until && account.locked_until > new Date()) throw new Error("ACCOUNT_LOCKED");
 
     if (!(await verifyPassword(password, account.password_hash))) {
+      const shouldLock = account.failed_login_count + 1 >= 5;
       await client.query(
         `UPDATE user_local_accounts SET failed_login_count=failed_login_count+1,
          locked_until=CASE WHEN failed_login_count+1>=5 THEN now()+interval '10 minutes' ELSE locked_until END,
@@ -119,7 +119,7 @@ export async function loginLocalUser(loginId: string, password: string, userAgen
       );
       await client.query("COMMIT");
       transactionFinished = true;
-      throw new Error("INVALID_CREDENTIALS");
+      throw new Error(shouldLock ? "ACCOUNT_LOCKED" : "INVALID_CREDENTIALS");
     }
 
     await client.query("UPDATE user_local_accounts SET failed_login_count=0,locked_until=NULL,updated_at=now() WHERE user_id=$1", [account.user_id]);

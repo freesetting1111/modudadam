@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { House, Search, SquarePen, UserRound } from "lucide-react";
+import { House, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/", icon: House, label: "홈" },
   { href: "/search", icon: Search, label: "검색" },
-  { href: "/write", icon: SquarePen, label: "글쓰기" },
-  { href: "/login", icon: UserRound, label: "마이" },
 ] as const;
 
 export function BottomNav() {

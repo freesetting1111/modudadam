@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     response.headers.append("Set-Cookie", sessionCookie(token));
     return response;
   } catch (error) {
+    if (error instanceof Error && error.message === "ACCOUNT_LOCKED") return errorResponse("로그인 시도가 많아 계정이 10분 동안 잠겼습니다. 잠시 후 다시 시도하거나 비밀번호를 재설정해 주세요.", 423);
     if (error instanceof Error && error.message === "INVALID_CREDENTIALS") return errorResponse("아이디 또는 비밀번호를 확인해 주세요.", 401);
     console.error("[local-login]", error);
     return errorResponse("로그인하지 못했습니다.", 500);

@@ -3,6 +3,7 @@ import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
+import { getServerSessionUser } from "@/lib/auth";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({ variable: "--font-noto-sans-kr", weight: "variable", preload: false, display: "swap" });
@@ -22,13 +23,14 @@ export const metadata: Metadata = {
 
 export const viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const sessionUser = await getServerSessionUser();
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
       <body className="antialiased" suppressHydrationWarning>
         <div className="app-shell">
           <AnalyticsTracker />
-          <SiteHeader />
+          <SiteHeader initialUser={sessionUser} />
           <main>{children}</main>
           <footer>© 모두다담 · 일상을 다정하게 담아요</footer>
           <BottomNav />
