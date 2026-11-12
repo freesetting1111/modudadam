@@ -24,6 +24,6 @@ npm run dev
 API_URL=https://modudadam-backend.vercel.app
 ```
 
-`NEXT_PUBLIC_API_URL`은 사용하지 않습니다. 브라우저는 프론트엔드의 `/api`를 호출하고, Next.js rewrite가 `API_URL`의 백엔드로 요청을 전달합니다. 환경변수를 변경한 뒤에는 새로 배포해야 합니다.
+`NEXT_PUBLIC_API_URL`은 사용하지 않습니다. 브라우저는 프론트엔드의 `/api`를 호출하고, Next.js 서버 라우트가 실행 시점의 `API_URL`을 읽어 백엔드로 요청을 전달합니다. 환경변수를 변경한 뒤에는 새로 배포해야 합니다.
 
 브랜드 캐릭터는 `public/brand/modudadam-squirrel.png`, 파비콘은 `app/icon.png`입니다. 전체 제품·기술 기준은 `../docs/PROJECT_SPEC.md`를 참고합니다.
