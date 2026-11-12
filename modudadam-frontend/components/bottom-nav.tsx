@@ -11,6 +11,8 @@ const items = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const isComposePage = /^\/category\/[^/]+\/write$/.test(pathname) || /^\/posts\/[^/]+\/edit$/.test(pathname);
+  if (isComposePage) return null;
   return <nav className="bottom-nav" aria-label="하단 메뉴">{items.map(({ href, icon: Icon, label }) => {
     const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
     return <Link href={href} key={href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}><span><Icon size={22} strokeWidth={active ? 2.4 : 1.8} /></span><small>{label}</small></Link>;

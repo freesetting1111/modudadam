@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { FileText } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 
 type EditablePost = {
@@ -62,12 +63,25 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
   const cancelHref = postId ? `/posts/${postId}` : `/category/${categoryCode}`;
   if (loading) return <div className="board-message">게시글을 불러오고 있어요.</div>;
 
-  return <form className="write-form" onSubmit={submit}>
-    <div className="write-board-label"><small>게시판</small><strong>{categoryName}</strong></div>
-    <label>제목<input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={200} placeholder="제목을 입력해 주세요" /></label>
-    <label>한 줄 요약 <small>선택</small><input value={summary} onChange={(event) => setSummary(event.target.value)} maxLength={500} placeholder="목록에 표시할 간단한 설명" /></label>
-    <label>내용<textarea value={content} onChange={(event) => setContent(event.target.value)} required maxLength={10000} rows={14} placeholder="경험과 정보를 자세히 나눠주세요." /></label>
+  return <form className="write-form compose-form" onSubmit={submit}>
+    <div className="write-board-label">
+      <span className="write-board-symbol"><FileText size={19} /></span>
+      <span><small>작성 게시판</small><strong>{categoryName}</strong></span>
+      <b>전체 공개</b>
+    </div>
+    <div className="compose-field">
+      <div className="compose-field-heading"><label htmlFor="post-title">제목 <b>필수</b></label><span>{title.length}/200</span></div>
+      <input id="post-title" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={200} placeholder="제목을 입력해 주세요" />
+    </div>
+    <div className="compose-field">
+      <div className="compose-field-heading"><label htmlFor="post-summary">한 줄 요약 <em>선택</em></label><span>{summary.length}/500</span></div>
+      <input id="post-summary" value={summary} onChange={(event) => setSummary(event.target.value)} maxLength={500} placeholder="목록에서 내용을 쉽게 알 수 있도록 요약해 주세요" />
+    </div>
+    <div className="compose-field compose-content-field">
+      <div className="compose-field-heading"><label htmlFor="post-content">내용 <b>필수</b></label><span>{content.length}/10,000</span></div>
+      <textarea id="post-content" value={content} onChange={(event) => setContent(event.target.value)} required maxLength={10000} rows={13} placeholder="함께 나누고 싶은 경험과 정보를 작성해 주세요." />
+    </div>
     {error && <div className="form-error" role="alert">{error}</div>}
-    <div className="write-actions"><Link href={cancelHref}>취소</Link><button type="submit" disabled={pending || Boolean(error && postId)}>{pending ? "저장 중..." : postId ? "수정 완료" : "게시글 등록"}</button></div>
+    <div className="write-actions"><Link href={cancelHref}>취소</Link><button type="submit" disabled={pending || !title.trim() || !content.trim() || Boolean(error && postId)}>{pending ? "저장 중..." : postId ? "수정 완료" : "등록하기"}</button></div>
   </form>;
 }

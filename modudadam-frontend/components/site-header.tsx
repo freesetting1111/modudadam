@@ -85,7 +85,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link><Link href="/about" onClick={closeMenu}><CircleHelp /> 모두다담 소개</Link></div>
         </div>
       </div>
-      <Link href="/" className="brand"><span className="brand-mark"><Image src="/brand/modudadam-squirrel.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>
+      <Link href="/" className="brand" onClick={closeMenu}><span className="brand-mark"><Image src="/brand/modudadam-squirrel.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>
       {pathname === "/login" ? <span aria-hidden="true" /> : user ? <span className="header-account-spacer" aria-hidden="true" /> : <Link href="/login" className="login-link"><LogIn size={14} /> 로그인</Link>}
     </header>
   );
