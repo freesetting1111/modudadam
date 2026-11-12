@@ -41,8 +41,8 @@ export function LoginForm({ returnTo, oauthError, registered = false }: { return
     {/* 도메인과 OAuth 설정을 마친 뒤 다시 노출합니다.
     <div className="auth-divider"><span>소셜 로그인</span></div>
     <div className="login-buttons">
-      <a className="kakao" href="http://localhost:3004/api/auth/oauth/kakao/start">카카오로 계속하기</a>
-      <a className="naver" href="http://localhost:3004/api/auth/oauth/naver/start">네이버로 계속하기</a>
+      <a className="kakao" href="/api/auth/oauth/kakao/start">카카오로 계속하기</a>
+      <a className="naver" href="/api/auth/oauth/naver/start">네이버로 계속하기</a>
     </div>
     */}
   </>;

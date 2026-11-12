@@ -1,5 +1,3 @@
-import { API_BASE_URL } from "./config";
-
 type ApiEnvelope<T> = { success: true; data: T } | { success: false; error: { message: string } };
 
 export class ApiError extends Error {
@@ -9,7 +7,7 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(path, {
     ...init,
     credentials: "include",
     headers: { "Content-Type": "application/json", ...init?.headers },

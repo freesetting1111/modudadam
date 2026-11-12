@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "@/lib/config";
 
 type ConnectionState = "checking" | "online" | "offline";
 
@@ -20,7 +19,7 @@ export function BackendStatus() {
 
     async function checkBackend() {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/health`, {
+        const response = await fetch("/api/health", {
           signal: controller.signal,
         });
         const result = (await response.json()) as HealthResponse;

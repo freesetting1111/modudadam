@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { API_BASE_URL } from "./config";
+import { API_SERVER_URL } from "./server-config";
 
 export type SessionUser = {
   id: string;
@@ -19,7 +19,7 @@ export async function getServerSessionUser() {
   if (!cookieHeader) return null;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const response = await fetch(`${API_SERVER_URL}/api/auth/me`, {
       headers: { cookie: cookieHeader },
       cache: "no-store",
     });

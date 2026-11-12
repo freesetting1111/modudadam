@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { API_BASE_URL } from "@/lib/config";
 
 const ANONYMOUS_KEY = "modudadam_anonymous_id";
 
@@ -14,7 +13,7 @@ export function AnalyticsTracker() {
     const query = new URLSearchParams(window.location.search);
     const firstLanding = sessionStorage.getItem("modudadam_landing_url") || window.location.href;
     sessionStorage.setItem("modudadam_landing_url", firstLanding);
-    void fetch(`${API_BASE_URL}/api/access-logs`, {
+    void fetch("/api/access-logs", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       keepalive: true,
       body: JSON.stringify({
