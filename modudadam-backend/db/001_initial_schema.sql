@@ -83,7 +83,6 @@ CREATE TABLE IF NOT EXISTS posts (
   category_id smallint NOT NULL REFERENCES categories(id),
   author_id uuid NOT NULL REFERENCES users(id),
   title varchar(200) NOT NULL,
-  summary varchar(500),
   content text NOT NULL,
   post_type varchar(40) NOT NULL DEFAULT 'community',
   attributes jsonb NOT NULL DEFAULT '{}'::jsonb,

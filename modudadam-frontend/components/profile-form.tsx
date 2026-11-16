@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Check, LoaderCircle, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, Check, LoaderCircle, Mail, Pencil, ShieldCheck, UserRound } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
 type Profile = {
@@ -21,6 +21,7 @@ type Profile = {
 type NicknameState = "unchanged" | "unchecked" | "checking" | "available" | "taken";
 
 export function ProfileForm() {
+  const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [initialNickname, setInitialNickname] = useState("");
   const [nicknameState, setNicknameState] = useState<NicknameState>("unchanged");
@@ -95,6 +96,7 @@ export function ProfileForm() {
       setInitialNickname(result.profile.nickname);
       setNicknameState("unchanged");
       setSuccess("프로필을 저장했습니다.");
+      setEditing(false);
       window.dispatchEvent(new CustomEvent("modudadam:profile-updated", { detail: { nickname: result.profile.nickname } }));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "프로필을 저장하지 못했습니다.");
@@ -145,6 +147,27 @@ export function ProfileForm() {
   if (loadingError) return <div className="profile-state error">{loadingError}</div>;
   if (!profile) return <div className="profile-state"><LoaderCircle className="spin" size={24} /> 프로필을 불러오는 중입니다.</div>;
 
+  if (!editing) return <div className="profile-overview">
+    <div className="profile-summary">
+      <span className="profile-avatar">
+        <Image className={profile.avatarUrl ? undefined : "default-avatar"} src={profile.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={72} height={72} unoptimized={Boolean(profile.avatarUrl)} />
+      </span>
+      <div><small>{providerLabel(profile.provider)} 계정</small><strong>{profile.nickname}</strong><p>{profile.statusMessage || "아직 상태 메시지가 없어요."}</p></div>
+      <button className="profile-edit-button" type="button" onClick={() => { setEditing(true); setSuccess(""); }}><Pencil size={15} /> 프로필 편집</button>
+    </div>
+    <section className="profile-section profile-read-section">
+      <div className="profile-section-title"><UserRound size={19} /><div><h2>내 정보</h2><p>등록된 계정 정보를 확인할 수 있어요.</p></div></div>
+      <dl className="profile-read-grid">
+        <div><dt>닉네임</dt><dd>{profile.nickname}</dd></div>
+        <div><dt>상태 메시지</dt><dd>{profile.statusMessage || "미등록"}</dd></div>
+        <div><dt>성별</dt><dd>{genderLabel(profile.gender)}</dd></div>
+        <div><dt>연령대</dt><dd>{ageRangeLabel(profile.ageRange)}</dd></div>
+        <div className="wide"><dt>이메일</dt><dd>{profile.email || "미등록"}{profile.emailVerified && <span><BadgeCheck size={14} /> 인증 완료</span>}</dd></div>
+      </dl>
+    </section>
+    {success && <div className="profile-save-success" role="status"><Check size={16} /> {success}</div>}
+  </div>;
+
   return <form className="profile-form" onSubmit={submit}>
     <div className="profile-summary">
       <span className="profile-avatar">
@@ -192,7 +215,7 @@ export function ProfileForm() {
 
     {error && <div className="form-error" role="alert">{error}</div>}
     {success && <div className="profile-save-success" role="status"><Check size={16} /> {success}</div>}
-    <button className="profile-submit" type="submit" disabled={saving || !nicknameValid || !nicknameReady}>{saving ? "저장 중..." : nicknameState === "unchecked" || nicknameState === "taken" ? "닉네임 중복 확인이 필요합니다" : "저장하기"}</button>
+    <div className="profile-edit-actions"><button type="button" onClick={() => setEditing(false)} disabled={saving}>취소</button><button className="profile-submit" type="submit" disabled={saving || !nicknameValid || !nicknameReady}>{saving ? "저장 중..." : nicknameState === "unchecked" || nicknameState === "taken" ? "닉네임 중복 확인이 필요합니다" : "저장하기"}</button></div>
   </form>;
 }
 
@@ -200,4 +223,17 @@ function providerLabel(provider: Profile["provider"]) {
   if (provider === "kakao") return "카카오";
   if (provider === "naver") return "네이버";
   return "모두다담";
+}
+
+function genderLabel(value: string | null) {
+  if (value === "male") return "남성";
+  if (value === "female") return "여성";
+  if (value === "other") return "기타";
+  return "미등록";
+}
+
+function ageRangeLabel(value: string | null) {
+  if (!value) return "미등록";
+  if (value === "60+") return "60대 이상";
+  return `${value.slice(0, 2)}대`;
 }

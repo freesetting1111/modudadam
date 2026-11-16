@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 
 type Post = {
-  id: string; title: string; summary: string | null; authorName: string; viewCount: number;
+  id: string; title: string; authorName: string; viewCount: number;
   commentCount: number; createdAt: string; isNotice: boolean; isPinned: boolean;
 };
 
@@ -44,7 +44,6 @@ export function BoardList({ categoryCode, categoryName, authenticated }: { categ
     {!loading && !error && posts.length > 0 && <div className="board-list">{posts.map((post) =>
       <Link href={`/posts/${post.id}`} className="board-row" key={post.id}>
         <div className="board-row-title">{post.isNotice && <b className="notice-badge">공지</b>}{post.title}</div>
-        {post.summary && <p>{post.summary}</p>}
         <small>{post.authorName} · {new Date(post.createdAt).toLocaleDateString("ko-KR")} · 조회 {post.viewCount} · 댓글 {post.commentCount}</small>
       </Link>)}</div>}
   </>;

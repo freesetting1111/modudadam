@@ -11,7 +11,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       CASE WHEN comments.status='deleted' THEN '삭제된 댓글입니다.' ELSE comments.content END AS content,
       comments.created_at AS "createdAt",comments.updated_at AS "updatedAt",
       users.id AS "authorId",users.nickname AS "authorName",
-      (comments.author_id=$2::uuid AND comments.status='published') AS "canDelete"
+      (comments.author_id=$2::uuid AND comments.status='published') AS "canDelete",
+      (comments.author_id=$2::uuid AND comments.status='published') AS "canEdit",
+      ($2::uuid IS NOT NULL AND comments.author_id<>$2::uuid AND comments.status='published') AS "canReport"
      FROM comments JOIN users ON users.id=comments.author_id
      WHERE comments.post_id=$1 AND comments.status IN ('published','deleted')
      ORDER BY comments.created_at ASC,comments.id ASC`,
