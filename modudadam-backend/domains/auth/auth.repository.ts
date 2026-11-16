@@ -8,6 +8,8 @@ export type OAuthProvider = "kakao" | "naver";
 export type OAuthProfile = {
   provider: OAuthProvider;
   providerUserId: string;
+  email?: string;
+  emailVerified?: boolean;
   nickname?: string;
   avatarUrl?: string;
   raw: Record<string, unknown>;
@@ -97,15 +99,18 @@ async function upsertOAuthUser(profile: OAuthProfile, client: PoolClient, accept
       [profile.provider, profile.providerUserId],
     );
     let userId = account.rows[0]?.user_id;
+    const availableEmail = profile.email
+      ? await getAvailableOAuthEmail(profile.email, userId, client)
+      : null;
 
     if (!userId) {
       const nickname = await createAvailableNickname(profile.nickname, client);
       const user = await client.query<{ id: string }>(
         `INSERT INTO users(
-           nickname,avatar_url,last_login_at,terms_agreed_at,privacy_agreed_at
-         ) VALUES($1,$2,now(),CASE WHEN $3 THEN now() END,CASE WHEN $3 THEN now() END)
+           nickname,email,email_verified_at,avatar_url,last_login_at,terms_agreed_at,privacy_agreed_at
+         ) VALUES($1,$2,CASE WHEN $3 THEN now() END,$4,now(),CASE WHEN $5 THEN now() END,CASE WHEN $5 THEN now() END)
          RETURNING id`,
-        [nickname, profile.avatarUrl || null, acceptAgreements],
+        [nickname, availableEmail, Boolean(availableEmail && profile.emailVerified), profile.avatarUrl || null, acceptAgreements],
       );
       userId = user.rows[0].id;
       await client.query(
@@ -113,7 +118,7 @@ async function upsertOAuthUser(profile: OAuthProfile, client: PoolClient, accept
            user_id,provider,provider_user_id,provider_email,provider_nickname,
            provider_phone_number,provider_gender,provider_age_range,profile
          ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)`,
-        [userId, profile.provider, profile.providerUserId, null, profile.nickname || null,
+        [userId, profile.provider, profile.providerUserId, profile.email || null, profile.nickname || null,
           null, null, null, JSON.stringify(profile.raw)],
       );
     } else {
@@ -121,19 +126,32 @@ async function upsertOAuthUser(profile: OAuthProfile, client: PoolClient, accept
         `UPDATE user_oauth_accounts SET provider_email=$3,provider_nickname=$4,
          provider_phone_number=$5,provider_gender=$6,provider_age_range=$7,profile=$8::jsonb,last_login_at=now()
          WHERE provider=$1 AND provider_user_id=$2`,
-        [profile.provider, profile.providerUserId, null, profile.nickname || null,
+        [profile.provider, profile.providerUserId, profile.email || null, profile.nickname || null,
           null, null, null, JSON.stringify(profile.raw)],
       );
       await client.query(
         `UPDATE users SET avatar_url=COALESCE($2,avatar_url),
-         terms_agreed_at=CASE WHEN $3 THEN COALESCE(terms_agreed_at,now()) ELSE terms_agreed_at END,
-         privacy_agreed_at=CASE WHEN $3 THEN COALESCE(privacy_agreed_at,now()) ELSE privacy_agreed_at END,
+         email_verified_at=CASE WHEN email IS NULL AND $3 IS NOT NULL AND $4 THEN now() ELSE email_verified_at END,
+         email=COALESCE(email,$3),
+         terms_agreed_at=CASE WHEN $5 THEN COALESCE(terms_agreed_at,now()) ELSE terms_agreed_at END,
+         privacy_agreed_at=CASE WHEN $5 THEN COALESCE(privacy_agreed_at,now()) ELSE privacy_agreed_at END,
          last_login_at=now(),updated_at=now() WHERE id=$1`,
-        [userId, profile.avatarUrl || null, acceptAgreements],
+        [userId, profile.avatarUrl || null, availableEmail, Boolean(availableEmail && profile.emailVerified), acceptAgreements],
       );
     }
     if (!userId) throw new Error("OAUTH_USER_CREATION_FAILED");
     return userId;
+}
+
+async function getAvailableOAuthEmail(email: string, userId: string | undefined, client: PoolClient) {
+  const duplicate = await client.query(
+    `SELECT 1 FROM users
+     WHERE lower(email)=lower($1) AND deleted_at IS NULL
+       AND ($2::uuid IS NULL OR id<>$2::uuid)
+     LIMIT 1`,
+    [email, userId || null],
+  );
+  return duplicate.rowCount ? null : email;
 }
 
 async function createAvailableNickname(providerNickname: string | undefined, client: PoolClient) {

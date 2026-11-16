@@ -35,6 +35,7 @@ export function startOAuth(provider: OAuthProvider, request: NextRequest) {
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
+  if (provider === "kakao") url.searchParams.set("scope", "account_email");
 
   const response = NextResponse.redirect(url);
   response.cookies.set(`${provider}_oauth_state`, nonce, {
@@ -96,9 +97,14 @@ async function fetchProfile(provider: OAuthProvider, accessToken: string): Promi
     const response = await fetch("https://kapi.kakao.com/v2/user/me", { headers: { Authorization: `Bearer ${accessToken}` } });
     const body = await response.json();
     if (!response.ok) throw new Error("카카오 프로필 조회 실패");
-    const nickname = body.kakao_account?.profile?.nickname;
-    const avatarUrl = body.kakao_account?.profile?.profile_image_url;
-    return { provider, providerUserId: String(body.id), nickname, avatarUrl,
+    const account = body.kakao_account;
+    const nickname = account?.profile?.nickname;
+    const avatarUrl = account?.profile?.profile_image_url;
+    const emailVerified = account?.is_email_valid === true && account?.is_email_verified === true;
+    const email = emailVerified && typeof account?.email === "string"
+      ? account.email.trim().toLowerCase()
+      : undefined;
+    return { provider, providerUserId: String(body.id), nickname, avatarUrl, email, emailVerified,
       raw: { id: body.id, nickname, profileImage: avatarUrl } };
   }
   const response = await fetch("https://openapi.naver.com/v1/nid/me", { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -106,7 +112,10 @@ async function fetchProfile(provider: OAuthProvider, accessToken: string): Promi
   if (!response.ok || body.resultcode !== "00") throw new Error("네이버 프로필 조회 실패");
   const nickname = body.response.nickname || body.response.name;
   const avatarUrl = body.response.profile_image;
-  return { provider, providerUserId: body.response.id, nickname, avatarUrl,
+  const email = typeof body.response.email === "string"
+    ? body.response.email.trim().toLowerCase()
+    : undefined;
+  return { provider, providerUserId: body.response.id, nickname, avatarUrl, email, emailVerified: Boolean(email),
     raw: { id: body.response.id, nickname, profileImage: avatarUrl } };
 }
 
