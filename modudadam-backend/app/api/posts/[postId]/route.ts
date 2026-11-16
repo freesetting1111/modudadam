@@ -17,10 +17,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       posts.post_type AS "postType",posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
       posts.published_at AS "publishedAt",posts.created_at AS "createdAt",posts.updated_at AS "updatedAt",
       categories.code AS "categoryCode",categories.name AS "categoryName",
-      users.id AS "authorId",COALESCE(local_account.login_id,users.nickname) AS "authorName",
+      users.id AS "authorId",users.nickname AS "authorName",
       (posts.author_id=$2::uuid) AS "canEdit"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
-     LEFT JOIN user_local_accounts local_account ON local_account.user_id=users.id
      WHERE posts.id=$1 AND posts.status='published'`, [postId, user?.id || null]);
   if (!detail.rows[0]) return errorResponse("글을 찾을 수 없습니다.", 404);
   return jsonResponse({ post: detail.rows[0] });

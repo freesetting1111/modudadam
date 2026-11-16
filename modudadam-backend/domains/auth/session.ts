@@ -29,10 +29,9 @@ export async function getSessionUser(request: NextRequest): Promise<SessionUser 
   const result = await query<{
     id: string; nickname: string; email: string | null; avatar_url: string | null; role: string;
   }>(
-    `SELECT users.id,COALESCE(account.login_id,users.nickname) AS nickname,users.email,users.avatar_url,users.role
+    `SELECT users.id,users.nickname,users.email,users.avatar_url,users.role
      FROM user_sessions sessions
      JOIN users ON users.id = sessions.user_id
-     LEFT JOIN user_local_accounts account ON account.user_id=users.id
      WHERE sessions.token_hash = $1 AND sessions.revoked_at IS NULL
        AND sessions.expires_at > now() AND users.status = 'active'`,
     [hashToken(token)],

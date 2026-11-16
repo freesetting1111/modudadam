@@ -97,6 +97,8 @@ async function fetchProfile(provider: OAuthProvider, accessToken: string): Promi
     if (!response.ok) throw new Error("카카오 프로필 조회 실패");
     return { provider, providerUserId: String(body.id), email: body.kakao_account?.email,
       nickname: body.kakao_account?.profile?.nickname, avatarUrl: body.kakao_account?.profile?.profile_image_url,
+      phoneNumber: body.kakao_account?.phone_number, gender: body.kakao_account?.gender,
+      ageRange: body.kakao_account?.age_range,
       raw: { id: body.id, kakao_account: body.kakao_account } };
   }
   const response = await fetch("https://openapi.naver.com/v1/nid/me", { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -104,6 +106,7 @@ async function fetchProfile(provider: OAuthProvider, accessToken: string): Promi
   if (!response.ok || body.resultcode !== "00") throw new Error("네이버 프로필 조회 실패");
   return { provider, providerUserId: body.response.id, email: body.response.email,
     nickname: body.response.nickname || body.response.name, avatarUrl: body.response.profile_image,
+    phoneNumber: body.response.mobile, gender: body.response.gender, ageRange: body.response.age,
     raw: body.response };
 }
 

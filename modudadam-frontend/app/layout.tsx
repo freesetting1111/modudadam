@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <SiteHeader initialUser={sessionUser} />
           <main>{children}</main>
           <footer>© 모두다담 · 일상을 다정하게 담아요</footer>
-          <BottomNav />
+          <BottomNav authenticated={Boolean(sessionUser)} />
         </div>
       </body>
     </html>

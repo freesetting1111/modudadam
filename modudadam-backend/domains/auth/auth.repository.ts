@@ -11,6 +11,9 @@ export type OAuthProfile = {
   email?: string;
   nickname?: string;
   avatarUrl?: string;
+  phoneNumber?: string;
+  gender?: string;
+  ageRange?: string;
   raw: Record<string, unknown>;
 };
 
@@ -25,26 +28,35 @@ export async function loginOAuthUser(profile: OAuthProfile, userAgent?: string) 
     let userId = account.rows[0]?.user_id;
 
     if (!userId) {
+      const nickname = await createAvailableNickname(profile.nickname, client);
       const user = await client.query<{ id: string }>(
-        `INSERT INTO users(nickname, email, avatar_url, last_login_at)
-         VALUES($1,$2,$3,now()) RETURNING id`,
-        [profile.nickname || "모두다담 사용자", profile.email || null, profile.avatarUrl || null],
+        `INSERT INTO users(nickname,email,avatar_url,phone_number,gender,age_range,last_login_at)
+         VALUES($1,$2,$3,$4,$5,$6,now()) RETURNING id`,
+        [nickname, profile.email || null, profile.avatarUrl || null, normalizePhone(profile.phoneNumber), profile.gender || null, profile.ageRange || null],
       );
       userId = user.rows[0].id;
       await client.query(
-        `INSERT INTO user_oauth_accounts(user_id,provider,provider_user_id,provider_email,profile)
-         VALUES($1,$2,$3,$4,$5::jsonb)`,
-        [userId, profile.provider, profile.providerUserId, profile.email || null, JSON.stringify(profile.raw)],
+        `INSERT INTO user_oauth_accounts(
+           user_id,provider,provider_user_id,provider_email,provider_nickname,
+           provider_phone_number,provider_gender,provider_age_range,profile
+         ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)`,
+        [userId, profile.provider, profile.providerUserId, profile.email || null, profile.nickname || null,
+          profile.phoneNumber || null, profile.gender || null, profile.ageRange || null, JSON.stringify(profile.raw)],
       );
     } else {
       await client.query(
-        `UPDATE user_oauth_accounts SET provider_email=$3, profile=$4::jsonb, last_login_at=now()
+        `UPDATE user_oauth_accounts SET provider_email=$3,provider_nickname=$4,
+         provider_phone_number=$5,provider_gender=$6,provider_age_range=$7,profile=$8::jsonb,last_login_at=now()
          WHERE provider=$1 AND provider_user_id=$2`,
-        [profile.provider, profile.providerUserId, profile.email || null, JSON.stringify(profile.raw)],
+        [profile.provider, profile.providerUserId, profile.email || null, profile.nickname || null,
+          profile.phoneNumber || null, profile.gender || null, profile.ageRange || null, JSON.stringify(profile.raw)],
       );
       await client.query(
-        "UPDATE users SET nickname=COALESCE($2,nickname), avatar_url=COALESCE($3,avatar_url), last_login_at=now(), updated_at=now() WHERE id=$1",
-        [userId, profile.nickname || null, profile.avatarUrl || null],
+        `UPDATE users SET avatar_url=COALESCE($2,avatar_url),gender=COALESCE($3,gender),
+         age_range=COALESCE($4,age_range),email=COALESCE(email,$5),phone_number=COALESCE(phone_number,$6),
+         last_login_at=now(),updated_at=now() WHERE id=$1`,
+        [userId, profile.avatarUrl || null, profile.gender || null, profile.ageRange || null,
+          profile.email || null, normalizePhone(profile.phoneNumber)],
       );
     }
 
@@ -57,6 +69,30 @@ export async function loginOAuthUser(profile: OAuthProfile, userAgent?: string) 
   } finally {
     client.release();
   }
+}
+
+async function createAvailableNickname(providerNickname: string | undefined, client: PoolClient) {
+  const normalized = (providerNickname || "모두다담")
+    .normalize("NFKC")
+    .replace(/[\s\u0000-\u001f\u007f]/gu, "");
+  const base = Array.from(normalized || "모두다담").slice(0, 12).join("");
+
+  for (let suffix = 0; suffix < 1000; suffix += 1) {
+    const suffixText = suffix ? String(suffix + 1) : "";
+    const candidate = `${Array.from(base).slice(0, 12 - suffixText.length).join("")}${suffixText}`;
+    const exists = await client.query(
+      "SELECT 1 FROM users WHERE lower(nickname)=lower($1) AND deleted_at IS NULL LIMIT 1",
+      [candidate],
+    );
+    if (!exists.rowCount) return candidate;
+  }
+  return `모두${randomBytes(4).toString("hex")}`.slice(0, 12);
+}
+
+function normalizePhone(value: string | undefined) {
+  const digits = value?.replace(/\D/g, "") || "";
+  const phone = digits.startsWith("82") ? `0${digits.slice(2)}` : digits;
+  return /^01[016789]\d{7,8}$/.test(phone) ? phone : null;
 }
 
 type RegisterInput = {

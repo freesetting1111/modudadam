@@ -12,9 +12,8 @@ export async function GET(request: NextRequest) {
       posts.view_count AS "viewCount", posts.comment_count AS "commentCount",
       posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",
       posts.published_at AS "publishedAt",posts.created_at AS "createdAt",categories.code AS "categoryCode",
-      categories.name AS "categoryName",COALESCE(local_account.login_id,users.nickname) AS "authorName"
+      categories.name AS "categoryName",users.nickname AS "authorName"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
-     LEFT JOIN user_local_accounts local_account ON local_account.user_id=users.id
      WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
        AND ($2::text IS NULL OR posts.title ILIKE '%'||$2||'%' OR posts.content ILIKE '%'||$2||'%')
      ORDER BY posts.is_pinned DESC,

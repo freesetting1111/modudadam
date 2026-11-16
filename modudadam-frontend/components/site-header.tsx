@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronRight, CircleHelp, CircleUserRound, Home, LogIn, LogOut, Menu, Search, X } from "lucide-react";
+import { ChevronRight, CircleHelp, CircleUserRound, Home, LogIn, LogOut, Menu, Search, UserRound, X } from "lucide-react";
 import { categories } from "@/lib/categories";
 import { apiRequest } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
@@ -26,6 +26,15 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
     });
     return () => controller.abort();
   }, [pathname]);
+
+  useEffect(() => {
+    const updateNickname = (event: Event) => {
+      const nickname = (event as CustomEvent<{ nickname?: string }>).detail?.nickname;
+      if (nickname) setUser((current) => current ? { ...current, nickname } : current);
+    };
+    window.addEventListener("modudadam:profile-updated", updateNickname);
+    return () => window.removeEventListener("modudadam:profile-updated", updateNickname);
+  }, []);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -68,8 +77,8 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
         </button>
         <div id="site-menu" className="drawer-panel" data-open={isMenuOpen || undefined} aria-hidden={!isMenuOpen}>
           {pathname !== "/login" && (user ? <div className="drawer-account">
-            <span className="drawer-account-avatar"><Image src="/brand/modudadam-squirrel.png" alt="" width={44} height={44} /></span>
-            <span className="drawer-account-copy"><small>로그인 중</small><strong>{user.nickname}</strong></span>
+            <Link href="/my" className="drawer-account-profile" onClick={closeMenu}><span className="drawer-account-avatar"><Image src={user.avatarUrl || "/brand/modudadam-squirrel.png"} alt="" width={44} height={44} unoptimized={Boolean(user.avatarUrl)} /></span>
+            <span className="drawer-account-copy"><small>마이페이지</small><strong>{user.nickname}</strong></span><ChevronRight size={18} /></Link>
             <button type="button" className="drawer-logout" onClick={logout} disabled={loggingOut}><LogOut size={16} /> {loggingOut ? "처리 중" : "로그아웃"}</button>
           </div> : <Link href="/login" className="drawer-account drawer-account-guest" onClick={closeMenu}>
             <span className="drawer-account-avatar"><CircleUserRound size={25} /></span>
@@ -82,7 +91,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
             return <Link href={`/category/${category.code}`} key={category.code} onClick={closeMenu}><span className={`drawer-icon category-${category.code}`}><Icon size={24} strokeWidth={1.9} /></span>{category.short}</Link>;
           })}</div>
           <h2>서비스 바로가기</h2>
-          <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link><Link href="/about" onClick={closeMenu}><CircleHelp /> 모두다담 소개</Link></div>
+          <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link>{user && <Link href="/my" onClick={closeMenu}><UserRound /> 마이페이지</Link>}<Link href="/about" onClick={closeMenu}><CircleHelp /> 모두다담 소개</Link></div>
         </div>
       </div>
       <Link href="/" className="brand" onClick={closeMenu}><span className="brand-mark"><Image src="/brand/modudadam-squirrel.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>
