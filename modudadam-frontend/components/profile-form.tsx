@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Check, LoaderCircle, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, Check, LoaderCircle, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
 type Profile = {
   nickname: string;
   statusMessage: string;
   email: string;
+  emailVerified: boolean;
   phoneNumber: string;
   gender: string | null;
   ageRange: string | null;
@@ -27,6 +28,12 @@ export function ProfileForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailConfirming, setEmailConfirming] = useState(false);
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -34,6 +41,7 @@ export function ProfileForm() {
       .then(({ profile: loaded }) => {
         setProfile(loaded);
         setInitialNickname(loaded.nickname);
+        setEmailInput(loaded.email);
       })
       .catch((requestError) => {
         if (requestError instanceof Error && requestError.name !== "AbortError") setLoadingError(requestError.message);
@@ -79,8 +87,8 @@ export function ProfileForm() {
         body: JSON.stringify({
           nickname: profile.nickname,
           statusMessage: profile.statusMessage,
-          email: profile.email,
-          phoneNumber: profile.phoneNumber,
+          gender: profile.gender,
+          ageRange: profile.ageRange,
         }),
       });
       setProfile(result.profile);
@@ -92,6 +100,45 @@ export function ProfileForm() {
       setError(requestError instanceof Error ? requestError.message : "프로필을 저장하지 못했습니다.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function requestEmailCode() {
+    setEmailSending(true);
+    setError("");
+    setEmailMessage("");
+    try {
+      await apiRequest("/api/users/me/email-verification/request", {
+        method: "POST",
+        body: JSON.stringify({ email: emailInput }),
+      });
+      setEmailCode("");
+      setEmailCodeSent(true);
+      setEmailMessage("입력한 이메일로 인증번호를 보냈습니다. 5분 안에 입력해 주세요.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "인증번호를 보내지 못했습니다.");
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
+  async function confirmEmailCode() {
+    setEmailConfirming(true);
+    setError("");
+    try {
+      const result = await apiRequest<{ profile: Profile }>("/api/users/me/email-verification/confirm", {
+        method: "POST",
+        body: JSON.stringify({ email: emailInput, code: emailCode }),
+      });
+      setProfile(result.profile);
+      setEmailInput(result.profile.email);
+      setEmailCodeSent(false);
+      setEmailCode("");
+      setEmailMessage("이메일 인증이 완료되었습니다.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "이메일을 인증하지 못했습니다.");
+    } finally {
+      setEmailConfirming(false);
     }
   }
 
@@ -126,20 +173,21 @@ export function ProfileForm() {
 
     <section className="profile-section">
       <div className="profile-section-title"><ShieldCheck size={19} /><div><h2>기본 정보</h2><p>계정과 서비스 이용에 필요한 정보예요.</p></div></div>
-      <div className="profile-readonly-grid">
-        <div><span>성별</span><strong>{genderLabel(profile.gender)}</strong></div>
-        <div><span>연령대</span><strong>{ageLabel(profile.ageRange)}</strong></div>
+      <div className="profile-select-grid">
+        <label><span>성별 <em>선택</em></span><select value={profile.gender || ""} onChange={(event) => update("gender", event.target.value || null)}><option value="">선택 안 함</option><option value="male">남성</option><option value="female">여성</option><option value="other">기타</option></select></label>
+        <label><span>연령대 <em>선택</em></span><select value={profile.ageRange || ""} onChange={(event) => update("ageRange", event.target.value || null)}><option value="">선택 안 함</option><option value="10-19">10대</option><option value="20-29">20대</option><option value="30-39">30대</option><option value="40-49">40대</option><option value="50-59">50대</option><option value="60+">60대 이상</option></select></label>
       </div>
-      <p className="profile-source-note"><BadgeCheck size={15} /> 성별과 연령대는 연결된 소셜 계정에서 제공된 정보이며 공개되지 않아요.</p>
-      <label className="profile-field">
-        <span><b><Mail size={15} /> 이메일</b><em>{profile.email.length}/254</em></span>
-        <input type="email" value={profile.email} onChange={(event) => update("email", event.target.value.replace(/[^\x21-\x7E]/g, "").slice(0, 254))} maxLength={254} placeholder="name@example.com" inputMode="email" />
-      </label>
-      <label className="profile-field">
-        <span><b><Phone size={15} /> 휴대폰 번호</b><em>{profile.phoneNumber.length}/11</em></span>
-        <input value={profile.phoneNumber} onChange={(event) => update("phoneNumber", event.target.value.replace(/\D/g, "").slice(0, 11))} maxLength={11} placeholder="숫자만 입력해 주세요." inputMode="numeric" />
-      </label>
-      <p className="profile-verification-note">이메일이나 휴대폰 번호를 변경하면 기존 인증 상태가 해제됩니다.</p>
+      <p className="profile-source-note"><BadgeCheck size={15} /> 직접 선택하는 선택 정보이며 다른 사용자에게 공개되지 않아요.</p>
+      <div className="profile-field">
+        <span><b><Mail size={15} /> 이메일</b>{profile.emailVerified && emailInput === profile.email ? <small className="profile-verified"><BadgeCheck size={14} /> 인증 완료</small> : <em>선택</em>}</span>
+        <div className="profile-email-row">
+          <input type="email" value={emailInput} onChange={(event) => { setEmailInput(event.target.value.replace(/[^\x21-\x7E]/g, "").slice(0, 254)); setEmailCodeSent(false); setEmailMessage(""); }} maxLength={254} placeholder="name@example.com" inputMode="email" />
+          <button type="button" onClick={requestEmailCode} disabled={emailSending || !emailInput || (profile.emailVerified && emailInput === profile.email)}>{emailSending ? "발송 중" : profile.emailVerified && emailInput === profile.email ? "인증 완료" : "인증번호 받기"}</button>
+        </div>
+        {emailCodeSent && <div className="profile-email-row"><input value={emailCode} onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))} maxLength={6} placeholder="6자리 인증번호" inputMode="numeric" /><button type="button" onClick={confirmEmailCode} disabled={emailConfirming || emailCode.length !== 6}>{emailConfirming ? "확인 중" : "확인"}</button></div>}
+        {emailMessage && <small className={profile.emailVerified && emailInput === profile.email ? "profile-success" : "profile-help"}>{profile.emailVerified && emailInput === profile.email && <Check size={13} />}{emailMessage}</small>}
+      </div>
+      <p className="profile-verification-note">이메일은 알림과 계정 안내가 필요할 때만 사용해요. 인증 전에는 저장되지 않으며, 휴대폰 번호는 수집하지 않아요.</p>
     </section>
 
     {error && <div className="form-error" role="alert">{error}</div>}
@@ -152,18 +200,4 @@ function providerLabel(provider: Profile["provider"]) {
   if (provider === "kakao") return "카카오";
   if (provider === "naver") return "네이버";
   return "모두다담";
-}
-
-function genderLabel(gender: string | null) {
-  if (!gender) return "미제공";
-  const value = gender.toLowerCase();
-  if (value === "m" || value === "male") return "남성";
-  if (value === "f" || value === "female") return "여성";
-  return "미제공";
-}
-
-function ageLabel(ageRange: string | null) {
-  if (!ageRange) return "미제공";
-  const firstAge = ageRange.match(/\d{2}/)?.[0];
-  return firstAge ? `${firstAge}대` : ageRange;
 }

@@ -43,6 +43,17 @@ export async function sendRecoveryEmail(to: string, code: string, purpose: Recov
   });
 }
 
+export async function sendProfileEmailVerification(to: string, code: string) {
+  const { from, transporter } = createMailer();
+  await transporter.sendMail({
+    from,
+    to,
+    subject: "[모두다담] 이메일 인증번호",
+    text: `인증번호는 ${code} 입니다. 5분 안에 입력해 주세요.`,
+    html: `<div style="font-family:Arial,'Noto Sans KR',sans-serif;padding:24px;color:#172033"><h2 style="margin:0 0 20px">모두다담 이메일 인증</h2><p>아래 인증번호를 5분 안에 입력해 주세요.</p><div style="margin:24px 0;padding:18px;background:#f3f6ff;border-radius:12px;font-size:28px;font-weight:800;letter-spacing:6px;text-align:center">${code}</div><p style="color:#667085;font-size:13px">본인이 요청하지 않았다면 이 메일을 무시해 주세요.</p></div>`,
+  });
+}
+
 export async function sendWelcomeEmail(to: string, realName: string, loginId: string) {
   const { from, transporter } = createMailer();
   const serviceUrl = process.env.FRONTEND_URL || "http://localhost:3005";

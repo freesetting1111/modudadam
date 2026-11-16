@@ -62,8 +62,8 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
     }
   }
 
-  if (pathname === "/login") {
-    return <header className="site-header login-site-header"><Link href="/" className="brand"><span className="brand-mark"><Image src="/brand/modudadam-squirrel.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link><Link href="/" className="login-close" aria-label="로그인 화면 닫기"><X size={23} /></Link></header>;
+  if (pathname === "/login" || pathname === "/signup/agreements") {
+    return <header className="site-header login-site-header"><Link href="/" className="brand"><span className="brand-mark"><Image src="/brand/modudadam-squirrel.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link><Link href={pathname === "/signup/agreements" ? "/login" : "/"} className="login-close" aria-label="화면 닫기"><X size={23} /></Link></header>;
   }
 
   return (

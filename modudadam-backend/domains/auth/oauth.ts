@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { loginOAuthUser, type OAuthProfile, type OAuthProvider } from "./auth.repository";
-import { SESSION_COOKIE } from "./session";
+import { createOAuthLoginTicket, type OAuthProfile, type OAuthProvider } from "./auth.repository";
 
 const configs = {
   kakao: {
@@ -60,16 +59,12 @@ export async function handleOAuthCallback(provider: OAuthProvider, request: Next
 
     const accessToken = await exchangeToken(provider, code, encodedState || "");
     const profile = await fetchProfile(provider, accessToken);
-    const sessionToken = await loginOAuthUser(profile, request.headers.get("user-agent") || undefined);
-    const response = NextResponse.redirect(new URL(state.returnTo || "/", successUrl));
+    const { ticket, requiresAgreement } = await createOAuthLoginTicket(profile, state.returnTo || "/");
+    const nextPath = requiresAgreement ? "/signup/agreements" : "/api/auth/oauth/finalize";
+    const nextUrl = new URL(nextPath, successUrl);
+    nextUrl.searchParams.set("ticket", ticket);
+    const response = NextResponse.redirect(nextUrl);
     response.cookies.delete(`${provider}_oauth_state`);
-    response.cookies.set(SESSION_COOKIE, sessionToken, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 14,
-    });
     return response;
   } catch (error) {
     console.error(`[OAuth:${provider}]`, error);
@@ -101,19 +96,18 @@ async function fetchProfile(provider: OAuthProvider, accessToken: string): Promi
     const response = await fetch("https://kapi.kakao.com/v2/user/me", { headers: { Authorization: `Bearer ${accessToken}` } });
     const body = await response.json();
     if (!response.ok) throw new Error("카카오 프로필 조회 실패");
-    return { provider, providerUserId: String(body.id), email: body.kakao_account?.email,
-      nickname: body.kakao_account?.profile?.nickname, avatarUrl: body.kakao_account?.profile?.profile_image_url,
-      phoneNumber: body.kakao_account?.phone_number, gender: body.kakao_account?.gender,
-      ageRange: body.kakao_account?.age_range,
-      raw: { id: body.id, kakao_account: body.kakao_account } };
+    const nickname = body.kakao_account?.profile?.nickname;
+    const avatarUrl = body.kakao_account?.profile?.profile_image_url;
+    return { provider, providerUserId: String(body.id), nickname, avatarUrl,
+      raw: { id: body.id, nickname, profileImage: avatarUrl } };
   }
   const response = await fetch("https://openapi.naver.com/v1/nid/me", { headers: { Authorization: `Bearer ${accessToken}` } });
   const body = await response.json();
   if (!response.ok || body.resultcode !== "00") throw new Error("네이버 프로필 조회 실패");
-  return { provider, providerUserId: body.response.id, email: body.response.email,
-    nickname: body.response.nickname || body.response.name, avatarUrl: body.response.profile_image,
-    phoneNumber: body.response.mobile, gender: body.response.gender, ageRange: body.response.age,
-    raw: body.response };
+  const nickname = body.response.nickname || body.response.name;
+  const avatarUrl = body.response.profile_image;
+  return { provider, providerUserId: body.response.id, nickname, avatarUrl,
+    raw: { id: body.response.id, nickname, profileImage: avatarUrl } };
 }
 
 function decodeState(value: string | null) {
