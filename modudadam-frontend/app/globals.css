@@ -124,3 +124,11 @@ footer { padding:30px 18px; color:#9aa1ac; text-align:center; font-size:11px; ba
 .hero-card img{right:-4px;bottom:-12px}
 .profile-avatar img.default-avatar{transform:scale(1.28);transform-origin:center top}
 .drawer-account-avatar img.default-avatar{transform:scale(1.3);transform-origin:center top}
+
+.mascot-alert-backdrop{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;padding:18px;background:#17203380;backdrop-filter:blur(2px)}
+.mascot-alert{width:min(100%,340px);padding:24px 22px 20px;border:1px solid #e5e9f0;border-radius:22px;background:#fff;text-align:center;box-shadow:0 20px 56px #17203335}
+.mascot-alert-visual{width:136px;height:136px;display:grid;place-items:center;margin:0 auto 16px;overflow:hidden;border-radius:50%;background:linear-gradient(145deg,#edf3ff,#fff4e4)}
+.mascot-alert-visual img{width:124px;height:124px;object-fit:contain}
+.mascot-alert h2{margin:0;color:#202b3f;font-size:18px;line-height:1.5;font-weight:850;letter-spacing:-.45px;word-break:keep-all}
+.mascot-alert>button{width:100%;height:50px;margin-top:22px;border:0;border-radius:13px;background:var(--brand);color:#fff;font:inherit;font-size:14px;font-weight:850;cursor:pointer}
+.mascot-alert>button:focus-visible{outline:3px solid #4f73d938;outline-offset:3px}

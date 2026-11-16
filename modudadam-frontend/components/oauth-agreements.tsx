@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -20,6 +21,7 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
   const [pending, setPending] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
   const [error, setError] = useState(ticket ? "" : "가입 인증 정보가 없습니다. 다시 로그인해 주세요.");
 
   useEffect(() => {
@@ -27,20 +29,38 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
     apiRequest<PendingProfile>(`/api/auth/signup/agreements?ticket=${encodeURIComponent(ticket)}`, { cache: "no-store" })
       .then((loaded) => {
         setProfile(loaded);
-        setNickname(sanitizeNickname(loaded.nickname || ""));
       })
       .catch((caught) => setError(caught instanceof Error ? caught.message : "가입 정보를 확인하지 못했습니다."));
   }, [ticket]);
 
   useEffect(() => {
-    if (!modalOpen) return;
+    if (!modalOpen && !alertMessage) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previous; };
-  }, [modalOpen]);
+  }, [modalOpen, alertMessage]);
 
   async function completeSignup() {
-    if (!ageOver14 || !agreementComplete || nicknameState !== "available") return;
+    if (!nickname) {
+      setAlertMessage("닉네임은 필수값입니다.");
+      return;
+    }
+    if (!isValidNickname(nickname)) {
+      setAlertMessage("닉네임 형식을 확인해 주세요.");
+      return;
+    }
+    if (nicknameState !== "available") {
+      setAlertMessage("닉네임 중복 확인이 필요합니다.");
+      return;
+    }
+    if (!ageOver14) {
+      setAlertMessage("만 14세 이상 확인은 필수입니다.");
+      return;
+    }
+    if (!agreementComplete) {
+      setAlertMessage("이용약관 동의는 필수입니다.");
+      return;
+    }
     setPending(true); setError("");
     try {
       const result = await apiRequest<{ returnTo: string }>("/api/auth/signup/agreements", {
@@ -69,7 +89,6 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
   }
 
   const nicknameValid = isValidNickname(nickname);
-  const ready = Boolean(profile) && nicknameState === "available" && ageOver14 && agreementComplete;
   return <section className="oauth-agreement-page auth-route-page">
     <div className="oauth-agreement-heading">
       <span><ShieldCheck size={25} /></span>
@@ -78,7 +97,7 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
     <div className="oauth-nickname-card">
       <label htmlFor="signup-nickname"><span><b>커뮤니티 닉네임</b><em>{Array.from(nickname).length}/20</em></span></label>
       <div className="oauth-nickname-row">
-        <input id="signup-nickname" value={nickname} maxLength={20} placeholder="닉네임을 입력해 주세요" aria-invalid={!nicknameValid || nicknameState === "taken"} onChange={(event) => { setNickname(sanitizeNickname(event.target.value)); setNicknameState("unchecked"); setError(""); }} />
+        <input id="signup-nickname" value={nickname} maxLength={20} placeholder="닉네임을 입력해 주세요" aria-invalid={nickname.length > 0 && (!nicknameValid || nicknameState === "taken")} onChange={(event) => { setNickname(sanitizeNickname(event.target.value)); setNicknameState("unchecked"); setError(""); }} />
         <button type="button" onClick={checkNickname} disabled={!nicknameValid || nicknameState === "checking" || nicknameState === "available"}>{nicknameState === "checking" ? "확인 중" : "중복 확인"}</button>
       </div>
       <p>한글, 영문 소문자, 숫자만 사용해 2~20자로 입력해 주세요.</p>
@@ -89,17 +108,24 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
       <button type="button" className={`oauth-consent-row ${ageOver14 ? "checked" : ""}`} onClick={() => setAgeOver14((value) => !value)}>
         <span className="oauth-consent-check">{ageOver14 && <Check size={16} strokeWidth={3} />}</span><span><b>필수</b><strong>만 14세 이상입니다</strong></span>
       </button>
-      <button type="button" className={`oauth-consent-row ${agreementComplete ? "checked locked" : ""}`} onClick={() => { if (!agreementComplete) { setTermsRead(false); setModalOpen(true); } }}>
+      <button type="button" className={`oauth-consent-row ${agreementComplete ? "checked" : ""}`} onClick={() => { if (agreementComplete) setAgreementComplete(false); else { setTermsRead(false); setModalOpen(true); } }}>
         <span className="oauth-consent-check">{agreementComplete && <Check size={16} strokeWidth={3} />}</span><span><b>필수</b><strong>이용약관 및 개인정보 수집·이용 동의</strong></span><ChevronRight size={19} />
       </button>
     </div>
     {error && <div className="form-error oauth-agreement-error" role="alert">{error} {!profile && <Link href="/login">로그인으로 돌아가기</Link>}</div>}
-    <button className="oauth-agreement-submit" type="button" disabled={!ready || pending} onClick={completeSignup}>{pending ? "처리 중..." : "동의하고 시작하기"}</button>
+    <button className="oauth-agreement-submit" type="button" disabled={!profile || pending} onClick={completeSignup}>{pending ? "처리 중..." : "동의하고 시작하기"}</button>
     {modalOpen && <div className="terms-modal-backdrop"><section className="terms-modal" role="dialog" aria-modal="true" aria-labelledby="oauth-terms-title">
       <header><div><small>필수 동의</small><h2 id="oauth-terms-title">이용약관 및 개인정보 동의</h2></div><button type="button" onClick={() => setModalOpen(false)} aria-label="약관 닫기"><X size={23} /></button></header>
       <div className="terms-modal-body" onScroll={(event) => { const target = event.currentTarget; setTermsRead(target.scrollHeight - target.scrollTop - target.clientHeight <= 2); }}><TermsContent social /></div>
       <footer><button type="button" disabled={!termsRead} onClick={() => { setAgreementComplete(true); setModalOpen(false); }}>동의하고 계속하기</button></footer>
     </section></div>}
+    {alertMessage && <div className="mascot-alert-backdrop" role="presentation">
+      <section className="mascot-alert" role="alertdialog" aria-modal="true" aria-labelledby="oauth-alert-message">
+        <div className="mascot-alert-visual" aria-hidden="true"><Image src="/brand/modudadam-login-wave.png" alt="" width={132} height={132} /></div>
+        <h2 id="oauth-alert-message">{alertMessage}</h2>
+        <button type="button" onClick={() => setAlertMessage("")} autoFocus>확인</button>
+      </section>
+    </div>}
   </section>;
 }
 
