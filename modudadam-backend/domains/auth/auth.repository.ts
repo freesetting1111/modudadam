@@ -180,7 +180,8 @@ async function getAvailableOAuthEmail(email: string, userId: string | undefined,
 async function createAvailableNickname(providerNickname: string | undefined, client: PoolClient) {
   const normalized = (providerNickname || "모두다담")
     .normalize("NFKC")
-    .replace(/[^가-힣A-Za-z0-9]/gu, "");
+    .toLowerCase()
+    .replace(/[^가-힣a-z0-9]/gu, "");
   const base = Array.from(normalized || "모두다담").slice(0, 16).join("");
 
   for (let suffix = 0; suffix < 1000; suffix += 1) {
@@ -211,7 +212,7 @@ export async function registerLocalUser(input: RegisterInput) {
     const user = await client.query<{ id: string }>(
       `INSERT INTO users(nickname,email,real_name,phone_number,terms_agreed_at,privacy_agreed_at)
        VALUES($1,$2,$3,$4,now(),now()) RETURNING id`,
-      [input.loginId, input.email, input.realName, input.phoneNumber],
+      [normalizeNickname(input.loginId), input.email, input.realName, input.phoneNumber],
     );
     const userId = user.rows[0].id;
     await client.query(

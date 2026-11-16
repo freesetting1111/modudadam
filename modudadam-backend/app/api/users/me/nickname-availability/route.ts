@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await requireSessionUser(request);
     const nickname = normalizeNickname(request.nextUrl.searchParams.get("nickname"));
-    if (!isValidNickname(nickname)) return errorResponse("닉네임은 한글, 영문, 숫자로 2~20자리까지 입력해 주세요.");
+    if (!isValidNickname(nickname)) return errorResponse("닉네임은 한글, 영문 소문자, 숫자로 2~20자리까지 입력해 주세요.");
     return jsonResponse({ available: await isNicknameAvailable(nickname, user.id) });
   } catch (error) {
     return error instanceof Error && error.message === "UNAUTHORIZED"

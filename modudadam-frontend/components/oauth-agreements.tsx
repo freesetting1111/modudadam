@@ -81,7 +81,7 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
         <input id="signup-nickname" value={nickname} maxLength={20} placeholder="닉네임을 입력해 주세요" aria-invalid={!nicknameValid || nicknameState === "taken"} onChange={(event) => { setNickname(sanitizeNickname(event.target.value)); setNicknameState("unchecked"); setError(""); }} />
         <button type="button" onClick={checkNickname} disabled={!nicknameValid || nicknameState === "checking" || nicknameState === "available"}>{nicknameState === "checking" ? "확인 중" : "중복 확인"}</button>
       </div>
-      <p>한글, 영문, 숫자만 사용해 2~20자로 입력해 주세요.</p>
+      <p>한글, 영문 소문자, 숫자만 사용해 2~20자로 입력해 주세요.</p>
       {nicknameState === "available" && <small className="oauth-nickname-success"><Check size={14} /> 사용할 수 있는 닉네임입니다.</small>}
       {nicknameState === "taken" && <small className="oauth-nickname-error">이미 사용 중인 닉네임입니다.</small>}
     </div>
@@ -104,9 +104,9 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
 }
 
 function sanitizeNickname(value: string) {
-  return Array.from(value.normalize("NFKC").replace(/[^가-힣A-Za-z0-9]/gu, "")).slice(0, 20).join("");
+  return Array.from(value.normalize("NFKC").toLowerCase().replace(/[^가-힣a-z0-9]/gu, "")).slice(0, 20).join("");
 }
 
 function isValidNickname(value: string) {
-  return /^[가-힣A-Za-z0-9]{2,20}$/u.test(value);
+  return /^[가-힣a-z0-9]{2,20}$/u.test(value);
 }

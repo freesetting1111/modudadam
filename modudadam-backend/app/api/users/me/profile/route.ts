@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest) {
     const gender = String(body.gender ?? "");
     const ageRange = String(body.ageRange ?? "");
 
-    if (!isValidNickname(nickname)) return errorResponse("닉네임은 한글, 영문, 숫자로 2~20자리까지 입력해 주세요.");
+    if (!isValidNickname(nickname)) return errorResponse("닉네임은 한글, 영문 소문자, 숫자로 2~20자리까지 입력해 주세요.");
     if (statusMessage.length > 30) return errorResponse("상태 메시지는 30자리까지 입력할 수 있습니다.");
     if (!GENDERS.has(gender)) return errorResponse("성별 선택값을 확인해 주세요.");
     if (!AGE_RANGES.has(ageRange)) return errorResponse("연령대 선택값을 확인해 주세요.");

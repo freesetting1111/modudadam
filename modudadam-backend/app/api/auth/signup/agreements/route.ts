@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (request.nextUrl.searchParams.has("nickname")) {
     const nickname = normalizeNickname(request.nextUrl.searchParams.get("nickname"));
     if (!isValidNickname(nickname)) {
-      return errorResponse("닉네임은 한글, 영문, 숫자로 2~20자리까지 입력해 주세요.");
+      return errorResponse("닉네임은 한글, 영문 소문자, 숫자로 2~20자리까지 입력해 주세요.");
     }
     return jsonResponse({
       available: await isNicknameAvailable(nickname, pending.user_id || undefined),
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
     const nickname = normalizeNickname(body.nickname);
     if (!isValidNickname(nickname)) {
-      return errorResponse("닉네임은 한글, 영문, 숫자로 2~20자리까지 입력해 주세요.");
+      return errorResponse("닉네임은 한글, 영문 소문자, 숫자로 2~20자리까지 입력해 주세요.");
     }
     const result = await completeOAuthLoginTicket(ticket, {
       ageOver14: true, terms: true, privacy: true, nickname,
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       return errorResponse("가입 인증이 만료되었습니다. 다시 로그인해 주세요.", 401);
     }
     if (error instanceof Error && error.message === "NICKNAME_INVALID") {
-      return errorResponse("닉네임은 한글, 영문, 숫자로 2~20자리까지 입력해 주세요.");
+      return errorResponse("닉네임은 한글, 영문 소문자, 숫자로 2~20자리까지 입력해 주세요.");
     }
     if (error instanceof Error && error.message === "NICKNAME_TAKEN") {
       return errorResponse("이미 사용 중인 닉네임입니다.", 409);

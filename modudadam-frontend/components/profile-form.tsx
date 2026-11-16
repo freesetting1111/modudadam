@@ -51,7 +51,7 @@ export function ProfileForm() {
 
   const nicknameValid = useMemo(() => {
     if (!profile) return false;
-    return /^[가-힣A-Za-z0-9]{2,20}$/u.test(profile.nickname);
+    return /^[가-힣a-z0-9]{2,20}$/u.test(profile.nickname);
   }, [profile]);
   const nicknameReady = nicknameState === "unchanged" || nicknameState === "available";
 
@@ -158,10 +158,10 @@ export function ProfileForm() {
       <label className="profile-field">
         <span><b>닉네임</b><em>{Array.from(profile.nickname).length}/20</em></span>
         <div className="profile-nickname-row">
-          <input value={profile.nickname} onChange={(event) => update("nickname", Array.from(event.target.value.normalize("NFKC").replace(/[^가-힣A-Za-z0-9]/gu, "")).slice(0, 20).join(""))} maxLength={20} placeholder="닉네임을 입력해 주세요." aria-invalid={!nicknameValid || nicknameState === "taken"} />
+          <input value={profile.nickname} onChange={(event) => update("nickname", Array.from(event.target.value.normalize("NFKC").toLowerCase().replace(/[^가-힣a-z0-9]/gu, "")).slice(0, 20).join(""))} maxLength={20} placeholder="닉네임을 입력해 주세요." aria-invalid={!nicknameValid || nicknameState === "taken"} />
           <button type="button" onClick={checkNickname} disabled={!nicknameValid || nicknameState === "unchanged" || nicknameState === "checking" || nicknameState === "available"}>{nicknameState === "checking" ? "확인 중" : "중복 확인"}</button>
         </div>
-        {!nicknameValid && <small className="profile-error">한글, 영문, 숫자로 2~20자리까지 입력해 주세요.</small>}
+        {!nicknameValid && <small className="profile-error">한글, 영문 소문자, 숫자로 2~20자리까지 입력해 주세요.</small>}
         {nicknameState === "available" && <small className="profile-success"><Check size={13} /> 사용할 수 있는 닉네임입니다.</small>}
         {nicknameState === "taken" && <small className="profile-error">이미 사용 중인 닉네임입니다.</small>}
       </label>
