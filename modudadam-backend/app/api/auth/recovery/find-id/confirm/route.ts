@@ -1,8 +1,10 @@
 import type { NextRequest } from "next/server";
 import { confirmFindId } from "@/domains/auth/recovery.repository";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
+import { isLocalAuthEnabled } from "@/domains/auth/local-auth";
 
 export async function POST(request: NextRequest) {
+  if (!isLocalAuthEnabled()) return errorResponse("현재 소셜 로그인만 지원합니다.", 404);
   try {
     const body = await request.json();
     const email = String(body.email || "").trim().toLowerCase();

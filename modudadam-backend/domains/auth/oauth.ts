@@ -38,7 +38,13 @@ export function startOAuth(provider: OAuthProvider, request: NextRequest) {
   url.searchParams.set("state", state);
 
   const response = NextResponse.redirect(url);
-  response.cookies.set(`${provider}_oauth_state`, nonce, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 600 });
+  response.cookies.set(`${provider}_oauth_state`, nonce, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 600,
+  });
   return response;
 }
 

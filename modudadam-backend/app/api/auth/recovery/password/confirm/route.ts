@@ -1,10 +1,12 @@
 import type { NextRequest } from "next/server";
 import { resetPassword } from "@/domains/auth/recovery.repository";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
+import { isLocalAuthEnabled } from "@/domains/auth/local-auth";
 
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9])[\x21-\x7E]{8,20}$/;
 
 export async function POST(request: NextRequest) {
+  if (!isLocalAuthEnabled()) return errorResponse("현재 소셜 로그인만 지원합니다.", 404);
   try {
     const body = await request.json();
     const loginId = String(body.loginId || "").trim();

@@ -11,6 +11,7 @@ const baseItems = [
 
 export function BottomNav({ authenticated }: { authenticated: boolean }) {
   const pathname = usePathname();
+  if (pathname === "/login") return null;
   const items = authenticated ? [...baseItems, { href: "/my", icon: UserRound, label: "마이" }] : baseItems;
   const isComposePage = /^\/category\/[^/]+\/write$/.test(pathname) || /^\/posts\/[^/]+\/edit$/.test(pathname);
   if (isComposePage) return null;
