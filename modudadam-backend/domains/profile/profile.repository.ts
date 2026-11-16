@@ -41,13 +41,15 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   return result.rows[0] ?? null;
 }
 
-export async function isNicknameAvailable(nickname: string, userId: string) {
+export async function isNicknameAvailable(nickname: string, userId?: string) {
   const result = await query<{ available: boolean }>(
     `SELECT NOT EXISTS(
        SELECT 1 FROM users
-       WHERE lower(nickname)=lower($1) AND id<>$2 AND deleted_at IS NULL
+       WHERE lower(nickname)=lower($1)
+         AND ($2::uuid IS NULL OR id<>$2::uuid)
+         AND deleted_at IS NULL
      ) AS available`,
-    [nickname, userId],
+    [nickname, userId || null],
   );
   return result.rows[0]?.available ?? false;
 }

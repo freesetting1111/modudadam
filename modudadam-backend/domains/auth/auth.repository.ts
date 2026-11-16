@@ -3,6 +3,7 @@ import type { PoolClient } from "pg";
 import { db, query } from "@/lib/db";
 import { hashToken } from "./session";
 import { hashPassword, verifyPassword } from "./password";
+import { isValidNickname, normalizeNickname } from "@/domains/profile/nickname";
 
 export type OAuthProvider = "kakao" | "naver";
 export type OAuthProfile = {
@@ -39,9 +40,12 @@ export async function createOAuthLoginTicket(profile: OAuthProfile, returnTo: st
 }
 
 export async function getOAuthLoginTicket(ticket: string) {
-  const result = await query<{ provider: OAuthProvider; profile: OAuthProfile; return_to: string; requires_agreement: boolean }>(
-    `SELECT provider,profile,return_to,requires_agreement
-     FROM oauth_login_tickets WHERE token_hash=$1 AND expires_at>now()`,
+  const result = await query<{ provider: OAuthProvider; profile: OAuthProfile; return_to: string; requires_agreement: boolean; user_id: string | null }>(
+    `SELECT ticket.provider,ticket.profile,ticket.return_to,ticket.requires_agreement,account.user_id
+     FROM oauth_login_tickets ticket
+     LEFT JOIN user_oauth_accounts account
+       ON account.provider=ticket.provider AND account.provider_user_id=ticket.provider_user_id
+     WHERE ticket.token_hash=$1 AND ticket.expires_at>now()`,
     [hashToken(ticket)],
   );
   return result.rows[0] || null;
@@ -49,7 +53,7 @@ export async function getOAuthLoginTicket(ticket: string) {
 
 export async function completeOAuthLoginTicket(
   ticket: string,
-  agreements: { ageOver14: boolean; terms: boolean; privacy: boolean } | null,
+  agreements: { ageOver14: boolean; terms: boolean; privacy: boolean; nickname: string } | null,
   userAgent?: string,
 ) {
   const client = await db.connect();
@@ -67,9 +71,13 @@ export async function completeOAuthLoginTicket(
     if (row.requires_agreement && (!agreements?.ageOver14 || !agreements.terms || !agreements.privacy)) {
       throw new Error("AGREEMENTS_REQUIRED");
     }
+    const requestedNickname = agreements ? normalizeNickname(agreements.nickname) : null;
+    if (row.requires_agreement && (!requestedNickname || !isValidNickname(requestedNickname))) {
+      throw new Error("NICKNAME_INVALID");
+    }
 
     const profile = row.profile;
-    const userId = await upsertOAuthUser(profile, client, Boolean(agreements));
+    const userId = await upsertOAuthUser(profile, client, Boolean(agreements), requestedNickname);
     if (agreements) {
       for (const consentKey of ["age_over_14", "service_terms", "privacy_collection"]) {
         await client.query(
@@ -93,18 +101,33 @@ export async function completeOAuthLoginTicket(
   }
 }
 
-async function upsertOAuthUser(profile: OAuthProfile, client: PoolClient, acceptAgreements: boolean) {
+async function upsertOAuthUser(
+  profile: OAuthProfile,
+  client: PoolClient,
+  acceptAgreements: boolean,
+  requestedNickname: string | null,
+) {
     const account = await client.query<{ user_id: string }>(
       "SELECT user_id FROM user_oauth_accounts WHERE provider=$1 AND provider_user_id=$2 FOR UPDATE",
       [profile.provider, profile.providerUserId],
     );
     let userId = account.rows[0]?.user_id;
+    if (requestedNickname) {
+      const duplicateNickname = await client.query(
+        `SELECT 1 FROM users
+         WHERE lower(nickname)=lower($1) AND deleted_at IS NULL
+           AND ($2::uuid IS NULL OR id<>$2::uuid)
+         LIMIT 1`,
+        [requestedNickname, userId || null],
+      );
+      if (duplicateNickname.rowCount) throw new Error("NICKNAME_TAKEN");
+    }
     const availableEmail = profile.email
       ? await getAvailableOAuthEmail(profile.email, userId, client)
       : null;
 
     if (!userId) {
-      const nickname = await createAvailableNickname(profile.nickname, client);
+      const nickname = requestedNickname || await createAvailableNickname(profile.nickname, client);
       const user = await client.query<{ id: string }>(
         `INSERT INTO users(
            nickname,email,email_verified_at,avatar_url,last_login_at,terms_agreed_at,privacy_agreed_at
@@ -130,13 +153,13 @@ async function upsertOAuthUser(profile: OAuthProfile, client: PoolClient, accept
           null, null, null, JSON.stringify(profile.raw)],
       );
       await client.query(
-        `UPDATE users SET avatar_url=COALESCE($2,avatar_url),
-         email_verified_at=CASE WHEN email IS NULL AND $3 IS NOT NULL AND $4 THEN now() ELSE email_verified_at END,
-         email=COALESCE(email,$3),
-         terms_agreed_at=CASE WHEN $5 THEN COALESCE(terms_agreed_at,now()) ELSE terms_agreed_at END,
-         privacy_agreed_at=CASE WHEN $5 THEN COALESCE(privacy_agreed_at,now()) ELSE privacy_agreed_at END,
+        `UPDATE users SET nickname=COALESCE($2,nickname),avatar_url=COALESCE($3,avatar_url),
+         email_verified_at=CASE WHEN email IS NULL AND $4 IS NOT NULL AND $5 THEN now() ELSE email_verified_at END,
+         email=COALESCE(email,$4),
+         terms_agreed_at=CASE WHEN $6 THEN COALESCE(terms_agreed_at,now()) ELSE terms_agreed_at END,
+         privacy_agreed_at=CASE WHEN $6 THEN COALESCE(privacy_agreed_at,now()) ELSE privacy_agreed_at END,
          last_login_at=now(),updated_at=now() WHERE id=$1`,
-        [userId, profile.avatarUrl || null, availableEmail, Boolean(availableEmail && profile.emailVerified), acceptAgreements],
+        [userId, requestedNickname, profile.avatarUrl || null, availableEmail, Boolean(availableEmail && profile.emailVerified), acceptAgreements],
       );
     }
     if (!userId) throw new Error("OAUTH_USER_CREATION_FAILED");
@@ -157,19 +180,19 @@ async function getAvailableOAuthEmail(email: string, userId: string | undefined,
 async function createAvailableNickname(providerNickname: string | undefined, client: PoolClient) {
   const normalized = (providerNickname || "모두다담")
     .normalize("NFKC")
-    .replace(/[\s\u0000-\u001f\u007f]/gu, "");
-  const base = Array.from(normalized || "모두다담").slice(0, 12).join("");
+    .replace(/[^가-힣A-Za-z0-9]/gu, "");
+  const base = Array.from(normalized || "모두다담").slice(0, 16).join("");
 
   for (let suffix = 0; suffix < 1000; suffix += 1) {
     const suffixText = suffix ? String(suffix + 1) : "";
-    const candidate = `${Array.from(base).slice(0, 12 - suffixText.length).join("")}${suffixText}`;
+    const candidate = `${Array.from(base).slice(0, 20 - suffixText.length).join("")}${suffixText}`;
     const exists = await client.query(
       "SELECT 1 FROM users WHERE lower(nickname)=lower($1) AND deleted_at IS NULL LIMIT 1",
       [candidate],
     );
     if (!exists.rowCount) return candidate;
   }
-  return `모두${randomBytes(4).toString("hex")}`.slice(0, 12);
+  return `모두${randomBytes(4).toString("hex")}`.slice(0, 20);
 }
 
 type RegisterInput = {

@@ -51,7 +51,7 @@ export function ProfileForm() {
 
   const nicknameValid = useMemo(() => {
     if (!profile) return false;
-    return /^[^\s\u0000-\u001f\u007f]{2,12}$/u.test(profile.nickname);
+    return /^[가-힣A-Za-z0-9]{2,20}$/u.test(profile.nickname);
   }, [profile]);
   const nicknameReady = nicknameState === "unchanged" || nicknameState === "available";
 
@@ -156,12 +156,12 @@ export function ProfileForm() {
     <section className="profile-section">
       <div className="profile-section-title"><UserRound size={19} /><div><h2>커뮤니티 프로필</h2><p>게시글과 댓글에 표시되는 정보예요.</p></div></div>
       <label className="profile-field">
-        <span><b>닉네임</b><em>{Array.from(profile.nickname).length}/12</em></span>
+        <span><b>닉네임</b><em>{Array.from(profile.nickname).length}/20</em></span>
         <div className="profile-nickname-row">
-          <input value={profile.nickname} onChange={(event) => update("nickname", Array.from(event.target.value.replace(/\s/g, "")).slice(0, 12).join(""))} maxLength={12} placeholder="닉네임을 입력해 주세요." aria-invalid={!nicknameValid || nicknameState === "taken"} />
+          <input value={profile.nickname} onChange={(event) => update("nickname", Array.from(event.target.value.normalize("NFKC").replace(/[^가-힣A-Za-z0-9]/gu, "")).slice(0, 20).join(""))} maxLength={20} placeholder="닉네임을 입력해 주세요." aria-invalid={!nicknameValid || nicknameState === "taken"} />
           <button type="button" onClick={checkNickname} disabled={!nicknameValid || nicknameState === "unchanged" || nicknameState === "checking" || nicknameState === "available"}>{nicknameState === "checking" ? "확인 중" : "중복 확인"}</button>
         </div>
-        {!nicknameValid && <small className="profile-error">공백 없이 2~12자리로 입력해 주세요.</small>}
+        {!nicknameValid && <small className="profile-error">한글, 영문, 숫자로 2~20자리까지 입력해 주세요.</small>}
         {nicknameState === "available" && <small className="profile-success"><Check size={13} /> 사용할 수 있는 닉네임입니다.</small>}
         {nicknameState === "taken" && <small className="profile-error">이미 사용 중인 닉네임입니다.</small>}
       </label>

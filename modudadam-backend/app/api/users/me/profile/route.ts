@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
 import { requireSessionUser } from "@/domains/auth/session";
 import { getUserProfile, updateUserProfile } from "@/domains/profile/profile.repository";
+import { isValidNickname, normalizeNickname } from "@/domains/profile/nickname";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 
-const NICKNAME_PATTERN = /^[^\s\u0000-\u001f\u007f]{2,12}$/u;
 const GENDERS = new Set(["", "male", "female", "other"]);
 const AGE_RANGES = new Set(["", "10-19", "20-29", "30-39", "40-49", "50-59", "60+"]);
 
@@ -23,12 +23,12 @@ export async function PATCH(request: NextRequest) {
   try {
     const user = await requireSessionUser(request);
     const body = await request.json();
-    const nickname = String(body.nickname ?? "").normalize("NFKC").trim();
+    const nickname = normalizeNickname(body.nickname);
     const statusMessage = String(body.statusMessage ?? "").trim();
     const gender = String(body.gender ?? "");
     const ageRange = String(body.ageRange ?? "");
 
-    if (!NICKNAME_PATTERN.test(nickname)) return errorResponse("닉네임은 공백 없이 2~12자리로 입력해 주세요.");
+    if (!isValidNickname(nickname)) return errorResponse("닉네임은 한글, 영문, 숫자로 2~20자리까지 입력해 주세요.");
     if (statusMessage.length > 30) return errorResponse("상태 메시지는 30자리까지 입력할 수 있습니다.");
     if (!GENDERS.has(gender)) return errorResponse("성별 선택값을 확인해 주세요.");
     if (!AGE_RANGES.has(ageRange)) return errorResponse("연령대 선택값을 확인해 주세요.");
