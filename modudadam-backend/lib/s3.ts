@@ -9,7 +9,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const MAX_POST_IMAGE_BYTES = 10 * 1024 * 1024;
-export const MAX_POST_IMAGES = 5;
+export const MAX_POST_IMAGES = 10;
 
 const imageExtensions: Record<string, string> = {
   "image/jpeg": "jpg",

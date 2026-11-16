@@ -53,7 +53,7 @@ S3 콘솔의 `modudadam-bucket` → 권한 → CORS에 아래 설정을 저장�
 로컬 `modudadam-backend/.env`와 Vercel 백엔드 프로젝트의 Production 환경 변수에 설정합니다.
 
 ```dotenv
-AWS_REGION=ap-northeast-2
+AWS_REGION=ap-southeast-2
 AWS_S3_BUCKET=modudadam-bucket
 AWS_ACCESS_KEY_ID=발급받은_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY=발급받은_SECRET_ACCESS_KEY
@@ -72,4 +72,4 @@ AWS_S3_PUBLIC_BASE_URL=
 npm run db:apply
 ```
 
-현재 업로드 제한은 게시글당 5장, 파일당 10MB이며 JPG, PNG, WebP만 허용합니다.
+현재 업로드 제한은 게시글당 10장, 파일당 10MB이며 JPG, PNG, WebP만 허용합니다. 본문 편집기에서 Ctrl+V로 클립보드 이미지를 붙여넣을 수 있습니다.

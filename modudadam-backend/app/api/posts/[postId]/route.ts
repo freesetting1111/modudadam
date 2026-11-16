@@ -3,6 +3,7 @@ import { db, query } from "@/lib/db";
 import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { deletePostImage, getPostImageUrl, MAX_POST_IMAGES } from "@/lib/s3";
+import { normalizePostContentHtml, renderPostContentHtml } from "@/domains/community/post-content";
 
 type PostImageRow = {
   id: string;
@@ -49,7 +50,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       mimeType: image.mimeType,
       byteSize: Number(image.byteSize),
     })));
-    return jsonResponse({ post: { ...detail.rows[0], images } });
+    const post = detail.rows[0] as Record<string, unknown> & { content: string; attributes?: { contentHtml?: string } };
+    const renderedContentHtml = renderPostContentHtml(post.attributes?.contentHtml, post.content, images);
+    return jsonResponse({ post: { ...post, images, renderedContentHtml } });
   } catch (error) {
     console.error("[posts] failed to create image URL", error);
     return errorResponse("첨부 이미지를 불러오지 못했습니다.", 500);
@@ -63,8 +66,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const content = String(body.content || "").trim();
     const imageIds = normalizeImageIds(body.imageIds);
     if (!title || !content) return errorResponse("제목과 내용을 입력해 주세요.");
-    if (title.length > 200 || content.length > 10000) return errorResponse("입력 가능한 글자 수를 확인해 주세요.");
+    if (title.length > 200 || content.length > 20000) return errorResponse("입력 가능한 글자 수를 확인해 주세요.");
     if (!imageIds || imageIds.length > MAX_POST_IMAGES) return errorResponse(`이미지는 최대 ${MAX_POST_IMAGES}장까지 첨부할 수 있습니다.`);
+    const contentHtml = normalizePostContentHtml(body.contentHtml, content, imageIds);
 
     const client = await db.connect();
     const removedKeys: string[] = [];
@@ -73,7 +77,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const result = await client.query<{ id: string }>(
         `UPDATE posts SET title=$3,content=$4,attributes=COALESCE($5::jsonb,attributes),updated_at=now()
          WHERE id=$1 AND author_id=$2 AND status='published' RETURNING id`,
-        [postId,user.id,title,content,body.attributes?JSON.stringify(body.attributes):null]);
+        [postId,user.id,title,content,JSON.stringify({ contentHtml })]);
       if (!result.rows[0]) throw new Error("POST_NOT_FOUND");
 
       const current = await client.query<{ id: string; objectKey: string }>(
@@ -111,6 +115,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.",401);
     if (error instanceof Error && error.message === "POST_NOT_FOUND") return errorResponse("수정 권한이 없거나 글이 없습니다.",404);
     if (error instanceof Error && error.message === "INVALID_IMAGE") return errorResponse("첨부 이미지가 유효하지 않거나 업로드가 완료되지 않았습니다.");
+    if (error instanceof Error && error.message === "CONTENT_IMAGE_MISMATCH") return errorResponse("본문 이미지 정보가 올바르지 않습니다.");
+    if (error instanceof Error && error.message === "CONTENT_HTML_TOO_LONG") return errorResponse("본문 형식 데이터가 너무 큽니다.");
     console.error("[posts] failed to update post", error);
     return errorResponse("수정하지 못했습니다.",500);
   }

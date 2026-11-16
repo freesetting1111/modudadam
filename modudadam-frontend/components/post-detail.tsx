@@ -11,6 +11,7 @@ type Post = {
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number;
   createdAt: string; updatedAt: string; canEdit: boolean; canReport: boolean;
   isBookmarked: boolean; bookmarkCount: number;
+  renderedContentHtml: string;
   images: { id: string; url: string; originalName: string; mimeType: string; byteSize: number }[];
 };
 type Comment = {
@@ -149,11 +150,7 @@ export function PostDetail({ postId, authenticated }: { postId: string; authenti
         {post.canEdit && <div className="post-owner-actions"><Link href={`/posts/${post.id}/edit`}><Pencil size={14} /> 수정</Link><button type="button" onClick={deletePost} disabled={deletingPost}><Trash2 size={14} /> {deletingPost ? "삭제 중" : "삭제"}</button></div>}
       </div>
     </header>
-    <div className="post-content">{post.content}</div>
-    {post.images.length > 0 && <div className="post-image-gallery">{post.images.map((image) => <figure key={image.id}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={image.url} alt={image.originalName} loading="lazy" />
-    </figure>)}</div>}
+    <div className="post-content rich-post-content" dangerouslySetInnerHTML={{ __html: post.renderedContentHtml }} />
     <div className="post-community-actions">
       <button type="button" className={post.isBookmarked ? "active" : ""} onClick={toggleBookmark} disabled={bookmarkPending}><Bookmark size={17} fill={post.isBookmarked ? "currentColor" : "none"} /> {post.isBookmarked ? "스크랩됨" : "스크랩"}<small>{post.bookmarkCount}</small></button>
       {post.canReport && <button type="button" onClick={() => openReport("post", post.id)}><Flag size={17} /> 신고</button>}

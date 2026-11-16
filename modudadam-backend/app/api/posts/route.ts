@@ -3,6 +3,7 @@ import { db, query } from "@/lib/db";
 import { requireSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { MAX_POST_IMAGES } from "@/lib/s3";
+import { normalizePostContentHtml } from "@/domains/community/post-content";
 
 export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get("category");
@@ -33,8 +34,9 @@ export async function POST(request: NextRequest) {
     const content = String(body.content || "").trim();
     const imageIds = normalizeImageIds(body.imageIds);
     if (!body.categoryCode || !title || !content) return errorResponse("카테고리, 제목, 내용을 입력해 주세요.");
-    if (title.length > 200 || content.length > 10000) return errorResponse("입력 가능한 글자 수를 확인해 주세요.");
+    if (title.length > 200 || content.length > 20000) return errorResponse("입력 가능한 글자 수를 확인해 주세요.");
     if (!imageIds || imageIds.length > MAX_POST_IMAGES) return errorResponse(`이미지는 최대 ${MAX_POST_IMAGES}장까지 첨부할 수 있습니다.`);
+    const contentHtml = normalizePostContentHtml(body.contentHtml, content, imageIds);
 
     const client = await db.connect();
     try {
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO posts(category_id,author_id,title,content,post_type,attributes,published_at)
          SELECT id,$1,$2,$3,$4,$5::jsonb,now() FROM categories WHERE code=$6
          RETURNING id`,
-        [user.id, title, content, body.postType || "community", JSON.stringify(body.attributes || {}), body.categoryCode],
+        [user.id, title, content, body.postType || "community", JSON.stringify({ contentHtml }), body.categoryCode],
       );
       const post = result.rows[0];
       if (!post) throw new Error("CATEGORY_NOT_FOUND");
@@ -68,6 +70,8 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.", 401);
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") return errorResponse("존재하지 않는 카테고리입니다.");
     if (error instanceof Error && error.message === "INVALID_IMAGE") return errorResponse("첨부 이미지가 유효하지 않거나 업로드가 완료되지 않았습니다.");
+    if (error instanceof Error && error.message === "CONTENT_IMAGE_MISMATCH") return errorResponse("본문 이미지 정보가 올바르지 않습니다.");
+    if (error instanceof Error && error.message === "CONTENT_HTML_TOO_LONG") return errorResponse("본문 형식 데이터가 너무 큽니다.");
     console.error("[posts] failed to create post", error);
     return errorResponse("글을 저장하지 못했습니다.", 500);
   }
