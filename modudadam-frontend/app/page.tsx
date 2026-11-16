@@ -12,7 +12,7 @@ const picks = [
 export default function Home() {
   return <>
     <HomeSearch />
-    <section className="hero-card"><div><span className="eyebrow">모두의 일상을 다정하게</span><h1>알아두면 좋은 생활 이야기,<br />모두 다 담았어요.</h1><Link href="/about">모두다담 둘러보기 ›</Link></div><Image src="/brand/modudadam-squirrel.png" alt="도토리를 안은 모두다담 다람쥐" width={170} height={170} priority /></section>
+    <section className="hero-card"><div><span className="eyebrow">모두의 일상을 다정하게</span><h1>알아두면 좋은 생활 이야기,<br />모두 다 담았어요.</h1><Link href="/about">모두다담 둘러보기 ›</Link></div><Image src="/brand/modudadam-guide.png" alt="생활 노트를 들고 이야기를 소개하는 모두다담 다람쥐" width={184} height={184} priority /></section>
     <section className="category-section"><div className="section-heading"><h2>카테고리</h2><span>12가지 생활 메뉴</span></div><div className="category-grid">{categories.map((category) => { const Icon = category.icon; return <Link href={`/category/${category.code}`} key={category.code}><span className={`category-icon category-${category.code}`}><Icon size={25} strokeWidth={1.9} /></span><span>{category.short}</span></Link>; })}</div></section>
     <section className="pick-section"><div className="section-heading"><h2>오늘의 추천 이야기</h2><Link href="/search">더보기 ›</Link></div><div className="pick-list">{picks.map(([code,title,category,comments], index) => <Link href={`/category/${code}`} className="pick-card" key={title}><div className={`pick-thumb pick-${index+1}`}><PickIcon code={code} /></div><div><span>{category}</span><h3>{title}</h3><small>읽기 3분 · 댓글 {comments}</small></div></Link>)}</div></section>
   </>;

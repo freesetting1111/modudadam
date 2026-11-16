@@ -148,7 +148,7 @@ export function ProfileForm() {
   return <form className="profile-form" onSubmit={submit}>
     <div className="profile-summary">
       <span className="profile-avatar">
-        <Image src={profile.avatarUrl || "/brand/modudadam-squirrel.png"} alt="" width={72} height={72} unoptimized={Boolean(profile.avatarUrl)} />
+        <Image className={profile.avatarUrl ? undefined : "default-avatar"} src={profile.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={72} height={72} unoptimized={Boolean(profile.avatarUrl)} />
       </span>
       <div><small>{providerLabel(profile.provider)} 계정</small><strong>{profile.nickname}</strong><p>모두다담에서 사용할 프로필을 관리해요.</p></div>
     </div>

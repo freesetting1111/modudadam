@@ -63,7 +63,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
   }
 
   if (pathname === "/login" || pathname === "/signup/agreements") {
-    return <header className="site-header login-site-header"><Link href="/" className="brand"><span className="brand-mark"><Image src="/brand/modudadam-squirrel.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link><Link href={pathname === "/signup/agreements" ? "/login" : "/"} className="login-close" aria-label="화면 닫기"><X size={23} /></Link></header>;
+    return <header className="site-header login-site-header"><Link href="/" className="brand"><span className="brand-mark"><Image src="/brand/modudadam-brand-mark.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link><Link href={pathname === "/signup/agreements" ? "/login" : "/"} className="login-close" aria-label="화면 닫기"><X size={23} /></Link></header>;
   }
 
   return (
@@ -81,7 +81,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
         </button>
         <div id="site-menu" className="drawer-panel" data-open={isMenuOpen || undefined} aria-hidden={!isMenuOpen}>
           {pathname !== "/login" && (user ? <div className="drawer-account">
-            <Link href="/my" className="drawer-account-profile" onClick={closeMenu}><span className="drawer-account-avatar"><Image src={user.avatarUrl || "/brand/modudadam-squirrel.png"} alt="" width={44} height={44} unoptimized={Boolean(user.avatarUrl)} /></span>
+            <Link href="/my" className="drawer-account-profile" onClick={closeMenu}><span className="drawer-account-avatar"><Image className={user.avatarUrl ? undefined : "default-avatar"} src={user.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={44} height={44} unoptimized={Boolean(user.avatarUrl)} /></span>
             <span className="drawer-account-copy"><small>마이페이지</small><strong>{user.nickname}</strong></span><ChevronRight size={18} /></Link>
             <button type="button" className="drawer-logout" onClick={logout} disabled={loggingOut}><LogOut size={16} /> {loggingOut ? "처리 중" : "로그아웃"}</button>
           </div> : <Link href="/login" className="drawer-account drawer-account-guest" onClick={closeMenu}>
@@ -98,7 +98,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link>{user && <Link href="/my" onClick={closeMenu}><UserRound /> 마이페이지</Link>}<Link href="/about" onClick={closeMenu}><CircleHelp /> 모두다담 소개</Link></div>
         </div>
       </div>
-      <Link href="/" className="brand" onClick={closeMenu}><span className="brand-mark"><Image src="/brand/modudadam-squirrel.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>
+      <Link href="/" className="brand" onClick={closeMenu}><span className="brand-mark"><Image src="/brand/modudadam-brand-mark.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>
       {user ? <span className="header-account-spacer" aria-hidden="true" /> : <Link href="/login" className="login-link"><LogIn size={14} /> 로그인</Link>}
     </header>
   );

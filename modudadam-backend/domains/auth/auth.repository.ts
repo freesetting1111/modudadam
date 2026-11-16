@@ -188,8 +188,8 @@ async function upsertOAuthUser(
     } else {
       await client.query(
         `UPDATE users SET nickname=COALESCE($2,nickname),avatar_url=COALESCE(avatar_url,$3),
-         email_verified_at=CASE WHEN email IS NULL AND $4 IS NOT NULL AND $5 THEN now() ELSE email_verified_at END,
-         email=COALESCE(email,$4),
+         email_verified_at=CASE WHEN email IS NULL AND $4::varchar IS NOT NULL AND $5 THEN now() ELSE email_verified_at END,
+         email=COALESCE(email,$4::varchar),
          terms_agreed_at=CASE WHEN $6 THEN COALESCE(terms_agreed_at,now()) ELSE terms_agreed_at END,
          privacy_agreed_at=CASE WHEN $6 THEN COALESCE(privacy_agreed_at,now()) ELSE privacy_agreed_at END,
          last_login_at=now(),updated_at=now() WHERE id=$1`,

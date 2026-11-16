@@ -48,6 +48,30 @@ try {
     WHERE users.status='active' AND users.deleted_at IS NULL
   `);
   console.log(distribution.rows[0]);
+
+  const recentTickets = await client.query(`
+    SELECT
+      provider,
+      requires_agreement,
+      count(*)::int AS tickets,
+      max(created_at) AS latest_created_at
+    FROM oauth_login_tickets
+    WHERE created_at > now() - interval '1 day'
+    GROUP BY provider, requires_agreement
+    ORDER BY latest_created_at DESC
+  `);
+  console.log({ recent_oauth_tickets: recentTickets.rows });
+
+  const identityReadiness = await client.query(`
+    SELECT
+      count(*) FILTER (WHERE users.email IS NOT NULL)::int AS users_with_email,
+      count(*) FILTER (WHERE users.email_verified_at IS NOT NULL)::int AS users_with_verified_email,
+      count(*) FILTER (WHERE account.provider_email IS NOT NULL)::int AS oauth_accounts_with_email
+    FROM users
+    LEFT JOIN user_oauth_accounts account ON account.user_id=users.id
+    WHERE users.status='active' AND users.deleted_at IS NULL
+  `);
+  console.log(identityReadiness.rows[0]);
 } finally {
   await client.end();
 }
