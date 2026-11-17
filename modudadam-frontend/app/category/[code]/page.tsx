@@ -8,5 +8,5 @@ export default async function CategoryPage({ params }: { params: Promise<{ code:
   const category = findCategory((await params).code); if (!category) notFound();
   const user = await getServerSessionUser();
   const Icon = category.icon;
-  return <section className="content-page"><div className="category-hero"><span className={`category-icon category-icon-large category-${category.code}`}><Icon size={32} strokeWidth={1.8} /></span><div><small>모두다담 게시판</small><h1>{category.name}</h1><p>함께 나누고 오래 쌓아두고 싶은 생활 정보를 만나보세요.</p></div></div><BoardList categoryCode={category.code} categoryName={category.name} authenticated={Boolean(user)} /></section>;
+  return <section className="content-page board-page"><div className="category-hero"><span className={`category-icon category-icon-large category-${category.code}`}><Icon size={27} strokeWidth={1.8} /></span><div><small>커뮤니티</small><h1>{category.name}</h1><p>{category.description}</p></div></div><BoardList categoryCode={category.code} categoryName={category.name} authenticated={Boolean(user)} /></section>;
 }

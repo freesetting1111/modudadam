@@ -84,7 +84,10 @@ export async function getOAuthLoginTicket(ticket: string) {
 
 export async function completeOAuthLoginTicket(
   ticket: string,
-  agreements: { ageOver14: boolean; terms: boolean; privacy: boolean; nickname: string } | null,
+  agreements: {
+    ageOver14: boolean; terms: boolean; privacy: boolean; nickname: string;
+    gender: string; ageRange: string; phoneNumber: string;
+  } | null,
   userAgent?: string,
 ) {
   const client = await db.connect();
@@ -108,7 +111,7 @@ export async function completeOAuthLoginTicket(
     }
 
     const profile = row.profile;
-    const userId = await upsertOAuthUser(profile, client, Boolean(agreements), requestedNickname);
+    const userId = await upsertOAuthUser(profile, client, agreements, requestedNickname);
     if (agreements) {
       for (const consentKey of ["age_over_14", "service_terms", "privacy_collection"]) {
         await client.query(
@@ -135,7 +138,10 @@ export async function completeOAuthLoginTicket(
 async function upsertOAuthUser(
   profile: OAuthProfile,
   client: PoolClient,
-  acceptAgreements: boolean,
+  agreements: {
+    ageOver14: boolean; terms: boolean; privacy: boolean; nickname: string;
+    gender: string; ageRange: string; phoneNumber: string;
+  } | null,
   requestedNickname: string | null,
 ) {
     const verifiedEmail = getVerifiedOAuthEmail(profile);
@@ -171,6 +177,16 @@ async function upsertOAuthUser(
       );
       if (duplicateNickname.rowCount) throw new Error("NICKNAME_TAKEN");
     }
+    if (agreements) {
+      const duplicatePhone = await client.query(
+        `SELECT 1 FROM users
+         WHERE phone_number=$1 AND deleted_at IS NULL
+           AND ($2::uuid IS NULL OR id<>$2::uuid)
+         LIMIT 1`,
+        [agreements.phoneNumber, userId || null],
+      );
+      if (duplicatePhone.rowCount) throw new Error("PHONE_TAKEN");
+    }
     const availableEmail = verifiedEmail
       ? await getAvailableOAuthEmail(verifiedEmail, userId, client)
       : null;
@@ -179,10 +195,12 @@ async function upsertOAuthUser(
       const nickname = requestedNickname || await createAvailableNickname(profile.nickname, client);
       const user = await client.query<{ id: string }>(
         `INSERT INTO users(
-           nickname,email,email_verified_at,avatar_url,last_login_at,terms_agreed_at,privacy_agreed_at
-         ) VALUES($1,$2,CASE WHEN $3 THEN now() END,$4,now(),CASE WHEN $5 THEN now() END,CASE WHEN $5 THEN now() END)
+           nickname,email,email_verified_at,avatar_url,phone_number,gender,age_range,
+           last_login_at,terms_agreed_at,privacy_agreed_at
+         ) VALUES($1,$2,CASE WHEN $3 THEN now() END,$4,$5,$6,$7,now(),CASE WHEN $8 THEN now() END,CASE WHEN $8 THEN now() END)
          RETURNING id`,
-        [nickname, availableEmail, Boolean(availableEmail && profile.emailVerified), profile.avatarUrl || null, acceptAgreements],
+        [nickname, availableEmail, Boolean(availableEmail && profile.emailVerified), profile.avatarUrl || null,
+          agreements?.phoneNumber || null, agreements?.gender || null, agreements?.ageRange || null, Boolean(agreements)],
       );
       userId = user.rows[0].id;
     } else {
@@ -192,8 +210,11 @@ async function upsertOAuthUser(
          email=COALESCE(email,$4::varchar),
          terms_agreed_at=CASE WHEN $6 THEN COALESCE(terms_agreed_at,now()) ELSE terms_agreed_at END,
          privacy_agreed_at=CASE WHEN $6 THEN COALESCE(privacy_agreed_at,now()) ELSE privacy_agreed_at END,
+         phone_number=COALESCE($7,phone_number),gender=COALESCE($8,gender),age_range=COALESCE($9,age_range),
          last_login_at=now(),updated_at=now() WHERE id=$1`,
-        [userId, requestedNickname, profile.avatarUrl || null, availableEmail, Boolean(availableEmail && profile.emailVerified), acceptAgreements],
+        [userId, requestedNickname, profile.avatarUrl || null, availableEmail,
+          Boolean(availableEmail && profile.emailVerified), Boolean(agreements),
+          agreements?.phoneNumber || null, agreements?.gender || null, agreements?.ageRange || null],
       );
     }
     if (!userId) throw new Error("OAUTH_USER_CREATION_FAILED");

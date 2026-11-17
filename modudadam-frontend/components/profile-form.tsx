@@ -90,6 +90,7 @@ export function ProfileForm() {
           statusMessage: profile.statusMessage,
           gender: profile.gender,
           ageRange: profile.ageRange,
+          phoneNumber: profile.phoneNumber,
         }),
       });
       setProfile(result.profile);
@@ -162,6 +163,7 @@ export function ProfileForm() {
         <div><dt>상태 메시지</dt><dd>{profile.statusMessage || "미등록"}</dd></div>
         <div><dt>성별</dt><dd>{genderLabel(profile.gender)}</dd></div>
         <div><dt>연령대</dt><dd>{ageRangeLabel(profile.ageRange)}</dd></div>
+        <div className="wide"><dt>휴대폰 번호</dt><dd>{formatPhoneNumber(profile.phoneNumber) || "미등록"} <small>직접 입력 · 미인증</small></dd></div>
         <div className="wide"><dt>이메일</dt><dd>{profile.email || "미등록"}{profile.emailVerified && <span><BadgeCheck size={14} /> 인증 완료</span>}</dd></div>
       </dl>
     </section>
@@ -200,6 +202,11 @@ export function ProfileForm() {
         <label><span>성별 <em>선택</em></span><select value={profile.gender || ""} onChange={(event) => update("gender", event.target.value || null)}><option value="">선택 안 함</option><option value="male">남성</option><option value="female">여성</option><option value="other">기타</option></select></label>
         <label><span>연령대 <em>선택</em></span><select value={profile.ageRange || ""} onChange={(event) => update("ageRange", event.target.value || null)}><option value="">선택 안 함</option><option value="10-19">10대</option><option value="20-29">20대</option><option value="30-39">30대</option><option value="40-49">40대</option><option value="50-59">50대</option><option value="60+">60대 이상</option></select></label>
       </div>
+      <label className="profile-field">
+        <span><b>휴대폰 번호</b><em>필수 · 직접 입력</em></span>
+        <input type="tel" inputMode="numeric" autoComplete="tel" value={profile.phoneNumber} onChange={(event) => update("phoneNumber", event.target.value.replace(/\D/g, "").slice(0, 11))} maxLength={11} placeholder="01012345678" aria-invalid={!isValidPhoneNumber(profile.phoneNumber)} />
+        {!isValidPhoneNumber(profile.phoneNumber) && <small className="profile-error">휴대폰 번호 형식을 확인해 주세요.</small>}
+      </label>
       <p className="profile-source-note"><BadgeCheck size={15} /> 직접 선택하는 선택 정보이며 다른 사용자에게 공개되지 않아요.</p>
       <div className="profile-field">
         <span><b><Mail size={15} /> 이메일</b>{profile.emailVerified && emailInput === profile.email ? <small className="profile-verified"><BadgeCheck size={14} /> 인증 완료</small> : <em>선택</em>}</span>
@@ -210,12 +217,12 @@ export function ProfileForm() {
         {emailCodeSent && <div className="profile-email-row"><input value={emailCode} onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))} maxLength={6} placeholder="6자리 인증번호" inputMode="numeric" /><button type="button" onClick={confirmEmailCode} disabled={emailConfirming || emailCode.length !== 6}>{emailConfirming ? "확인 중" : "확인"}</button></div>}
         {emailMessage && <small className={profile.emailVerified && emailInput === profile.email ? "profile-success" : "profile-help"}>{profile.emailVerified && emailInput === profile.email && <Check size={13} />}{emailMessage}</small>}
       </div>
-      <p className="profile-verification-note">이메일은 알림과 계정 안내가 필요할 때만 사용해요. 인증 전에는 저장되지 않으며, 휴대폰 번호는 수집하지 않아요.</p>
+      <p className="profile-verification-note">이메일은 인증 후 저장됩니다. 휴대폰 번호는 직접 입력한 미인증 정보이며 다른 사용자에게 공개되지 않아요.</p>
     </section>
 
     {error && <div className="form-error" role="alert">{error}</div>}
     {success && <div className="profile-save-success" role="status"><Check size={16} /> {success}</div>}
-    <div className="profile-edit-actions"><button type="button" onClick={() => setEditing(false)} disabled={saving}>취소</button><button className="profile-submit" type="submit" disabled={saving || !nicknameValid || !nicknameReady}>{saving ? "저장 중..." : nicknameState === "unchecked" || nicknameState === "taken" ? "닉네임 중복 확인이 필요합니다" : "저장하기"}</button></div>
+    <div className="profile-edit-actions"><button type="button" onClick={() => setEditing(false)} disabled={saving}>취소</button><button className="profile-submit" type="submit" disabled={saving || !nicknameValid || !nicknameReady || !isValidPhoneNumber(profile.phoneNumber)}>{saving ? "저장 중..." : nicknameState === "unchecked" || nicknameState === "taken" ? "닉네임 중복 확인이 필요합니다" : "저장하기"}</button></div>
   </form>;
 }
 
@@ -236,4 +243,14 @@ function ageRangeLabel(value: string | null) {
   if (!value) return "미등록";
   if (value === "60+") return "60대 이상";
   return `${value.slice(0, 2)}대`;
+}
+
+function isValidPhoneNumber(value: string) {
+  return /^01[016789]\d{7,8}$/.test(value);
+}
+
+function formatPhoneNumber(value: string) {
+  if (value.length === 11) return value.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3");
+  if (value.length === 10) return value.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3");
+  return value;
 }

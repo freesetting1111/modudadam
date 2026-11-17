@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { randomUUID } from "node:crypto";
 import { db, query } from "@/lib/db";
 import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
@@ -17,11 +18,30 @@ type PostImageRow = {
 export async function GET(request: NextRequest, { params }: { params: Promise<{ postId: string }> }) {
   const { postId } = await params;
   const user = await getSessionUser(request);
+  let visitorId = request.cookies.get("modudadam_visitor")?.value || "";
+  let shouldSetVisitorCookie = false;
+  if (!user && !/^[0-9a-f-]{36}$/i.test(visitorId)) {
+    visitorId = randomUUID();
+    shouldSetVisitorCookie = true;
+  }
   if (request.nextUrl.searchParams.get("trackView") !== "false") {
+    const viewerKey = user ? `user:${user.id}` : `visitor:${visitorId}`;
     const result = await query(
-      `UPDATE posts SET view_count=view_count+1 WHERE id=$1 AND status='published'
-       RETURNING id`, [postId]);
-    if (!result.rows[0]) return errorResponse("글을 찾을 수 없습니다.", 404);
+      `WITH new_view AS (
+         INSERT INTO post_views(post_id,viewer_key)
+         SELECT id,$2 FROM posts WHERE id=$1 AND status='published'
+         ON CONFLICT DO NOTHING
+         RETURNING post_id
+       )
+       UPDATE posts SET view_count=view_count+1
+       WHERE id=(SELECT post_id FROM new_view)
+       RETURNING id`,
+      [postId, viewerKey],
+    );
+    if (!result.rows[0]) {
+      const exists = await query("SELECT 1 FROM posts WHERE id=$1 AND status='published'", [postId]);
+      if (!exists.rows[0]) return errorResponse("글을 찾을 수 없습니다.", 404);
+    }
   }
   const detail = await query(
     `SELECT posts.id,posts.title,posts.content,posts.attributes,
@@ -52,7 +72,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })));
     const post = detail.rows[0] as Record<string, unknown> & { content: string; attributes?: { contentHtml?: string } };
     const renderedContentHtml = renderPostContentHtml(post.attributes?.contentHtml, post.content, images);
-    return jsonResponse({ post: { ...post, images, renderedContentHtml } });
+    const response = jsonResponse({ post: { ...post, images, renderedContentHtml } });
+    if (shouldSetVisitorCookie) {
+      const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+      response.headers.append("Set-Cookie", `modudadam_visitor=${visitorId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`);
+    }
+    return response;
   } catch (error) {
     console.error("[posts] failed to create image URL", error);
     return errorResponse("첨부 이미지를 불러오지 못했습니다.", 500);

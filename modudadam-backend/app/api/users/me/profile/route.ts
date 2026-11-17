@@ -27,24 +27,31 @@ export async function PATCH(request: NextRequest) {
     const statusMessage = String(body.statusMessage ?? "").trim();
     const gender = String(body.gender ?? "");
     const ageRange = String(body.ageRange ?? "");
+    const phoneNumber = String(body.phoneNumber ?? "").replace(/\D/g, "");
 
     if (!isValidNickname(nickname)) return errorResponse("닉네임은 한글, 영문 소문자, 숫자로 2~20자리까지 입력해 주세요.");
     if (statusMessage.length > 30) return errorResponse("상태 메시지는 30자리까지 입력할 수 있습니다.");
     if (!GENDERS.has(gender)) return errorResponse("성별 선택값을 확인해 주세요.");
     if (!AGE_RANGES.has(ageRange)) return errorResponse("연령대 선택값을 확인해 주세요.");
+    if (!/^01[016789]\d{7,8}$/.test(phoneNumber)) return errorResponse("휴대폰 번호 형식을 확인해 주세요.");
 
     const profile = await updateUserProfile(user.id, {
       nickname,
       statusMessage: statusMessage || null,
       gender: gender || null,
       ageRange: ageRange || null,
+      phoneNumber,
     });
     return jsonResponse({ profile });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.", 401);
     if (error instanceof Error && error.message === "NICKNAME_TAKEN") return errorResponse("이미 사용 중인 닉네임입니다.", 409);
+    if (error instanceof Error && error.message === "PHONE_TAKEN") return errorResponse("이미 등록된 휴대폰 번호입니다.", 409);
     if (typeof error === "object" && error && "code" in error && error.code === "23505") {
-      return errorResponse("이미 사용 중인 닉네임입니다.", 409);
+      const constraint = "constraint" in error ? String(error.constraint || "") : "";
+      return constraint.includes("phone")
+        ? errorResponse("이미 등록된 휴대폰 번호입니다.", 409)
+        : errorResponse("이미 사용 중인 닉네임입니다.", 409);
     }
     console.error("[profile-update]", error);
     return errorResponse("프로필을 저장하지 못했습니다.", 500);

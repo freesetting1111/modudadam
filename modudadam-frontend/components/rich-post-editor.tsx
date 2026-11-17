@@ -77,6 +77,12 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
       imageInfoRef.current.set(imageId, { existing: true });
       decorateFigure(figure, image.url, image.originalName);
     });
+    const hasMissingImagePositions = initialImages.some((image) => !editor.querySelector(`figure[data-image-id="${image.id}"]`));
+    if (hasMissingImagePositions) {
+      editor.querySelectorAll<HTMLElement>("p,div,blockquote").forEach((block) => {
+        if (isVisuallyEmpty(block)) block.remove();
+      });
+    }
     for (const image of initialImages) {
       if (!editor.querySelector(`figure[data-image-id="${image.id}"]`)) {
         const figure = createFigure(image.id, image.url, image.originalName, "ready");
@@ -172,17 +178,42 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
     const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
     if (range && editor.contains(range.commonAncestorContainer)) {
       range.deleteContents();
+      range.collapse(true);
+      if (range.startContainer === editor) {
+        const nextNode = editor.childNodes[range.startOffset] || null;
+        editor.insertBefore(figure, nextNode);
+        const nextBlock = figure.nextElementSibling instanceof HTMLElement
+          ? figure.nextElementSibling
+          : createGeneratedParagraph(figure);
+        savedRangeRef.current = placeCaretAtStart(nextBlock);
+        return;
+      }
+
+      const block = closestDirectChild(editor, range.startContainer);
+      if (block && !block.matches("figure.editor-inline-image")) {
+        const tailRange = document.createRange();
+        tailRange.selectNodeContents(block);
+        tailRange.setStart(range.startContainer, range.startOffset);
+        const tail = tailRange.extractContents();
+        const afterBlock = block.cloneNode(false) as HTMLElement;
+        afterBlock.removeAttribute("data-editor-generated");
+        afterBlock.append(tail);
+        if (isVisuallyEmpty(afterBlock)) {
+          afterBlock.replaceChildren(document.createElement("br"));
+          afterBlock.dataset.editorGenerated = "true";
+        }
+        block.after(figure, afterBlock);
+        if (isVisuallyEmpty(block)) block.remove();
+        savedRangeRef.current = placeCaretAtStart(afterBlock);
+        return;
+      }
+
       range.insertNode(figure);
-      const paragraph = createEmptyParagraph();
-      figure.after(paragraph);
-      const nextRange = document.createRange();
-      nextRange.selectNodeContents(paragraph);
-      nextRange.collapse(true);
-      selection?.removeAllRanges();
-      selection?.addRange(nextRange);
-      savedRangeRef.current = nextRange.cloneRange();
+      const paragraph = createGeneratedParagraph(figure);
+      savedRangeRef.current = placeCaretAtStart(paragraph);
     } else {
-      editor.append(figure, createEmptyParagraph());
+      editor.append(figure);
+      savedRangeRef.current = placeCaretAtStart(createGeneratedParagraph(figure));
     }
   }
 
@@ -304,12 +335,80 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
   }
 
   function handleEditorKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (disabled || (event.key !== "Backspace" && event.key !== "Delete")) return;
+    if (disabled) return;
+    if (event.key === "Enter") {
+      markCurrentBlockAsAuthored();
+      return;
+    }
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      if (moveAcrossImage(event.key)) event.preventDefault();
+      return;
+    }
+    if (event.key !== "Backspace" && event.key !== "Delete") return;
     const figures = findFiguresForDeletion(editorRef.current, event.key);
     if (!figures.length) return;
     event.preventDefault();
     for (const figure of figures) removeFigure(figure, false);
     ensureEditableParagraph();
+    emitChange();
+  }
+
+  function markCurrentBlockAsAuthored() {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return;
+    const block = closestDirectChild(editor, selection.getRangeAt(0).startContainer);
+    block?.removeAttribute("data-editor-generated");
+  }
+
+  function moveAcrossImage(key: "ArrowUp" | "ArrowDown") {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return false;
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed || !editor.contains(range.startContainer)) return false;
+
+    const block = closestDirectChild(editor, range.startContainer);
+    if (block && !block.matches("figure.editor-inline-image")) {
+      const atBoundary = key === "ArrowUp" ? isCaretAtStart(block, range) : isCaretAtEnd(block, range);
+      if (!atBoundary) return false;
+      const figure = key === "ArrowUp" ? block.previousElementSibling : block.nextElementSibling;
+      if (!(figure instanceof HTMLElement) || !figure.matches("figure.editor-inline-image")) return false;
+      const target = key === "ArrowUp" ? getOrCreateBlockBefore(figure) : getOrCreateBlockAfter(figure);
+      savedRangeRef.current = key === "ArrowUp" && !isVisuallyEmpty(target) ? placeCaretAtEnd(target) : placeCaretAtStart(target);
+      return true;
+    }
+
+    if (range.startContainer === editor) {
+      const figureIndex = range.startOffset + (key === "ArrowUp" ? -1 : 0);
+      const figure = editor.childNodes[figureIndex];
+      if (!(figure instanceof HTMLElement) || !figure.matches("figure.editor-inline-image")) return false;
+      const target = key === "ArrowUp" ? getOrCreateBlockBefore(figure) : getOrCreateBlockAfter(figure);
+      savedRangeRef.current = key === "ArrowUp" && !isVisuallyEmpty(target) ? placeCaretAtEnd(target) : placeCaretAtStart(target);
+      return true;
+    }
+    return false;
+  }
+
+  function getOrCreateBlockBefore(figure: HTMLElement) {
+    const previous = figure.previousElementSibling;
+    if (previous instanceof HTMLElement && !previous.matches("figure.editor-inline-image")) return previous;
+    const paragraph = createEmptyParagraph();
+    paragraph.dataset.editorGenerated = "true";
+    figure.before(paragraph);
+    return paragraph;
+  }
+
+  function getOrCreateBlockAfter(figure: HTMLElement) {
+    const next = figure.nextElementSibling;
+    if (next instanceof HTMLElement && !next.matches("figure.editor-inline-image")) return next;
+    return createGeneratedParagraph(figure);
+  }
+
+  function handleEditorInput() {
+    editorRef.current?.querySelectorAll<HTMLElement>("[data-editor-generated]").forEach((block) => {
+      if (!isVisuallyEmpty(block)) block.removeAttribute("data-editor-generated");
+    });
     emitChange();
   }
 
@@ -357,6 +456,10 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
     if (!editor) return { content: "", contentHtml: "", imageIds: [], imageCount: 0, uploading: false };
     const clone = editor.cloneNode(true) as HTMLElement;
     clone.querySelectorAll("button,.editor-image-status").forEach((node) => node.remove());
+    clone.querySelectorAll<HTMLElement>("[data-editor-generated]").forEach((block) => {
+      if (isVisuallyEmpty(block)) block.remove();
+      else block.removeAttribute("data-editor-generated");
+    });
     clone.querySelectorAll<HTMLElement>("figure.editor-inline-image").forEach((figure) => {
       const imageId = figure.dataset.imageId;
       if (!imageId) {
@@ -403,7 +506,7 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
       role="textbox"
       aria-multiline="true"
       data-placeholder="함께 나누고 싶은 경험과 정보를 작성해 주세요."
-      onInput={emitChange}
+      onInput={handleEditorInput}
       onFocus={saveSelection}
       onKeyUp={saveSelection}
       onMouseUp={saveSelection}
@@ -464,6 +567,40 @@ function createEmptyParagraph() {
   const paragraph = document.createElement("p");
   paragraph.append(document.createElement("br"));
   return paragraph;
+}
+
+function createGeneratedParagraph(after: HTMLElement) {
+  const paragraph = createEmptyParagraph();
+  paragraph.dataset.editorGenerated = "true";
+  after.after(paragraph);
+  return paragraph;
+}
+
+function placeCaretAtStart(element: HTMLElement) {
+  const selection = window.getSelection();
+  if (!selection) return null;
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return range.cloneRange();
+}
+
+function placeCaretAtEnd(element: HTMLElement) {
+  const selection = window.getSelection();
+  if (!selection) return null;
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return range.cloneRange();
+}
+
+function isVisuallyEmpty(element: HTMLElement) {
+  return !element.textContent?.replace(/\u00a0/g, " ").trim()
+    && !element.querySelector("img,figure,video,iframe");
 }
 
 function findFiguresForDeletion(editor: HTMLElement | null, key: "Backspace" | "Delete") {

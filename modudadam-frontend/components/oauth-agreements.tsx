@@ -16,6 +16,9 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
   const [profile, setProfile] = useState<PendingProfile | null>(null);
   const [nickname, setNickname] = useState("");
   const [nicknameState, setNicknameState] = useState<NicknameState>("unchecked");
+  const [gender, setGender] = useState("");
+  const [ageRange, setAgeRange] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [ageOver14, setAgeOver14] = useState(false);
   const [agreementComplete, setAgreementComplete] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -53,6 +56,18 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
       setAlertMessage("닉네임 중복 확인이 필요합니다.");
       return;
     }
+    if (!gender) {
+      setAlertMessage("성별을 선택해 주세요.");
+      return;
+    }
+    if (!ageRange) {
+      setAlertMessage("연령대를 선택해 주세요.");
+      return;
+    }
+    if (!isValidPhoneNumber(phoneNumber)) {
+      setAlertMessage("휴대폰 번호 형식을 확인해 주세요.");
+      return;
+    }
     if (!ageOver14) {
       setAlertMessage("만 14세 이상 확인은 필수입니다.");
       return;
@@ -65,7 +80,7 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
     try {
       const result = await apiRequest<{ returnTo: string }>("/api/auth/signup/agreements", {
         method: "POST",
-        body: JSON.stringify({ ticket, nickname, ageOver14: true, agreeTerms: true, agreePrivacy: true }),
+        body: JSON.stringify({ ticket, nickname, gender, ageRange, phoneNumber, ageOver14: true, agreeTerms: true, agreePrivacy: true }),
       });
       router.replace(result.returnTo || "/");
       router.refresh();
@@ -103,6 +118,14 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
       <p>한글, 영문 소문자, 숫자만 사용해 2~20자로 입력해 주세요.</p>
       {nicknameState === "available" && <small className="oauth-nickname-success"><Check size={14} /> 사용할 수 있는 닉네임입니다.</small>}
       {nicknameState === "taken" && <small className="oauth-nickname-error">이미 사용 중인 닉네임입니다.</small>}
+      <div className="oauth-profile-fields">
+        <div className="oauth-profile-selects">
+          <label><span><b>성별</b><em>필수</em></span><select value={gender} onChange={(event) => setGender(event.target.value)}><option value="">선택해 주세요</option><option value="male">남성</option><option value="female">여성</option><option value="other">기타</option></select></label>
+          <label><span><b>연령대</b><em>필수</em></span><select value={ageRange} onChange={(event) => setAgeRange(event.target.value)}><option value="">선택해 주세요</option><option value="10-19">10대</option><option value="20-29">20대</option><option value="30-39">30대</option><option value="40-49">40대</option><option value="50-59">50대</option><option value="60+">60대 이상</option></select></label>
+        </div>
+        <label className="oauth-phone-field" htmlFor="signup-phone"><span><b>휴대폰 번호</b><em>필수 · 직접 입력</em></span><input id="signup-phone" type="tel" inputMode="numeric" autoComplete="tel" value={phoneNumber} maxLength={11} placeholder="01012345678" aria-invalid={phoneNumber.length > 0 && !isValidPhoneNumber(phoneNumber)} onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, "").slice(0, 11))} /></label>
+        <p>입력한 정보는 다른 사용자에게 공개되지 않으며, 휴대폰 번호는 인증되지 않은 직접 입력 정보입니다.</p>
+      </div>
     </div>
     <div className="oauth-agreement-card">
       <button type="button" className={`oauth-consent-row ${ageOver14 ? "checked" : ""}`} onClick={() => setAgeOver14((value) => !value)}>
@@ -135,4 +158,8 @@ function sanitizeNickname(value: string) {
 
 function isValidNickname(value: string) {
   return /^[가-힣a-z0-9]{2,20}$/u.test(value);
+}
+
+function isValidPhoneNumber(value: string) {
+  return /^01[016789]\d{7,8}$/.test(value);
 }

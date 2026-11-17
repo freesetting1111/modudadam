@@ -59,6 +59,7 @@ type UpdateProfileInput = {
   statusMessage: string | null;
   gender: string | null;
   ageRange: string | null;
+  phoneNumber: string;
 };
 
 export async function updateUserProfile(userId: string, input: UpdateProfileInput) {
@@ -77,11 +78,17 @@ export async function updateUserProfile(userId: string, input: UpdateProfileInpu
     );
     if (duplicate.rowCount) throw new Error("NICKNAME_TAKEN");
 
+    const duplicatePhone = await client.query(
+      "SELECT 1 FROM users WHERE phone_number=$1 AND id<>$2 AND deleted_at IS NULL LIMIT 1",
+      [input.phoneNumber, userId],
+    );
+    if (duplicatePhone.rowCount) throw new Error("PHONE_TAKEN");
+
     await client.query(
       `UPDATE users
-       SET nickname=$2,status_message=$3,gender=$4,age_range=$5,updated_at=now()
+       SET nickname=$2,status_message=$3,gender=$4,age_range=$5,phone_number=$6,updated_at=now()
        WHERE id=$1`,
-      [userId, input.nickname, input.statusMessage, input.gender, input.ageRange],
+      [userId, input.nickname, input.statusMessage, input.gender, input.ageRange, input.phoneNumber],
     );
     await client.query("COMMIT");
     return getUserProfile(userId);

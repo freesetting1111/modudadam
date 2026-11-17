@@ -8,22 +8,49 @@ import { normalizePostContentHtml } from "@/domains/community/post-content";
 export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get("category");
   const search = request.nextUrl.searchParams.get("q")?.trim();
-  const sort = request.nextUrl.searchParams.get("sort");
-  const result = await query(
-    `SELECT posts.id, posts.title, posts.post_type AS "postType",
+  const sort = request.nextUrl.searchParams.get("sort") === "popular" ? "popular" : "latest";
+  const limit = normalizeLimit(request.nextUrl.searchParams.get("limit"));
+  const cursor = decodeCursor(request.nextUrl.searchParams.get("cursor"), sort);
+  if (request.nextUrl.searchParams.has("cursor") && !cursor) return errorResponse("페이지 위치 정보가 올바르지 않습니다.");
+
+  const select = `SELECT posts.id, posts.title, posts.post_type AS "postType",
       posts.view_count AS "viewCount", posts.comment_count AS "commentCount",
       posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",
       posts.published_at AS "publishedAt",posts.created_at AS "createdAt",categories.code AS "categoryCode",
-      categories.name AS "categoryName",users.nickname AS "authorName"
+      categories.name AS "categoryName",users.nickname AS "authorName",
+      left(regexp_replace(posts.content, E'[\\n\\r]+', ' ', 'g'), 140) AS excerpt,
+      (posts.view_count + posts.comment_count * 3) AS "popularityScore"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
      WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
-       AND ($2::text IS NULL OR posts.title ILIKE '%'||$2||'%' OR posts.content ILIKE '%'||$2||'%')
-     ORDER BY posts.is_pinned DESC,
-       CASE WHEN $3='popular' THEN posts.view_count+posts.comment_count*3 END DESC,
-       posts.published_at DESC NULLS LAST, posts.created_at DESC LIMIT 50`,
-    [category, search || null, sort || "latest"],
-  );
-  return jsonResponse({ posts: result.rows });
+       AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')`;
+
+  const result = sort === "popular"
+    ? await query(`${select}
+       AND ($3::boolean IS NULL
+         OR posts.is_pinned < $3
+         OR (posts.is_pinned = $3 AND (posts.view_count + posts.comment_count * 3) < $4)
+         OR (posts.is_pinned = $3 AND (posts.view_count + posts.comment_count * 3) = $4 AND posts.published_at < $5)
+         OR (posts.is_pinned = $3 AND (posts.view_count + posts.comment_count * 3) = $4 AND posts.published_at = $5 AND posts.id < $6))
+       ORDER BY posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC
+       LIMIT $7`, [category, search || null, cursor?.isPinned ?? null, cursor?.score ?? null, cursor?.publishedAt ?? null, cursor?.id ?? null, limit + 1])
+    : await query(`${select}
+       AND ($3::boolean IS NULL
+         OR posts.is_pinned < $3
+         OR (posts.is_pinned = $3 AND posts.published_at < $4)
+         OR (posts.is_pinned = $3 AND posts.published_at = $4 AND posts.id < $5))
+       ORDER BY posts.is_pinned DESC,posts.published_at DESC,posts.id DESC
+       LIMIT $6`, [category, search || null, cursor?.isPinned ?? null, cursor?.publishedAt ?? null, cursor?.id ?? null, limit + 1]);
+
+  const hasMore = result.rows.length > limit;
+  const posts = result.rows.slice(0, limit) as Array<Record<string, unknown>>;
+  const last = posts.at(-1);
+  const nextCursor = hasMore && last ? encodeCursor({
+    isPinned: Boolean(last.isPinned),
+    publishedAt: new Date(String(last.publishedAt)).toISOString(),
+    id: String(last.id),
+    ...(sort === "popular" ? { score: Number(last.popularityScore) } : {}),
+  }) : null;
+  return jsonResponse({ posts, nextCursor, hasMore });
 }
 
 export async function POST(request: NextRequest) {
@@ -82,4 +109,29 @@ function normalizeImageIds(value: unknown) {
   if (value === undefined) return [];
   if (!Array.isArray(value) || value.some((id) => typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id))) return null;
   return [...new Set(value)];
+}
+
+type PostCursor = { isPinned: boolean; publishedAt: string; id: string; score?: number };
+
+function normalizeLimit(value: string | null) {
+  const parsed = Number(value || 20);
+  return Number.isInteger(parsed) ? Math.min(50, Math.max(1, parsed)) : 20;
+}
+
+function encodeCursor(cursor: PostCursor) {
+  return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+}
+
+function decodeCursor(value: string | null, sort: "latest" | "popular"): PostCursor | null {
+  if (!value) return null;
+  try {
+    const cursor = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<PostCursor>;
+    if (typeof cursor.isPinned !== "boolean"
+      || typeof cursor.publishedAt !== "string" || !Number.isFinite(Date.parse(cursor.publishedAt))
+      || typeof cursor.id !== "string" || !/^[0-9a-f-]{36}$/i.test(cursor.id)
+      || (sort === "popular" && (typeof cursor.score !== "number" || !Number.isFinite(cursor.score)))) return null;
+    return cursor as PostCursor;
+  } catch {
+    return null;
+  }
 }

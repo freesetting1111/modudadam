@@ -50,7 +50,11 @@ export function validatePostImage(input: { mimeType: string; byteSize: number })
 }
 
 export function createPostImageKey(userId: string, mimeType: string) {
-  return `posts/${userId}/${randomUUID()}.${imageExtensions[mimeType]}`;
+  const now = new Date();
+  const year = String(now.getUTCFullYear());
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  return `posts/images/${year}/${month}/${day}/${userId}/${randomUUID()}.${imageExtensions[mimeType]}`;
 }
 
 export async function createImageUploadUrl(objectKey: string, mimeType: string, byteSize: number) {

@@ -2,22 +2,10 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api";
 
 const RECENT_SEARCH_COOKIE = "modudadam_recent_searches";
 const MAX_RECENT_SEARCHES = 10;
-
-const trendingKeywords = [
-  { keyword: "반려동물 건강", movement: "NEW" },
-  { keyword: "오늘 저녁 메뉴", movement: "NEW" },
-  { keyword: "냉장고 정리", movement: "▲ 2" },
-  { keyword: "서울 나들이", movement: "NEW" },
-  { keyword: "홈트레이닝", movement: "▲ 3" },
-  { keyword: "아이와 갈만한 곳", movement: "―" },
-  { keyword: "봄 코디", movement: "NEW" },
-  { keyword: "자격증 공부", movement: "▲ 1" },
-  { keyword: "자동차 관리", movement: "▼ 2" },
-  { keyword: "주말 영화 추천", movement: "NEW" },
-];
 
 export function HomeSearch() {
   const router = useRouter();
@@ -26,6 +14,8 @@ export function HomeSearch() {
   const [tab, setTab] = useState<"recent" | "trending">("recent");
   const [query, setQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [trendingKeywords, setTrendingKeywords] = useState<string[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -46,21 +36,27 @@ export function HomeSearch() {
   function openSearch() {
     setRecentSearches(readRecentSearches());
     setOpen(true);
+    setTrendingLoading(true);
+    apiRequest<{ popularQueries: string[] }>("/api/searches", { cache: "no-store" })
+      .then((result) => setTrendingKeywords(result.popularQueries))
+      .catch(() => setTrendingKeywords([]))
+      .finally(() => setTrendingLoading(false));
   }
 
-  function search(keyword: string) {
+  async function search(keyword: string) {
     const normalized = keyword.trim().replace(/\s+/g, " ");
     if (!normalized) return;
     const next = [normalized, ...recentSearches.filter((item) => item !== normalized)].slice(0, MAX_RECENT_SEARCHES);
     writeRecentSearches(next);
     setRecentSearches(next);
+    await apiRequest("/api/searches", { method: "POST", body: JSON.stringify({ query: normalized }) }).catch(() => undefined);
     setOpen(false);
     router.push(`/search?q=${encodeURIComponent(normalized)}`);
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    search(query);
+    void search(query);
   }
 
   function removeRecent(keyword: string) {
@@ -95,19 +91,18 @@ export function HomeSearch() {
         {recentSearches.length === 0 ? <p className="no-recent-searches">최근 검색어가 없습니다.</p> : <>
           <ol className="search-keyword-list recent-list">
             {recentSearches.map((keyword) => <li key={keyword}>
-              <button className="keyword-button" type="button" onClick={() => search(keyword)}>{keyword}</button>
+              <button className="keyword-button" type="button" onClick={() => void search(keyword)}>{keyword}</button>
               <button className="remove-keyword" type="button" onClick={() => removeRecent(keyword)} aria-label={`${keyword} 삭제`}>×</button>
             </li>)}
           </ol>
           <button className="clear-recent" type="button" onClick={clearRecent}>전체 삭제</button>
         </>}
-      </div> : <ol className="search-keyword-list trending-list" role="tabpanel">
-        {trendingKeywords.map(({ keyword, movement }, index) => <li key={keyword}>
-          <span className="ranking">{index + 1}.</span>
-          <button className="keyword-button" type="button" onClick={() => search(keyword)}>{keyword}</button>
-          <span className={`movement ${movement.startsWith("▼") ? "down" : ""}`}>{movement}</span>
+      </div> : <div role="tabpanel">{trendingLoading ? <p className="no-recent-searches">검색어 순위를 불러오는 중입니다.</p> : trendingKeywords.length === 0 ? <p className="no-recent-searches">아직 집계된 급상승 검색어가 없습니다.</p> : <ol className="search-keyword-list trending-list">
+        {trendingKeywords.map((keyword, index) => <li key={keyword}>
+          <span className="ranking">{index + 1}</span>
+          <button className="keyword-button" type="button" onClick={() => void search(keyword)}>{keyword}</button>
         </li>)}
-      </ol>}
+      </ol>}</div>}
 
       <button className="search-close" type="button" onClick={() => setOpen(false)}>닫기</button>
     </div>}
