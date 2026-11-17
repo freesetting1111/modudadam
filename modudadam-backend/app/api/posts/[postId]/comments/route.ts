@@ -6,20 +6,67 @@ import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 export async function GET(request: NextRequest, { params }: { params: Promise<{ postId: string }> }) {
   const { postId } = await params;
   const user = await getSessionUser(request);
+  const requestedPage = Number(request.nextUrl.searchParams.get("page") || 1);
+  const requestedPageSize = Number(request.nextUrl.searchParams.get("pageSize") || 10);
+  const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
+  const pageSize = Number.isFinite(requestedPageSize) ? Math.min(20, Math.max(1, Math.floor(requestedPageSize))) : 10;
+  const counts = await query<{ rootCount: number; commentCount: number }>(
+    `SELECT COUNT(*) FILTER(WHERE parent_id IS NULL)::int AS "rootCount",
+            COUNT(*) FILTER(WHERE status='published')::int AS "commentCount"
+       FROM comments
+      WHERE post_id=$1 AND status IN ('published','deleted')`,
+    [postId],
+  );
+  const rootCount = counts.rows[0]?.rootCount || 0;
+  const totalPages = Math.max(1, Math.ceil(rootCount / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const roots = await query<{ id: string }>(
+    `SELECT id FROM comments
+      WHERE post_id=$1 AND parent_id IS NULL AND status IN ('published','deleted')
+      ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3`,
+    [postId, pageSize, (currentPage - 1) * pageSize],
+  );
+  const rootIds = roots.rows.map((root) => root.id);
+  if (rootIds.length === 0) {
+    return jsonResponse({ comments: [], pagination: { page: currentPage, pageSize, totalItems: rootCount, totalPages, commentCount: counts.rows[0]?.commentCount || 0 } });
+  }
   const result = await query(
-    `SELECT comments.id,comments.parent_id AS "parentId",comments.status,
+    `SELECT comments.id,comments.parent_id AS "parentId",comments.reply_to_id AS "replyToId",comments.status,
       CASE WHEN comments.status='deleted' THEN '삭제된 댓글입니다.' ELSE comments.content END AS content,
       comments.created_at AS "createdAt",comments.updated_at AS "updatedAt",
-      users.id AS "authorId",users.nickname AS "authorName",
+      users.id AS "authorId",users.nickname AS "authorName",reply_users.nickname AS "replyToAuthor",
       (comments.author_id=$2::uuid AND comments.status='published') AS "canDelete",
       (comments.author_id=$2::uuid AND comments.status='published') AS "canEdit",
-      ($2::uuid IS NOT NULL AND comments.author_id<>$2::uuid AND comments.status='published') AS "canReport"
-     FROM comments JOIN users ON users.id=comments.author_id
+      ($2::uuid IS NOT NULL AND comments.author_id<>$2::uuid AND comments.status='published') AS "canReport",
+      COALESCE(reactions.like_count,0)::int AS "likeCount",
+      COALESCE(reactions.dislike_count,0)::int AS "dislikeCount",
+      reactions.my_reaction AS "myReaction"
+     FROM comments
+     JOIN users ON users.id=comments.author_id
+     LEFT JOIN comments reply_target ON reply_target.id=comments.reply_to_id
+     LEFT JOIN users reply_users ON reply_users.id=reply_target.author_id
+     LEFT JOIN LATERAL (
+       SELECT COUNT(*) FILTER(WHERE reaction='like') AS like_count,
+              COUNT(*) FILTER(WHERE reaction='dislike') AS dislike_count,
+              MAX(reaction) FILTER(WHERE user_id=$2::uuid) AS my_reaction
+         FROM comment_reactions WHERE comment_id=comments.id
+     ) reactions ON TRUE
      WHERE comments.post_id=$1 AND comments.status IN ('published','deleted')
+       AND (comments.id=ANY($3::uuid[]) OR comments.parent_id=ANY($3::uuid[]))
      ORDER BY comments.created_at ASC,comments.id ASC`,
-    [postId, user?.id || null],
+    [postId, user?.id || null, rootIds],
   );
-  return jsonResponse({ comments: result.rows });
+  const order = new Map(rootIds.map((id, index) => [id, index]));
+  result.rows.sort((left, right) => {
+    const leftRoot = left.parentId || left.id;
+    const rightRoot = right.parentId || right.id;
+    const rootDifference = (order.get(leftRoot) ?? 0) - (order.get(rightRoot) ?? 0);
+    if (rootDifference !== 0) return rootDifference;
+    if (!left.parentId) return -1;
+    if (!right.parentId) return 1;
+    return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+  });
+  return jsonResponse({ comments: result.rows, pagination: { page: currentPage, pageSize, totalItems: rootCount, totalPages, commentCount: counts.rows[0]?.commentCount || 0 } });
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ postId: string }> }) {
@@ -40,6 +87,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         return errorResponse("글을 찾을 수 없습니다.", 404);
       }
       let rootParentId: string | null = null;
+      let replyToId: string | null = null;
       if (parentId) {
         const parent = await client.query<{ root_parent_id: string }>(
           `SELECT COALESCE(parent_id,id) AS root_parent_id FROM comments
@@ -51,10 +99,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           return errorResponse("답글을 작성할 댓글을 찾을 수 없습니다.", 404);
         }
         rootParentId = parent.rows[0].root_parent_id;
+        replyToId = parentId;
       }
       const comment = await client.query<{ id: string }>(
-        "INSERT INTO comments(post_id,author_id,parent_id,content) VALUES($1,$2,$3,$4) RETURNING id",
-        [postId, user.id, rootParentId, content],
+        "INSERT INTO comments(post_id,author_id,parent_id,reply_to_id,content) VALUES($1,$2,$3,$4,$5) RETURNING id",
+        [postId, user.id, rootParentId, replyToId, content],
       );
       await client.query("UPDATE posts SET comment_count=comment_count+1,updated_at=now() WHERE id=$1", [postId]);
       await client.query("COMMIT");

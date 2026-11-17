@@ -3,5 +3,9 @@ import { getServerSessionUser } from "@/lib/auth";
 
 export default async function PostPage({ params }: { params: Promise<{ postId: string }> }) {
   const user = await getServerSessionUser();
-  return <PostDetail postId={(await params).postId} authenticated={Boolean(user)} />;
+  return <PostDetail
+    postId={(await params).postId}
+    authenticated={Boolean(user)}
+    kakaoJavascriptKey={process.env.KAKAO_JAVASCRIPT_KEY || ""}
+  />;
 }

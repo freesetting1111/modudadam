@@ -51,6 +51,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       users.id AS "authorId",users.nickname AS "authorName",
       (posts.author_id=$2::uuid) AS "canEdit",
       ($2::uuid IS NOT NULL AND posts.author_id<>$2::uuid) AS "canReport",
+      EXISTS(SELECT 1 FROM post_reactions WHERE post_id=posts.id AND user_id=$2::uuid AND reaction='like') AS "isLiked",
+      (SELECT count(*)::int FROM post_reactions WHERE post_id=posts.id AND reaction='like') AS "likeCount",
       EXISTS(SELECT 1 FROM post_bookmarks WHERE post_id=posts.id AND user_id=$2::uuid) AS "isBookmarked",
       (SELECT count(*)::int FROM post_bookmarks WHERE post_id=posts.id) AS "bookmarkCount"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
