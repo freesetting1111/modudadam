@@ -8,8 +8,7 @@ const ANONYMOUS_KEY = "modudadam_anonymous_id";
 export function AnalyticsTracker() {
   const pathname = usePathname();
   useEffect(() => {
-    let anonymousId = localStorage.getItem(ANONYMOUS_KEY);
-    if (!anonymousId) { anonymousId = crypto.randomUUID(); localStorage.setItem(ANONYMOUS_KEY, anonymousId); }
+    const anonymousId = getAnonymousId();
     const query = new URLSearchParams(window.location.search);
     const firstLanding = sessionStorage.getItem("modudadam_landing_url") || window.location.href;
     sessionStorage.setItem("modudadam_landing_url", firstLanding);
@@ -29,5 +28,34 @@ export function AnalyticsTracker() {
       }),
     }).catch(() => undefined);
   }, [pathname]);
+  useEffect(() => {
+    const anonymousId = getAnonymousId();
+    let active = true;
+    async function heartbeat() {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const response = await fetch("/api/visitors/presence", {
+          method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ anonymousId, path: window.location.pathname }),
+        });
+        const payload = await response.json() as { success?: boolean; data?: { onlineCount?: number } };
+        if (active && payload.success && typeof payload.data?.onlineCount === "number") {
+          window.dispatchEvent(new CustomEvent("modudadam:visitor-count", { detail: { onlineCount: payload.data.onlineCount } }));
+        }
+      } catch { /* 방문자 표시는 서비스 이용을 방해하지 않습니다. */ }
+    }
+    void heartbeat();
+    const interval = window.setInterval(() => void heartbeat(), 60_000);
+    const handleFocus = () => void heartbeat();
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", handleFocus); document.removeEventListener("visibilitychange", handleFocus); };
+  }, []);
   return null;
+}
+
+function getAnonymousId() {
+  let anonymousId = localStorage.getItem(ANONYMOUS_KEY);
+  if (!anonymousId) { anonymousId = crypto.randomUUID(); localStorage.setItem(ANONYMOUS_KEY, anonymousId); }
+  return anonymousId;
 }

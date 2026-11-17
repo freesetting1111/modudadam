@@ -6,24 +6,24 @@ import { ChevronLeft, ChevronRight, Eye, MessageCircle, PenLine } from "lucide-r
 import { apiRequest } from "@/lib/api";
 
 type Sort = "latest" | "popular";
-type Post = {
+export type BoardPost = {
   id: string; title: string; excerpt: string; authorName: string; viewCount: number;
   commentCount: number; createdAt: string; isNotice: boolean; isPinned: boolean;
 };
-type FeedPage = { posts: Post[]; nextCursor: string | null };
+export type BoardFeedPage = { posts: BoardPost[]; nextCursor: string | null };
 
 const PAGE_SIZE = 20;
 
-export function BoardList({ categoryCode, categoryName, authenticated }: { categoryCode: string; categoryName: string; authenticated: boolean }) {
+export function BoardList({ categoryCode, categoryName, authenticated, initialPage }: { categoryCode: string; categoryName: string; authenticated: boolean; initialPage?: BoardFeedPage }) {
   const [sort, setSort] = useState<Sort>("latest");
-  const [pages, setPages] = useState<FeedPage[]>([]);
+  const [pages, setPages] = useState<BoardFeedPage[]>(initialPage ? [initialPage] : []);
   const [pageIndex, setPageIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialPage);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    apiRequest<FeedPage>(feedUrl(categoryCode, sort))
+    apiRequest<BoardFeedPage>(feedUrl(categoryCode, sort))
       .then((data) => { if (active) { setPages([data]); setError(""); } })
       .catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : "게시글을 불러오지 못했습니다."); })
       .finally(() => { if (active) setLoading(false); });
@@ -54,7 +54,7 @@ export function BoardList({ categoryCode, categoryName, authenticated }: { categ
     setLoading(true);
     setError("");
     try {
-      const data = await apiRequest<FeedPage>(feedUrl(categoryCode, sort, page.nextCursor));
+      const data = await apiRequest<BoardFeedPage>(feedUrl(categoryCode, sort, page.nextCursor));
       setPages((current) => [...current, data]);
       setPageIndex(nextIndex);
       window.scrollTo({ top: 0, behavior: "smooth" });

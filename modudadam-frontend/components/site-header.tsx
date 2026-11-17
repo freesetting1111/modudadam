@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarHeart, ChevronRight, CircleHelp, CircleUserRound, Home, LogIn, LogOut, Menu, Search, UserRound, X } from "lucide-react";
+import { CalendarHeart, ChevronRight, CircleHelp, CircleUserRound, Home, LogOut, Menu, Search, UserRound, X } from "lucide-react";
 import { categories } from "@/lib/categories";
 import { apiRequest } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
@@ -15,6 +15,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState(initialUser);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -34,6 +35,17 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
     };
     window.addEventListener("modudadam:profile-updated", updateNickname);
     return () => window.removeEventListener("modudadam:profile-updated", updateNickname);
+  }, []);
+
+  useEffect(() => {
+    const updateCount = (event: Event) => {
+      const count = (event as CustomEvent<{ onlineCount?: number }>).detail?.onlineCount;
+      if (typeof count === "number") setOnlineCount(count);
+    };
+    window.addEventListener("modudadam:visitor-count", updateCount);
+    apiRequest<{ onlineCount: number }>("/api/visitors/presence", { cache: "no-store" })
+      .then((data) => setOnlineCount(data.onlineCount)).catch(() => undefined);
+    return () => window.removeEventListener("modudadam:visitor-count", updateCount);
   }, []);
 
   useEffect(() => {
@@ -99,7 +111,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
         </div>
       </div>
       <Link href="/" className="brand" onClick={closeMenu}><span className="brand-mark"><Image src="/brand/modudadam-brand-mark.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>
-      {user ? <span className="header-account-spacer" aria-hidden="true" /> : <Link href="/login" className="login-link"><LogIn size={14} /> 로그인</Link>}
+      <span className="header-visitor-count" title="최근 5분 동안 활동한 중복 제외 접속자"><i aria-hidden="true" />접속자 {onlineCount === null ? "-" : onlineCount.toLocaleString()}명</span>
     </header>
   );
 }

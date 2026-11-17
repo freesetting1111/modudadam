@@ -6,15 +6,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Bookmark, ChevronLeft, ChevronRight, Flag, Heart, MessageCircle, Pencil, Reply, Share2, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { DetailBoardList } from "@/components/detail-board-list";
+import type { PublicPost as Post } from "@/lib/public-post";
 
-type Post = {
-  id: string; title: string; content: string; authorName: string;
-  categoryCode: string; categoryName: string; viewCount: number; commentCount: number;
-  createdAt: string; updatedAt: string; canEdit: boolean; canReport: boolean;
-  isLiked: boolean; likeCount: number; isBookmarked: boolean; bookmarkCount: number;
-  renderedContentHtml: string;
-  images: { id: string; url: string; originalName: string; mimeType: string; byteSize: number }[];
-};
 type Comment = {
   id: string; parentId: string | null; replyToId: string | null; replyToAuthor: string | null;
   status: "published" | "deleted"; content: string; authorName: string;
@@ -28,9 +21,9 @@ const REPORT_REASONS = ["스팸·홍보/도배", "욕설·비방·혐오 표현"
 const COMMENT_PAGE_SIZE = 10;
 const REPLY_PAGE_SIZE = 5;
 
-export function PostDetail({ postId, authenticated, kakaoJavascriptKey }: { postId: string; authenticated: boolean; kakaoJavascriptKey: string }) {
+export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialPost }: { postId: string; authenticated: boolean; kakaoJavascriptKey: string; initialPost: Post }) {
   const router = useRouter();
-  const [post, setPost] = useState<Post | null>(null);
+  const [post, setPost] = useState<Post | null>(initialPost);
   const [comments, setComments] = useState<Comment[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, pageSize: COMMENT_PAGE_SIZE, totalItems: 0, totalPages: 1, commentCount: 0 });
   const [error, setError] = useState("");

@@ -64,8 +64,8 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
       setError("제목을 입력해 주세요.");
       return;
     }
-    if (!editorValue.content.trim()) {
-      setError("내용을 입력해 주세요.");
+    if (!editorValue.content.trim() && editorValue.imageCount === 0) {
+      setError("내용을 입력하거나 이미지를 한 장 이상 넣어 주세요.");
       return;
     }
     if (editorValue.uploading) {
@@ -100,7 +100,8 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
 
   const cancelHref = postId ? `/posts/${postId}` : `/category/${categoryCode}`;
   const contentLength = Array.from(editorValue.content).length;
-  const canSubmit = !pending && !editorValue.uploading && Boolean(title.trim()) && contentLength > 0 && contentLength <= 20000;
+  const hasContent = contentLength > 0 || editorValue.imageCount > 0;
+  const canSubmit = !pending && !editorValue.uploading && Boolean(title.trim()) && hasContent && contentLength <= 20000;
   if (loading) return <div className="board-message">게시글을 불러오고 있어요.</div>;
 
   return <form className="write-form compose-form" onSubmit={submit}>

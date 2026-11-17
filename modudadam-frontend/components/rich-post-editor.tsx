@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, forwardRef, KeyboardEvent, MouseEvent, PointerEvent, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { ChangeEvent, FocusEvent, FormEvent, forwardRef, KeyboardEvent, MouseEvent, PointerEvent, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Bold, ImagePlus, Italic, Quote } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
@@ -43,6 +43,8 @@ type RichPostEditorProps = {
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_HISTORY_ENTRIES = 50;
+const HISTORY_GROUP_DELAY_MS = 800;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorProps>(function RichPostEditor({
@@ -59,6 +61,13 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
   const savedRangeRef = useRef<Range | null>(null);
   const imageInfoRef = useRef(new Map<string, { existing: boolean; objectUrl?: string }>());
   const pendingFilesRef = useRef(new Map<string, File>());
+  const historyRef = useRef({
+    undo: [] as string[],
+    redo: [] as string[],
+    current: "",
+    lastInputType: "",
+    lastInputAt: 0,
+  });
   const [imageCount, setImageCount] = useState(initialImages.length);
 
   useEffect(() => {
@@ -90,6 +99,8 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
         imageInfoRef.current.set(image.id, { existing: true });
       }
     }
+    refreshImageInsertionControls(editor);
+    resetHistory(editor.innerHTML);
     emitChange();
     // resetKey intentionally controls when the editor is rehydrated.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,7 +130,9 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
   function format(command: "bold" | "italic" | "formatBlock", value?: string) {
     editorRef.current?.focus();
     restoreSelection();
+    recordHistoryCheckpoint();
     document.execCommand(command, false, value);
+    syncHistoryCurrent();
     saveSelection();
     emitChange();
   }
@@ -152,6 +165,7 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
       return;
     }
     onError("");
+    recordHistoryCheckpoint();
     for (const [index, sourceFile] of sourceFiles.entries()) {
       const file = sourceFile.name ? sourceFile : new File(
         [sourceFile],
@@ -166,6 +180,8 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
       pendingFilesRef.current.set(localId, file);
       insertFigureAtSelection(figure);
     }
+    refreshImageInsertionControls(editorRef.current);
+    syncHistoryCurrent();
     emitChange();
   }
 
@@ -314,6 +330,13 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
 
   function handleEditorClick(event: MouseEvent<HTMLDivElement>) {
     if (disabled) return;
+    const insertionButton = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-insert-image-text]");
+    if (insertionButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      activateImageTextInsertion(insertionButton);
+      return;
+    }
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-remove-image]");
     if (button) {
       event.preventDefault();
@@ -327,6 +350,11 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
 
   function handleEditorPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (disabled) return;
+    const insertionButton = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-insert-image-text]");
+    if (insertionButton) {
+      event.preventDefault();
+      return;
+    }
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-remove-image]");
     if (!button) return;
     event.preventDefault();
@@ -336,6 +364,18 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
 
   function handleEditorKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (disabled) return;
+    const modifier = event.ctrlKey || event.metaKey;
+    if (modifier && event.key.toLowerCase() === "z") {
+      event.preventDefault();
+      if (event.shiftKey) redoEditorHistory();
+      else undoEditorHistory();
+      return;
+    }
+    if (modifier && event.key.toLowerCase() === "y") {
+      event.preventDefault();
+      redoEditorHistory();
+      return;
+    }
     if (event.key === "Enter") {
       markCurrentBlockAsAuthored();
       return;
@@ -348,8 +388,78 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
     const figures = findFiguresForDeletion(editorRef.current, event.key);
     if (!figures.length) return;
     event.preventDefault();
-    for (const figure of figures) removeFigure(figure, false);
-    ensureEditableParagraph();
+    removeEmptyBlockBesideImage(event.key, figures[0]);
+  }
+
+  function handleEditorBeforeInput(event: FormEvent<HTMLDivElement>) {
+    if (disabled) return;
+    const inputType = (event.nativeEvent as InputEvent).inputType || "unknown";
+    if (inputType === "historyUndo" || inputType === "historyRedo") {
+      event.preventDefault();
+      if (inputType === "historyUndo") undoEditorHistory();
+      else redoEditorHistory();
+      return;
+    }
+    const now = Date.now();
+    const history = historyRef.current;
+    const groupable = /^(insertText|deleteContentBackward|deleteContentForward)$/.test(inputType);
+    const continuesGroup = groupable
+      && history.lastInputType === inputType
+      && now - history.lastInputAt < HISTORY_GROUP_DELAY_MS;
+    if (!continuesGroup) recordHistoryCheckpoint(false);
+    history.lastInputType = inputType;
+    history.lastInputAt = now;
+  }
+
+  function removeEmptyBlockBesideImage(key: "Backspace" | "Delete", figure: HTMLElement) {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) return;
+    const block = closestDirectChild(editor, range.startContainer);
+    if (!block || !isVisuallyEmpty(block)) return;
+    const expectedFigure = key === "Delete" ? block.nextElementSibling : block.previousElementSibling;
+    if (expectedFigure !== figure) return;
+
+    recordHistoryCheckpoint();
+    const caretTarget = key === "Delete" ? block.previousElementSibling : block.nextElementSibling;
+    block.remove();
+    refreshImageInsertionControls(editor);
+    if (caretTarget instanceof HTMLElement && !caretTarget.matches("figure.editor-inline-image")) {
+      savedRangeRef.current = key === "Delete" ? placeCaretAtEnd(caretTarget) : placeCaretAtStart(caretTarget);
+    } else {
+      savedRangeRef.current = placeCaretNextToFigure(editor, figure, key === "Delete" ? "before" : "after");
+    }
+    syncHistoryCurrent();
+    emitChange();
+  }
+
+  function activateImageTextInsertion(button: HTMLButtonElement) {
+    const editor = editorRef.current;
+    if (!editor || !editor.contains(button)) return;
+    recordHistoryCheckpoint();
+    const paragraph = createEmptyParagraph();
+    paragraph.dataset.editorGenerated = "true";
+    paragraph.dataset.imageInsertion = "true";
+    button.replaceWith(paragraph);
+    savedRangeRef.current = placeCaretAtStart(paragraph);
+    syncHistoryCurrent();
+    emitChange();
+  }
+
+  function handleEditorBlur(event: FocusEvent<HTMLDivElement>) {
+    const editor = editorRef.current;
+    if (!editor || (event.relatedTarget instanceof Node && editor.contains(event.relatedTarget))) return;
+    let changed = false;
+    editor.querySelectorAll<HTMLElement>("[data-image-insertion]").forEach((block) => {
+      if (!isVisuallyEmpty(block)) return;
+      block.remove();
+      changed = true;
+    });
+    if (!changed) return;
+    refreshImageInsertionControls(editor);
+    syncHistoryCurrent();
     emitChange();
   }
 
@@ -407,8 +517,72 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
 
   function handleEditorInput() {
     editorRef.current?.querySelectorAll<HTMLElement>("[data-editor-generated]").forEach((block) => {
-      if (!isVisuallyEmpty(block)) block.removeAttribute("data-editor-generated");
+      if (!isVisuallyEmpty(block)) {
+        block.removeAttribute("data-editor-generated");
+        block.removeAttribute("data-image-insertion");
+      }
     });
+    refreshImageInsertionControls(editorRef.current);
+    syncHistoryCurrent();
+    emitChange();
+  }
+
+  function recordHistoryCheckpoint(resetInputGroup = true) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const history = historyRef.current;
+    const snapshot = editor.innerHTML;
+    if (history.undo.at(-1) !== snapshot) {
+      history.undo.push(snapshot);
+      if (history.undo.length > MAX_HISTORY_ENTRIES) history.undo.shift();
+    }
+    history.current = snapshot;
+    history.redo = [];
+    if (resetInputGroup) {
+      history.lastInputType = "";
+      history.lastInputAt = 0;
+    }
+  }
+
+  function syncHistoryCurrent() {
+    const editor = editorRef.current;
+    if (editor) historyRef.current.current = editor.innerHTML;
+  }
+
+  function resetHistory(snapshot: string) {
+    historyRef.current = { undo: [], redo: [], current: snapshot, lastInputType: "", lastInputAt: 0 };
+  }
+
+  function undoEditorHistory() {
+    const editor = editorRef.current;
+    const history = historyRef.current;
+    const previous = history.undo.pop();
+    if (!editor || previous === undefined) return;
+    history.redo.push(editor.innerHTML);
+    restoreHistorySnapshot(previous);
+  }
+
+  function redoEditorHistory() {
+    const editor = editorRef.current;
+    const history = historyRef.current;
+    const next = history.redo.pop();
+    if (!editor || next === undefined) return;
+    history.undo.push(editor.innerHTML);
+    restoreHistorySnapshot(next);
+  }
+
+  function restoreHistorySnapshot(snapshot: string) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.innerHTML = snapshot;
+    refreshImageInsertionControls(editor);
+    historyRef.current.current = snapshot;
+    historyRef.current.lastInputType = "";
+    historyRef.current.lastInputAt = 0;
+    const lastEditableBlock = Array.from(editor.children)
+      .reverse()
+      .find((node): node is HTMLElement => node instanceof HTMLElement && !node.matches("figure.editor-inline-image"));
+    savedRangeRef.current = lastEditableBlock ? placeCaretAtEnd(lastEditableBlock) : placeCaretAtEnd(editor);
     emitChange();
   }
 
@@ -424,23 +598,16 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
 
   function removeFigure(figure: HTMLElement | null, shouldEmit = true) {
     if (!figure || !editorRef.current?.contains(figure)) return;
-    const localId = figure.dataset.localId;
-    const imageId = figure.dataset.imageId;
-    if (imageId) {
-      const info = imageInfoRef.current.get(imageId);
-      if (info && !info.existing) void apiRequest(`/api/uploads/${imageId}`, { method: "DELETE" }).catch(() => undefined);
-      if (info?.objectUrl) URL.revokeObjectURL(info.objectUrl);
-      imageInfoRef.current.delete(imageId);
-    }
-    if (localId) {
-      pendingFilesRef.current.delete(localId);
-      const info = imageInfoRef.current.get(localId);
-      if (info?.objectUrl) URL.revokeObjectURL(info.objectUrl);
-      imageInfoRef.current.delete(localId);
-    }
+    if (shouldEmit) recordHistoryCheckpoint();
+    // 업로드 대기 정보와 object URL은 undo로 이미지를 복원할 수 있도록
+    // 편집기가 닫힐 때까지 보관합니다. 저장 시 DOM에 남은 이미지만 처리됩니다.
     figure.remove();
     ensureEditableParagraph();
-    if (shouldEmit) emitChange();
+    refreshImageInsertionControls(editorRef.current);
+    if (shouldEmit) {
+      syncHistoryCurrent();
+      emitChange();
+    }
   }
 
   function ensureEditableParagraph() {
@@ -506,7 +673,9 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
       role="textbox"
       aria-multiline="true"
       data-placeholder="함께 나누고 싶은 경험과 정보를 작성해 주세요."
+      onBeforeInput={handleEditorBeforeInput}
       onInput={handleEditorInput}
+      onBlur={handleEditorBlur}
       onFocus={saveSelection}
       onKeyUp={saveSelection}
       onMouseUp={saveSelection}
@@ -530,7 +699,9 @@ export const RichPostEditor = forwardRef<RichPostEditorHandle, RichPostEditorPro
         }
         event.preventDefault();
         const text = event.clipboardData.getData("text/plain");
+        recordHistoryCheckpoint();
         document.execCommand("insertText", false, text);
+        syncHistoryCurrent();
         emitChange();
       }}
     />
@@ -576,6 +747,36 @@ function createGeneratedParagraph(after: HTMLElement) {
   return paragraph;
 }
 
+function refreshImageInsertionControls(editor: HTMLElement | null) {
+  if (!editor) return;
+  editor.querySelectorAll("button[data-insert-image-text]").forEach((button) => button.remove());
+  const children = Array.from(editor.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
+  if (!children.length) return;
+
+  const isFigure = (element: HTMLElement) => element.matches("figure.editor-inline-image");
+  if (isFigure(children[0])) children[0].before(createImageInsertionControl("before"));
+  for (let index = 0; index < children.length - 1; index += 1) {
+    if (isFigure(children[index]) && isFigure(children[index + 1])) {
+      children[index].after(createImageInsertionControl("between"));
+    }
+  }
+  const last = children.at(-1);
+  if (last && isFigure(last)) last.after(createImageInsertionControl("after"));
+}
+
+function createImageInsertionControl(position: "before" | "between" | "after") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.contentEditable = "false";
+  button.className = "editor-image-insert-point";
+  button.dataset.insertImageText = position;
+  button.setAttribute("aria-label", position === "between" ? "이미지 사이에 글 입력" : "이미지 옆에 글 입력");
+  const label = document.createElement("span");
+  label.textContent = "글 입력";
+  button.append(label);
+  return button;
+}
+
 function placeCaretAtStart(element: HTMLElement) {
   const selection = window.getSelection();
   if (!selection) return null;
@@ -593,6 +794,18 @@ function placeCaretAtEnd(element: HTMLElement) {
   const range = document.createRange();
   range.selectNodeContents(element);
   range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return range.cloneRange();
+}
+
+function placeCaretNextToFigure(editor: HTMLElement, figure: HTMLElement, side: "before" | "after") {
+  const selection = window.getSelection();
+  if (!selection) return null;
+  const range = document.createRange();
+  const index = Array.from(editor.childNodes).indexOf(figure);
+  range.setStart(editor, Math.max(0, index + (side === "after" ? 1 : 0)));
+  range.collapse(true);
   selection.removeAllRanges();
   selection.addRange(range);
   return range.cloneRange();
