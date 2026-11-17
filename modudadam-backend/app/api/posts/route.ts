@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get("q")?.trim();
   const sort = request.nextUrl.searchParams.get("sort") === "popular" ? "popular" : "latest";
   const limit = normalizeLimit(request.nextUrl.searchParams.get("limit"));
+  const pageMode = request.nextUrl.searchParams.has("page") || request.nextUrl.searchParams.has("currentPostId");
   const cursor = decodeCursor(request.nextUrl.searchParams.get("cursor"), sort);
   if (request.nextUrl.searchParams.has("cursor") && !cursor) return errorResponse("페이지 위치 정보가 올바르지 않습니다.");
 
@@ -23,6 +24,41 @@ export async function GET(request: NextRequest) {
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
      WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
        AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')`;
+
+  if (pageMode) {
+    const requestedPage = normalizePage(request.nextUrl.searchParams.get("page"));
+    const currentPostId = normalizeUuid(request.nextUrl.searchParams.get("currentPostId"));
+    const totalResult = await query<{ total: number }>(
+      `SELECT COUNT(*)::int AS total FROM posts
+       JOIN categories ON categories.id=posts.category_id
+       WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
+         AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')`,
+      [category, search || null],
+    );
+    const totalItems = totalResult.rows[0]?.total || 0;
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    let page = Math.min(requestedPage, totalPages);
+    if (!request.nextUrl.searchParams.has("page") && currentPostId) {
+      const orderBy = sort === "popular"
+        ? `posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC`
+        : `posts.is_pinned DESC,posts.published_at DESC,posts.id DESC`;
+      const position = await query<{ position: string }>(
+        `SELECT position::text FROM (
+           SELECT posts.id,ROW_NUMBER() OVER(ORDER BY ${orderBy}) AS position
+           FROM posts JOIN categories ON categories.id=posts.category_id
+           WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
+             AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')
+         ) ranked WHERE id=$3`,
+        [category, search || null, currentPostId],
+      );
+      if (position.rows[0]) page = Math.ceil(Number(position.rows[0].position) / limit);
+    }
+    const orderBy = sort === "popular"
+      ? `posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC`
+      : `posts.is_pinned DESC,posts.published_at DESC,posts.id DESC`;
+    const result = await query(`${select} ORDER BY ${orderBy} LIMIT $3 OFFSET $4`, [category, search || null, limit, (page - 1) * limit]);
+    return jsonResponse({ posts: result.rows, pagination: { page, pageSize: limit, totalItems, totalPages } });
+  }
 
   const result = sort === "popular"
     ? await query(`${select}
@@ -116,6 +152,15 @@ type PostCursor = { isPinned: boolean; publishedAt: string; id: string; score?: 
 function normalizeLimit(value: string | null) {
   const parsed = Number(value || 20);
   return Number.isInteger(parsed) ? Math.min(50, Math.max(1, parsed)) : 20;
+}
+
+function normalizePage(value: string | null) {
+  const parsed = Number(value || 1);
+  return Number.isInteger(parsed) ? Math.max(1, parsed) : 1;
+}
+
+function normalizeUuid(value: string | null) {
+  return value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
 }
 
 function encodeCursor(cursor: PostCursor) {

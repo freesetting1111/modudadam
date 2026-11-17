@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Bookmark, ChevronLeft, ChevronRight, Flag, Heart, MessageCircle, Pencil, Reply, Share2, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { DetailBoardList } from "@/components/detail-board-list";
 
 type Post = {
   id: string; title: string; content: string; authorName: string;
@@ -40,6 +41,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey }: { post
   const [likePending, setLikePending] = useState(false);
   const [bookmarkPending, setBookmarkPending] = useState(false);
   const [notice, setNotice] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [reportDetail, setReportDetail] = useState("");
@@ -65,6 +67,9 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey }: { post
     const timeout = window.setTimeout(() => setNotice(""), 2200);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+  useEffect(() => {
+    if (kakaoJavascriptKey) void loadKakaoSdk(kakaoJavascriptKey).catch(() => undefined);
+  }, [kakaoJavascriptKey]);
 
   const commentGroups = useMemo(() => comments.filter((comment) => !comment.parentId).map((comment) => ({
     comment, replies: comments.filter((reply) => reply.parentId === comment.id),
@@ -124,7 +129,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey }: { post
       setComments((current) => current.map((comment) => comment.id === commentId ? { ...comment, ...result } : comment));
     } catch (caught) { setCommentError(caught instanceof Error ? caught.message : "댓글 평가를 반영하지 못했습니다."); }
   }
-  async function sharePost() {
+  async function shareWithKakao() {
     if (!post) return;
     const url = window.location.href;
     const javascriptKey = kakaoJavascriptKey;
@@ -132,7 +137,14 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey }: { post
       if (!javascriptKey) throw new Error("KAKAO_KEY_MISSING");
       const kakao = await loadKakaoSdk(javascriptKey);
       kakao.Share.sendDefault({ objectType: "feed", content: { title: post.title, description: post.content.replace(/\s+/g, " ").slice(0, 100), imageUrl: post.images[0]?.url || `${window.location.origin}/brand/modudadam-brand-mark.png`, link: { mobileWebUrl: url, webUrl: url } }, buttons: [{ title: "게시글 보기", link: { mobileWebUrl: url, webUrl: url } }] });
-    } catch { await navigator.clipboard.writeText(url); setNotice("게시글 주소를 복사했어요."); }
+      setShareOpen(false);
+    } catch { setNotice("카카오톡 공유를 열지 못했습니다. JavaScript 키와 허용 도메인을 확인해 주세요."); }
+  }
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareOpen(false); setNotice("게시글 주소를 복사했어요.");
+    } catch { setNotice("링크를 복사하지 못했습니다."); }
   }
   function openReport(type: "post" | "comment", id: string) {
     if (!authenticated) return requireLogin();
@@ -158,8 +170,8 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey }: { post
     <div className="post-community-actions">
       <button type="button" className={post.isLiked ? "active heart" : ""} onClick={toggleLike} disabled={likePending}><Heart size={18} fill={post.isLiked ? "currentColor" : "none"} /><span>좋아요</span><small>{post.likeCount}</small></button>
       <button type="button" className={post.isBookmarked ? "active" : ""} onClick={toggleBookmark} disabled={bookmarkPending}><Bookmark size={18} fill={post.isBookmarked ? "currentColor" : "none"} /><span>스크랩</span><small>{post.bookmarkCount}</small></button>
-      <button type="button" onClick={sharePost}><Share2 size={18} /><span>공유</span></button>
-      <button type="button" onClick={() => openReport("post", post.id)} disabled={post.canEdit} title={post.canEdit ? "내 게시글은 신고할 수 없습니다." : undefined}><Flag size={18} /><span>신고</span></button>
+      <button type="button" onClick={() => setShareOpen(true)}><Share2 size={18} /><span>공유</span></button>
+      <button type="button" onClick={() => openReport("post", post.id)}><Flag size={18} /><span>신고</span></button>
     </div>
     <section className="comments-section">
       <h2><MessageCircle size={18} /> 댓글 {pagination.commentCount}</h2>
@@ -174,9 +186,15 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey }: { post
           {replies.length > REPLY_PAGE_SIZE && <button className="reply-toggle" type="button" onClick={() => setExpandedReplies((current) => ({ ...current, [comment.id]: visibleReplyCount < replies.length ? Math.min(replies.length, visibleReplyCount + REPLY_PAGE_SIZE) : REPLY_PAGE_SIZE }))}><Reply size={14} /> {visibleReplyCount < replies.length ? `답글 ${replies.length - visibleReplyCount}개 더 보기` : "답글 접기"}</button>}
         </div>;
       })}</div>
-      {pagination.totalPages > 1 && <CommentPagination pagination={pagination} onChange={(page) => { setReplyingTo(null); loadComments(page).catch(() => setCommentError("댓글을 불러오지 못했습니다.")); }} />}
+      <CommentPagination pagination={pagination} onChange={(page) => { setReplyingTo(null); loadComments(page).catch(() => setCommentError("댓글을 불러오지 못했습니다.")); }} />
     </section>
+    <DetailBoardList categoryCode={post.categoryCode} currentPostId={post.id} />
     {notice && <div className="community-toast" role="status">{notice}</div>}
+    {shareOpen && <div className="report-backdrop" role="dialog" aria-modal="true" aria-labelledby="share-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setShareOpen(false); }}><section className="share-sheet">
+      <span className="sheet-handle" /><h2 id="share-title">공유하기</h2>
+      <div className="share-options"><button type="button" onClick={() => void shareWithKakao()}><span className="kakao-share-circle">TALK</span><b>카카오톡</b></button><button type="button" onClick={() => void copyShareLink()}><span className="link-share-circle"><Share2 size={25} /></span><b>링크</b></button></div>
+      <button type="button" className="share-cancel" onClick={() => setShareOpen(false)}>취소</button>
+    </section></div>}
     {reportTarget && <div className="report-backdrop" role="dialog" aria-modal="true" aria-labelledby="report-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setReportTarget(null); }}><section className="report-sheet">
       <header><div><h2 id="report-title">{reportTarget.type === "post" ? "이 글 신고하기" : "댓글 신고하기"}</h2><p>신고 사유를 선택해 주세요. 신고 내용은 운영팀이 검토합니다.</p></div><button type="button" onClick={() => setReportTarget(null)} aria-label="신고 창 닫기">×</button></header>
       <div className="report-reasons">{REPORT_REASONS.map((reason) => <label key={reason}><input type="radio" name="report-reason" value={reason} checked={reportReason === reason} onChange={() => { setReportReason(reason); setReportError(""); }} /> {reason}</label>)}</div>
@@ -210,7 +228,7 @@ function CommentItem({ comment, reply = false, onReply, onDelete, onEdit, onRepo
       <button type="button" className={comment.myReaction === "like" ? "active" : ""} onClick={() => onReact(comment.id, "like")}><ThumbsUp size={14} /> {comment.likeCount}</button>
       <button type="button" className={comment.myReaction === "dislike" ? "active" : ""} onClick={() => onReact(comment.id, "dislike")}><ThumbsDown size={14} /> {comment.dislikeCount}</button>
       <button type="button" onClick={onReply}><Reply size={14} /> 답글</button>
-      <button type="button" onClick={() => onReport(comment.id)} disabled={comment.canEdit} title={comment.canEdit ? "내 댓글은 신고할 수 없습니다." : undefined}><Flag size={14} /> 신고</button>
+      <button type="button" onClick={() => onReport(comment.id)}><Flag size={14} /> 신고</button>
     </div><div className="comment-owner-actions">{comment.canEdit && <button type="button" onClick={() => setEditing(true)}><Pencil size={13} /> 수정</button>}{comment.canDelete && <button type="button" className="comment-delete" onClick={() => onDelete(comment.id)}><Trash2 size={13} /> 삭제</button>}</div></div>}
   </div>;
 }
