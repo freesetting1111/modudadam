@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bookmark, ChevronLeft, ChevronRight, Flag, Heart, MessageCircle, Pencil, Reply, Share2, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { DetailBoardList } from "@/components/detail-board-list";
@@ -33,6 +33,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   const [deletingPost, setDeletingPost] = useState(false);
   const [likePending, setLikePending] = useState(false);
   const [bookmarkPending, setBookmarkPending] = useState(false);
+  const [reactionPending, setReactionPending] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(null);
@@ -40,20 +41,23 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   const [reportDetail, setReportDetail] = useState("");
   const [reportError, setReportError] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const requestedPostId = useRef<string | null>(null);
 
   const loadComments = useCallback(async (page = 1) => {
     const data = await apiRequest<{ comments: Comment[]; pagination: Pagination }>(`/api/posts/${postId}/comments?page=${page}&pageSize=${COMMENT_PAGE_SIZE}`);
     setComments(data.comments); setPagination(data.pagination); setExpandedReplies({});
   }, [postId]);
   useEffect(() => {
-    void Promise.all([
-      apiRequest<{ post: Post }>(`/api/posts/${postId}`),
-      apiRequest<{ comments: Comment[]; pagination: Pagination }>(`/api/posts/${postId}/comments?page=1&pageSize=${COMMENT_PAGE_SIZE}`),
-    ]).then(([postData, commentData]) => {
-      setPost(postData.post);
+    if (requestedPostId.current === postId) return;
+    requestedPostId.current = postId;
+    // The post is already rendered by the server. This one request records the unique view;
+    // its response must not replace the visible post and cause a second paint.
+    void apiRequest<{ post: Post }>(`/api/posts/${postId}`).catch(() => undefined);
+    void apiRequest<{ comments: Comment[]; pagination: Pagination }>(`/api/posts/${postId}/comments?page=1&pageSize=${COMMENT_PAGE_SIZE}`).then((commentData) => {
+      if (requestedPostId.current !== postId) return;
       setComments(commentData.comments);
       setPagination(commentData.pagination);
-    }).catch((caught) => setError(caught instanceof Error ? caught.message : "글을 불러오지 못했습니다."));
+    }).catch((caught) => { if (requestedPostId.current === postId) setError(caught instanceof Error ? caught.message : "글을 불러오지 못했습니다."); });
   }, [postId]);
   useEffect(() => {
     if (!notice) return;
@@ -98,29 +102,51 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   async function toggleLike() {
     if (!post || likePending) return;
     if (!authenticated) return requireLogin();
+    const previous = post;
+    const enabled = !post.isLiked;
+    setPost({ ...post, isLiked: enabled, likeCount: Math.max(0, post.likeCount + (enabled ? 1 : -1)) });
     setLikePending(true);
     try {
-      const result = await apiRequest<{ liked: boolean; likeCount: number }>(`/api/posts/${post.id}/like`, { method: "POST", body: JSON.stringify({ enabled: !post.isLiked }) });
-      setPost({ ...post, isLiked: result.liked, likeCount: result.likeCount });
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "좋아요 상태를 변경하지 못했습니다."); }
+      const result = await apiRequest<{ liked: boolean; likeCount: number }>(`/api/posts/${post.id}/like`, { method: "POST", body: JSON.stringify({ enabled }) });
+      setPost((current) => current ? { ...current, isLiked: result.liked, likeCount: result.likeCount } : current);
+    } catch (caught) { setPost(previous); setError(caught instanceof Error ? caught.message : "좋아요 상태를 변경하지 못했습니다."); }
     finally { setLikePending(false); }
   }
   async function toggleBookmark() {
     if (!post || bookmarkPending) return;
     if (!authenticated) return requireLogin();
+    const previous = post;
+    const enabled = !post.isBookmarked;
+    setPost({ ...post, isBookmarked: enabled, bookmarkCount: Math.max(0, post.bookmarkCount + (enabled ? 1 : -1)) });
     setBookmarkPending(true);
     try {
-      const result = await apiRequest<{ bookmarked: boolean; bookmarkCount: number }>(`/api/posts/${post.id}/bookmark`, { method: "POST", body: JSON.stringify({ enabled: !post.isBookmarked }) });
-      setPost({ ...post, isBookmarked: result.bookmarked, bookmarkCount: result.bookmarkCount });
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "스크랩 상태를 변경하지 못했습니다."); }
+      const result = await apiRequest<{ bookmarked: boolean; bookmarkCount: number }>(`/api/posts/${post.id}/bookmark`, { method: "POST", body: JSON.stringify({ enabled }) });
+      setPost((current) => current ? { ...current, isBookmarked: result.bookmarked, bookmarkCount: result.bookmarkCount } : current);
+    } catch (caught) { setPost(previous); setError(caught instanceof Error ? caught.message : "스크랩 상태를 변경하지 못했습니다."); }
     finally { setBookmarkPending(false); }
   }
   async function reactToComment(commentId: string, reaction: "like" | "dislike") {
     if (!authenticated) return requireLogin();
+    if (reactionPending.has(commentId)) return;
+    const previous = comments.find((comment) => comment.id === commentId);
+    if (!previous) return;
+    const nextReaction = previous.myReaction === reaction ? null : reaction;
+    setReactionPending((current) => new Set(current).add(commentId));
+    setComments((current) => current.map((comment) => comment.id === commentId ? {
+      ...comment,
+      likeCount: Math.max(0, comment.likeCount - (comment.myReaction === "like" ? 1 : 0) + (nextReaction === "like" ? 1 : 0)),
+      dislikeCount: Math.max(0, comment.dislikeCount - (comment.myReaction === "dislike" ? 1 : 0) + (nextReaction === "dislike" ? 1 : 0)),
+      myReaction: nextReaction,
+    } : comment));
     try {
       const result = await apiRequest<{ likeCount: number; dislikeCount: number; myReaction: "like" | "dislike" | null }>(`/api/comments/${commentId}/reaction`, { method: "POST", body: JSON.stringify({ reaction }) });
       setComments((current) => current.map((comment) => comment.id === commentId ? { ...comment, ...result } : comment));
-    } catch (caught) { setCommentError(caught instanceof Error ? caught.message : "댓글 평가를 반영하지 못했습니다."); }
+    } catch (caught) {
+      setComments((current) => current.map((comment) => comment.id === commentId ? previous : comment));
+      setCommentError(caught instanceof Error ? caught.message : "댓글 평가를 반영하지 못했습니다.");
+    } finally {
+      setReactionPending((current) => { const next = new Set(current); next.delete(commentId); return next; });
+    }
   }
   async function shareWithKakao() {
     if (!post) return;
@@ -145,12 +171,19 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   }
   async function submitReport() {
     if (!reportTarget || !reportReason || (reportReason === "기타" && !reportDetail.trim())) return;
+    const target = reportTarget;
+    const reasonCode = reportReason;
+    const reasonDetail = reportDetail;
     setReportSubmitting(true); setReportError("");
+    setReportTarget(null); setNotice("신고를 접수하고 있어요.");
     try {
-      const path = reportTarget.type === "post" ? `/api/posts/${reportTarget.id}/report` : `/api/comments/${reportTarget.id}/report`;
-      await apiRequest(path, { method: "POST", body: JSON.stringify({ reasonCode: reportReason, reasonDetail: reportDetail }) });
-      setReportTarget(null); setNotice("신고가 접수되었습니다.");
-    } catch (caught) { setReportError(caught instanceof Error ? caught.message : "신고를 접수하지 못했습니다."); }
+      const path = target.type === "post" ? `/api/posts/${target.id}/report` : `/api/comments/${target.id}/report`;
+      await apiRequest(path, { method: "POST", body: JSON.stringify({ reasonCode, reasonDetail }) });
+      setNotice("신고가 접수되었습니다.");
+    } catch (caught) {
+      setNotice(""); setReportTarget(target);
+      setReportError(caught instanceof Error ? caught.message : "신고를 접수하지 못했습니다.");
+    }
     finally { setReportSubmitting(false); }
   }
 
@@ -173,9 +206,9 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
       <div className="comment-list">{commentGroups.length === 0 ? <p className="no-comments">첫 댓글을 남겨보세요.</p> : commentGroups.map(({ comment, replies }) => {
         const visibleReplyCount = expandedReplies[comment.id] || Math.min(REPLY_PAGE_SIZE, replies.length);
         return <div className="comment-thread" key={comment.id}>
-          <CommentItem comment={comment} onReply={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />
+          <CommentItem comment={comment} reactionPending={reactionPending.has(comment.id)} onReply={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />
           {replyingTo === comment.id && <ReplyForm authorName={comment.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, comment.id)} />}
-          {replies.length > 0 && <div className="reply-list">{replies.slice(0, visibleReplyCount).map((reply) => <div key={reply.id}><CommentItem comment={reply} reply onReply={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />{replyingTo === reply.id && <ReplyForm authorName={reply.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, reply.id)} />}</div>)}</div>}
+          {replies.length > 0 && <div className="reply-list">{replies.slice(0, visibleReplyCount).map((reply) => <div key={reply.id}><CommentItem comment={reply} reply reactionPending={reactionPending.has(reply.id)} onReply={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />{replyingTo === reply.id && <ReplyForm authorName={reply.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, reply.id)} />}</div>)}</div>}
           {replies.length > REPLY_PAGE_SIZE && <button className="reply-toggle" type="button" onClick={() => setExpandedReplies((current) => ({ ...current, [comment.id]: visibleReplyCount < replies.length ? Math.min(replies.length, visibleReplyCount + REPLY_PAGE_SIZE) : REPLY_PAGE_SIZE }))}><Reply size={14} /> {visibleReplyCount < replies.length ? `답글 ${replies.length - visibleReplyCount}개 더 보기` : "답글 접기"}</button>}
         </div>;
       })}</div>
@@ -202,7 +235,7 @@ function ReplyForm({ authorName, onCancel, onSubmit }: { authorName: string; onC
   return <form className="comment-form reply-form" onSubmit={onSubmit}><textarea name="content" required maxLength={3000} rows={2} autoFocus placeholder={`${authorName}님에게 답글 작성`} /><div><button type="button" className="reply-cancel" onClick={onCancel}>취소</button><button type="submit">답글 등록</button></div></form>;
 }
 
-function CommentItem({ comment, reply = false, onReply, onDelete, onEdit, onReport, onReact }: { comment: Comment; reply?: boolean; onReply: () => void; onDelete: (commentId: string) => void; onEdit: (commentId: string, content: string) => Promise<void>; onReport: (commentId: string) => void; onReact: (commentId: string, reaction: "like" | "dislike") => void }) {
+function CommentItem({ comment, reply = false, reactionPending = false, onReply, onDelete, onEdit, onReport, onReact }: { comment: Comment; reply?: boolean; reactionPending?: boolean; onReply: () => void; onDelete: (commentId: string) => void; onEdit: (commentId: string, content: string) => Promise<void>; onReport: (commentId: string) => void; onReact: (commentId: string, reaction: "like" | "dislike") => void }) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [editPending, setEditPending] = useState(false);
@@ -218,8 +251,8 @@ function CommentItem({ comment, reply = false, onReply, onDelete, onEdit, onRepo
     <div className="comment-head"><b>{reply && <Reply size={13} />} {comment.authorName}</b><small>{new Date(comment.createdAt).toLocaleString("ko-KR")}</small></div>
     {editing ? <form className="comment-edit-form" onSubmit={submitEdit}><textarea value={editContent} onChange={(event) => setEditContent(event.target.value.slice(0, 3000))} rows={3} maxLength={3000}/>{editError && <small className="profile-error">{editError}</small>}<div><button type="button" onClick={() => { setEditing(false); setEditContent(comment.content); setEditError(""); }}>취소</button><button type="submit" disabled={editPending || !editContent.trim()}>{editPending ? "저장 중" : "저장"}</button></div></form> : <p>{reply && comment.replyToId !== comment.parentId && comment.replyToAuthor && <strong className="reply-mention">@{comment.replyToAuthor}</strong>}{comment.content}</p>}
     {comment.status === "published" && <div className="comment-action-row"><div className="comment-primary-actions">
-      <button type="button" className={comment.myReaction === "like" ? "active" : ""} onClick={() => onReact(comment.id, "like")}><ThumbsUp size={14} /> {comment.likeCount}</button>
-      <button type="button" className={comment.myReaction === "dislike" ? "active" : ""} onClick={() => onReact(comment.id, "dislike")}><ThumbsDown size={14} /> {comment.dislikeCount}</button>
+      <button type="button" disabled={reactionPending} className={comment.myReaction === "like" ? "active" : ""} onClick={() => onReact(comment.id, "like")}><ThumbsUp size={14} /> {comment.likeCount}</button>
+      <button type="button" disabled={reactionPending} className={comment.myReaction === "dislike" ? "active" : ""} onClick={() => onReact(comment.id, "dislike")}><ThumbsDown size={14} /> {comment.dislikeCount}</button>
       <button type="button" onClick={onReply}><Reply size={14} /> 답글</button>
       <button type="button" onClick={() => onReport(comment.id)}><Flag size={14} /> 신고</button>
     </div><div className="comment-owner-actions">{comment.canEdit && <button type="button" onClick={() => setEditing(true)}><Pencil size={13} /> 수정</button>}{comment.canDelete && <button type="button" className="comment-delete" onClick={() => onDelete(comment.id)}><Trash2 size={13} /> 삭제</button>}</div></div>}

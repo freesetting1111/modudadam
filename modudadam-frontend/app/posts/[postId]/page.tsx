@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { PostDetail } from "@/components/post-detail";
 import { getServerSessionUser } from "@/lib/auth";
 import { getPublicPost } from "@/lib/public-post";
@@ -31,7 +32,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PostPage({ params }: PageProps) {
   const { postId } = await params;
-  const [user, post] = await Promise.all([getServerSessionUser(), getPublicPost(postId)]);
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.getAll().map(({ name, value }) => `${name}=${value}`).join("; ");
+  const [user, post] = await Promise.all([getServerSessionUser(), getPublicPost(postId, cookieHeader)]);
   if (!post) notFound();
   const canonical = `${getSiteUrl()}/posts/${post.id}`;
   const structuredData = {

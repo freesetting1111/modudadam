@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-
-const ANONYMOUS_KEY = "modudadam_anonymous_id";
+import { getAnonymousId } from "@/lib/anonymous-id";
 
 export function AnalyticsTracker() {
   const pathname = usePathname();
   useEffect(() => {
+    if (isLocalDevelopment()) return;
     const anonymousId = getAnonymousId();
     const query = new URLSearchParams(window.location.search);
     const firstLanding = sessionStorage.getItem("modudadam_landing_url") || window.location.href;
@@ -29,6 +29,7 @@ export function AnalyticsTracker() {
     }).catch(() => undefined);
   }, [pathname]);
   useEffect(() => {
+    if (isLocalDevelopment()) return;
     const anonymousId = getAnonymousId();
     let active = true;
     async function heartbeat() {
@@ -38,9 +39,9 @@ export function AnalyticsTracker() {
           method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ anonymousId, path: window.location.pathname }),
         });
-        const payload = await response.json() as { success?: boolean; data?: { onlineCount?: number } };
-        if (active && payload.success && typeof payload.data?.onlineCount === "number") {
-          window.dispatchEvent(new CustomEvent("modudadam:visitor-count", { detail: { onlineCount: payload.data.onlineCount } }));
+        const payload = await response.json() as { success?: boolean; data?: { visitorCount?: number } };
+        if (active && payload.success && typeof payload.data?.visitorCount === "number") {
+          window.dispatchEvent(new CustomEvent("modudadam:visitor-count", { detail: { visitorCount: payload.data.visitorCount } }));
         }
       } catch { /* 방문자 표시는 서비스 이용을 방해하지 않습니다. */ }
     }
@@ -54,8 +55,6 @@ export function AnalyticsTracker() {
   return null;
 }
 
-function getAnonymousId() {
-  let anonymousId = localStorage.getItem(ANONYMOUS_KEY);
-  if (!anonymousId) { anonymousId = crypto.randomUUID(); localStorage.setItem(ANONYMOUS_KEY, anonymousId); }
-  return anonymousId;
+function isLocalDevelopment() {
+  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "::1";
 }

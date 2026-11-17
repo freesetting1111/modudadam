@@ -8,11 +8,10 @@ import { normalizePostContentHtml } from "@/domains/community/post-content";
 export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get("category");
   const search = request.nextUrl.searchParams.get("q")?.trim();
-  const sort = request.nextUrl.searchParams.get("sort") === "popular" ? "popular" : "latest";
+  const requestedSort = request.nextUrl.searchParams.get("sort");
+  const sort: "latest" | "popular" | "weekly" = requestedSort === "popular" || requestedSort === "weekly" ? requestedSort : "latest";
   const limit = normalizeLimit(request.nextUrl.searchParams.get("limit"));
   const pageMode = request.nextUrl.searchParams.has("page") || request.nextUrl.searchParams.has("currentPostId");
-  const cursor = decodeCursor(request.nextUrl.searchParams.get("cursor"), sort);
-  if (request.nextUrl.searchParams.has("cursor") && !cursor) return errorResponse("페이지 위치 정보가 올바르지 않습니다.");
 
   const select = `SELECT posts.id, posts.title, posts.post_type AS "postType",
       posts.view_count AS "viewCount", posts.comment_count AS "commentCount",
@@ -24,6 +23,57 @@ export async function GET(request: NextRequest) {
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
      WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
        AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')`;
+
+  if (request.nextUrl.searchParams.get("groupedByCategory") === "true") {
+    const perCategory = Math.min(10, Math.max(1, Number(request.nextUrl.searchParams.get("perCategory")) || 10));
+    const grouped = await query(
+      `WITH ranked AS (
+         SELECT posts.id,posts.title,posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
+           posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",posts.created_at AS "createdAt",
+           categories.code AS "categoryCode",categories.name AS "categoryName",users.nickname AS "authorName",
+           ROW_NUMBER() OVER(PARTITION BY posts.category_id ORDER BY posts.is_pinned DESC,posts.published_at DESC,posts.id DESC) AS category_rank
+         FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
+         WHERE posts.status='published'
+       )
+       SELECT id,title,"viewCount","commentCount","isNotice","isPinned","createdAt","categoryCode","categoryName","authorName"
+       FROM ranked WHERE category_rank <= $1 ORDER BY "categoryCode",category_rank`,
+      [perCategory],
+    );
+    return jsonResponse({ posts: grouped.rows });
+  }
+
+  if (sort === "weekly") {
+    const weekly = await query(
+      `WITH weekly_views AS (
+         SELECT post_id,COUNT(*)::int AS views FROM post_views
+         WHERE first_viewed_at >= NOW() - INTERVAL '7 days' GROUP BY post_id
+       ), weekly_comments AS (
+         SELECT post_id,COUNT(*)::int AS comments FROM comments
+         WHERE status='published' AND created_at >= NOW() - INTERVAL '7 days' GROUP BY post_id
+       ), weekly_likes AS (
+         SELECT post_id,COUNT(*)::int AS likes FROM post_reactions
+         WHERE reaction='like' AND created_at >= NOW() - INTERVAL '7 days' GROUP BY post_id
+       )
+       SELECT posts.id,posts.title,posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
+         posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",posts.created_at AS "createdAt",
+         categories.code AS "categoryCode",categories.name AS "categoryName",users.nickname AS "authorName",
+         COALESCE(weekly_views.views,0) AS "weeklyViews",COALESCE(weekly_comments.comments,0) AS "weeklyComments",
+         COALESCE(weekly_likes.likes,0) AS "weeklyLikes",
+         (COALESCE(weekly_views.views,0) + COALESCE(weekly_comments.comments,0)*3 + COALESCE(weekly_likes.likes,0)*2) AS "weeklyScore"
+       FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
+       LEFT JOIN weekly_views ON weekly_views.post_id=posts.id
+       LEFT JOIN weekly_comments ON weekly_comments.post_id=posts.id
+       LEFT JOIN weekly_likes ON weekly_likes.post_id=posts.id
+       WHERE posts.status='published'
+         AND (COALESCE(weekly_views.views,0) >= 10 OR COALESCE(weekly_comments.comments,0) >= 3 OR COALESCE(weekly_likes.likes,0) >= 3)
+       ORDER BY "weeklyScore" DESC,posts.published_at DESC,posts.id DESC LIMIT $1`,
+      [limit],
+    );
+    return jsonResponse({ posts: weekly.rows, nextCursor: null, hasMore: false });
+  }
+
+  const cursor = decodeCursor(request.nextUrl.searchParams.get("cursor"), sort);
+  if (request.nextUrl.searchParams.has("cursor") && !cursor) return errorResponse("페이지 위치 정보가 올바르지 않습니다.");
 
   if (pageMode) {
     const requestedPage = normalizePage(request.nextUrl.searchParams.get("page"));
@@ -99,7 +149,8 @@ export async function POST(request: NextRequest) {
     if (!body.categoryCode || !title) return errorResponse("카테고리와 제목을 입력해 주세요.");
     if (!imageIds || imageIds.length > MAX_POST_IMAGES) return errorResponse(`이미지는 최대 ${MAX_POST_IMAGES}장까지 첨부할 수 있습니다.`);
     if (!content && imageIds.length === 0) return errorResponse("내용을 입력하거나 이미지를 한 장 이상 넣어 주세요.");
-    if (title.length > 200 || content.length > 20000) return errorResponse("입력 가능한 글자 수를 확인해 주세요.");
+    if (title.length > 80) return errorResponse("제목은 80자까지 입력할 수 있습니다.");
+    if (content.length > 20000) return errorResponse("내용은 20,000자까지 입력할 수 있습니다.");
     const contentHtml = normalizePostContentHtml(body.contentHtml, content, imageIds);
 
     const client = await db.connect();

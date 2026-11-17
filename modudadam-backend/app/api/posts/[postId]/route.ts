@@ -54,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       EXISTS(SELECT 1 FROM post_reactions WHERE post_id=posts.id AND user_id=$2::uuid AND reaction='like') AS "isLiked",
       (SELECT count(*)::int FROM post_reactions WHERE post_id=posts.id AND reaction='like') AS "likeCount",
       EXISTS(SELECT 1 FROM post_bookmarks WHERE post_id=posts.id AND user_id=$2::uuid) AS "isBookmarked",
-      (SELECT count(*)::int FROM post_bookmarks WHERE post_id=posts.id) AS "bookmarkCount"
+      posts.bookmark_count AS "bookmarkCount"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
      WHERE posts.id=$1 AND posts.status='published'`, [postId, user?.id || null]);
   if (!detail.rows[0]) return errorResponse("글을 찾을 수 없습니다.", 404);
@@ -95,7 +95,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!title) return errorResponse("제목을 입력해 주세요.");
     if (!imageIds || imageIds.length > MAX_POST_IMAGES) return errorResponse(`이미지는 최대 ${MAX_POST_IMAGES}장까지 첨부할 수 있습니다.`);
     if (!content && imageIds.length === 0) return errorResponse("내용을 입력하거나 이미지를 한 장 이상 넣어 주세요.");
-    if (title.length > 200 || content.length > 20000) return errorResponse("입력 가능한 글자 수를 확인해 주세요.");
+    if (title.length > 80) return errorResponse("제목은 80자까지 입력할 수 있습니다.");
+    if (content.length > 20000) return errorResponse("내용은 20,000자까지 입력할 수 있습니다.");
     const contentHtml = normalizePostContentHtml(body.contentHtml, content, imageIds);
 
     const client = await db.connect();

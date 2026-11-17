@@ -13,9 +13,12 @@ export type PublicPost = {
 
 type PostEnvelope = { success: true; data: { post: PublicPost } } | { success: false };
 
-export const getPublicPost = cache(async (postId: string) => {
+export const getPublicPost = cache(async (postId: string, cookieHeader = "") => {
   try {
-    const response = await fetch(`${API_SERVER_URL}/api/posts/${encodeURIComponent(postId)}?trackView=false`, { cache: "no-store" });
+    const response = await fetch(`${API_SERVER_URL}/api/posts/${encodeURIComponent(postId)}?trackView=false`, {
+      cache: "no-store",
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    });
     if (!response.ok) return null;
     const body = await response.json() as PostEnvelope;
     return body.success ? body.data.post : null;

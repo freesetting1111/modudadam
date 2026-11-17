@@ -68,6 +68,10 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
       setError("내용을 입력하거나 이미지를 한 장 이상 넣어 주세요.");
       return;
     }
+    if (Array.from(editorValue.content).length > 20000) {
+      setError("내용은 20,000자까지 입력할 수 있습니다.");
+      return;
+    }
     if (editorValue.uploading) {
       setError("본문 이미지 업로드가 끝날 때까지 기다려 주세요.");
       return;
@@ -101,7 +105,7 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
   const cancelHref = postId ? `/posts/${postId}` : `/category/${categoryCode}`;
   const contentLength = Array.from(editorValue.content).length;
   const hasContent = contentLength > 0 || editorValue.imageCount > 0;
-  const canSubmit = !pending && !editorValue.uploading && Boolean(title.trim()) && hasContent && contentLength <= 20000;
+  const canSubmit = !pending && !editorValue.uploading && Boolean(title.trim()) && hasContent;
   if (loading) return <div className="board-message">게시글을 불러오고 있어요.</div>;
 
   return <form className="write-form compose-form" onSubmit={submit}>
@@ -111,11 +115,11 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
       <b>전체 공개</b>
     </div>
     <div className="compose-field">
-      <div className="compose-field-heading"><label htmlFor="post-title">제목 <b>필수</b></label><span>{title.length}/200</span></div>
-      <input id="post-title" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={200} placeholder="제목을 입력해 주세요" />
+      <div className="compose-field-heading"><label htmlFor="post-title">제목 <b>필수</b></label></div>
+      <input id="post-title" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={80} placeholder="제목을 입력해 주세요" />
     </div>
     <div className="compose-field compose-content-field rich-compose-field">
-      <div className="compose-field-heading"><label>내용 <b>필수</b></label><span className={contentLength > 20000 ? "limit-error" : ""}>{contentLength.toLocaleString()}/20,000</span></div>
+      <div className="compose-field-heading"><label>내용 <b>필수</b></label></div>
       <RichPostEditor
         ref={editorRef}
         initialContent={initialContent}

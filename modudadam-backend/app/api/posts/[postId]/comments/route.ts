@@ -38,19 +38,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       (comments.author_id=$2::uuid AND comments.status='published') AS "canDelete",
       (comments.author_id=$2::uuid AND comments.status='published') AS "canEdit",
       ($2::uuid IS NOT NULL AND comments.author_id<>$2::uuid AND comments.status='published') AS "canReport",
-      COALESCE(reactions.like_count,0)::int AS "likeCount",
-      COALESCE(reactions.dislike_count,0)::int AS "dislikeCount",
-      reactions.my_reaction AS "myReaction"
+      comments.like_count AS "likeCount",
+      comments.dislike_count AS "dislikeCount",
+      my_reaction.reaction AS "myReaction"
      FROM comments
      JOIN users ON users.id=comments.author_id
      LEFT JOIN comments reply_target ON reply_target.id=comments.reply_to_id
      LEFT JOIN users reply_users ON reply_users.id=reply_target.author_id
-     LEFT JOIN LATERAL (
-       SELECT COUNT(*) FILTER(WHERE reaction='like') AS like_count,
-              COUNT(*) FILTER(WHERE reaction='dislike') AS dislike_count,
-              MAX(reaction) FILTER(WHERE user_id=$2::uuid) AS my_reaction
-         FROM comment_reactions WHERE comment_id=comments.id
-     ) reactions ON TRUE
+     LEFT JOIN comment_reactions my_reaction
+       ON my_reaction.comment_id=comments.id AND my_reaction.user_id=$2::uuid
      WHERE comments.post_id=$1 AND comments.status IN ('published','deleted')
        AND (comments.id=ANY($3::uuid[]) OR comments.parent_id=ANY($3::uuid[]))
      ORDER BY comments.created_at ASC,comments.id ASC`,

@@ -2,45 +2,60 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { getAnonymousId } from "@/lib/anonymous-id";
+import { SearchResults } from "@/components/search-results";
 
 const RECENT_SEARCH_COOKIE = "modudadam_recent_searches";
 const MAX_RECENT_SEARCHES = 10;
+type TrendingKeyword = { query: string; searchCount: number; currentRank: number; previousRank: number | null; rankChange: number | null; direction: "up" | "same" | "down" | "new" };
 
-export function HomeSearch() {
+export function HomeSearch({ mode = "trigger", initialQuery = "" }: { mode?: "trigger" | "page"; initialQuery?: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(false);
+  const searchDataRequested = useRef(false);
+  const [open, setOpen] = useState(mode === "page");
   const [tab, setTab] = useState<"recent" | "trending">("recent");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
+  const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [trendingKeywords, setTrendingKeywords] = useState<string[]>([]);
+  const [trendingKeywords, setTrendingKeywords] = useState<TrendingKeyword[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    const initialize = window.setTimeout(() => {
+      setRecentSearches(readRecentSearches());
+      setTrendingLoading(true);
+      if (!searchDataRequested.current) {
+        searchDataRequested.current = true;
+        apiRequest<{ trendingQueries: TrendingKeyword[] }>("/api/searches", { cache: "no-store" })
+          .then((result) => setTrendingKeywords(result.trendingQueries))
+          .catch(() => setTrendingKeywords([]))
+          .finally(() => setTrendingLoading(false));
+      }
+    }, 0);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.setTimeout(() => inputRef.current?.focus(), 0);
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      if (mode === "page") router.push("/");
+      else setOpen(false);
     }
     window.addEventListener("keydown", closeOnEscape);
     return () => {
+      window.clearTimeout(initialize);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [open]);
+  }, [mode, open, router]);
 
   function openSearch() {
-    setRecentSearches(readRecentSearches());
+    searchDataRequested.current = false;
     setOpen(true);
-    setTrendingLoading(true);
-    apiRequest<{ popularQueries: string[] }>("/api/searches", { cache: "no-store" })
-      .then((result) => setTrendingKeywords(result.popularQueries))
-      .catch(() => setTrendingKeywords([]))
-      .finally(() => setTrendingLoading(false));
   }
 
   async function search(keyword: string) {
@@ -49,9 +64,14 @@ export function HomeSearch() {
     const next = [normalized, ...recentSearches.filter((item) => item !== normalized)].slice(0, MAX_RECENT_SEARCHES);
     writeRecentSearches(next);
     setRecentSearches(next);
-    await apiRequest("/api/searches", { method: "POST", body: JSON.stringify({ query: normalized }) }).catch(() => undefined);
-    setOpen(false);
-    router.push(`/search?q=${encodeURIComponent(normalized)}`);
+    await apiRequest("/api/searches", { method: "POST", body: JSON.stringify({ query: normalized, anonymousId: getAnonymousId() }) }).catch(() => undefined);
+    if (mode === "trigger") {
+      setOpen(false);
+      router.push(`/search?q=${encodeURIComponent(normalized)}`);
+      return;
+    }
+    setSubmittedQuery(normalized);
+    router.replace(`/search?q=${encodeURIComponent(normalized)}`, { scroll: false });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -70,16 +90,22 @@ export function HomeSearch() {
     writeRecentSearches([]);
   }
 
-  return <section className="home-search">
-    <button className="home-search-trigger" type="button" onClick={openSearch} aria-haspopup="dialog">
-      <span>궁금한 생활 정보를 검색해 보세요</span><b aria-hidden="true">⌕</b>
-    </button>
+  function closeSearch() {
+    searchDataRequested.current = false;
+    if (mode === "page") router.push("/");
+    else setOpen(false);
+  }
+
+  return <section className={mode === "page" ? "unified-search-page" : "home-search"}>
+    {mode === "trigger" && <button className="home-search-trigger" type="button" onClick={openSearch} aria-haspopup="dialog">
+      <span>궁금한 생활 정보를 검색해 보세요</span><span className="home-search-icon" aria-hidden="true"><Search strokeWidth={2}/></span>
+    </button>}
 
     {open && <div className="search-overlay" role="dialog" aria-modal="true" aria-label="통합검색">
       <form className="search-overlay-header" onSubmit={submit}>
-        <button className="search-back" type="button" onClick={() => setOpen(false)} aria-label="검색 닫기">‹</button>
+        <button className="search-back" type="button" onClick={closeSearch} aria-label="검색 닫기">‹</button>
         <input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} maxLength={100} placeholder="검색어를 입력해 주세요." aria-label="검색어" />
-        <button className="search-submit" type="submit" aria-label="검색">⌕</button>
+        <button className="search-submit" type="submit" aria-label="검색"><Search strokeWidth={2}/></button>
       </form>
 
       <div className="search-tabs" role="tablist" aria-label="검색어 목록">
@@ -98,15 +124,24 @@ export function HomeSearch() {
           <button className="clear-recent" type="button" onClick={clearRecent}>전체 삭제</button>
         </>}
       </div> : <div role="tabpanel">{trendingLoading ? <p className="no-recent-searches">검색어 순위를 불러오는 중입니다.</p> : trendingKeywords.length === 0 ? <p className="no-recent-searches">아직 집계된 급상승 검색어가 없습니다.</p> : <ol className="search-keyword-list trending-list">
-        {trendingKeywords.map((keyword, index) => <li key={keyword}>
+        {trendingKeywords.map((keyword, index) => <li key={keyword.query}>
           <span className="ranking">{index + 1}</span>
-          <button className="keyword-button" type="button" onClick={() => void search(keyword)}>{keyword}</button>
+          <button className="keyword-button" type="button" onClick={() => void search(keyword.query)}>{keyword.query}</button>
+          <span className={`rank-change ${keyword.direction}`} aria-label={rankChangeLabel(keyword)}>{keyword.direction === "same" ? <i>-</i> : <><i aria-hidden="true" />{keyword.direction === "new" ? "NEW" : Math.abs(keyword.rankChange || 0)}</>}</span>
         </li>)}
       </ol>}</div>}
 
-      <button className="search-close" type="button" onClick={() => setOpen(false)}>닫기</button>
+      {submittedQuery && <SearchResults key={submittedQuery} initialQuery={submittedQuery} hideForm />}
+
+      {mode === "trigger" && <button className="search-close" type="button" onClick={closeSearch}>닫기</button>}
     </div>}
   </section>;
+}
+
+function rankChangeLabel(keyword: TrendingKeyword) {
+  if (keyword.direction === "new") return "새로 진입";
+  if (keyword.direction === "same") return "순위 유지";
+  return `${Math.abs(keyword.rankChange || 0)}순위 ${keyword.direction === "up" ? "상승" : "하락"}`;
 }
 
 function readRecentSearches() {

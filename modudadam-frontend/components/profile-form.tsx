@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck, Check, LoaderCircle, Mail, Pencil, ShieldCheck, UserRound } from "lucide-react";
 import { apiRequest } from "@/lib/api";
@@ -20,8 +21,9 @@ type Profile = {
 
 type NicknameState = "unchanged" | "unchecked" | "checking" | "available" | "taken";
 
-export function ProfileForm() {
-  const [editing, setEditing] = useState(false);
+export function ProfileForm({ initialEditing = false, standalone = false }: { initialEditing?: boolean; standalone?: boolean }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(initialEditing);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [initialNickname, setInitialNickname] = useState("");
   const [nicknameState, setNicknameState] = useState<NicknameState>("unchanged");
@@ -97,7 +99,8 @@ export function ProfileForm() {
       setInitialNickname(result.profile.nickname);
       setNicknameState("unchanged");
       setSuccess("프로필을 저장했습니다.");
-      setEditing(false);
+      if (standalone) router.replace("/my");
+      else setEditing(false);
       window.dispatchEvent(new CustomEvent("modudadam:profile-updated", { detail: { nickname: result.profile.nickname } }));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "프로필을 저장하지 못했습니다.");
@@ -222,7 +225,7 @@ export function ProfileForm() {
 
     {error && <div className="form-error" role="alert">{error}</div>}
     {success && <div className="profile-save-success" role="status"><Check size={16} /> {success}</div>}
-    <div className="profile-edit-actions"><button type="button" onClick={() => setEditing(false)} disabled={saving}>취소</button><button className="profile-submit" type="submit" disabled={saving || !nicknameValid || !nicknameReady || !isValidPhoneNumber(profile.phoneNumber)}>{saving ? "저장 중..." : nicknameState === "unchecked" || nicknameState === "taken" ? "닉네임 중복 확인이 필요합니다" : "저장하기"}</button></div>
+    <div className="profile-edit-actions"><button type="button" onClick={() => standalone ? router.push("/my") : setEditing(false)} disabled={saving}>취소</button><button className="profile-submit" type="submit" disabled={saving || !nicknameValid || !nicknameReady || !isValidPhoneNumber(profile.phoneNumber)}>{saving ? "저장 중..." : nicknameState === "unchecked" || nicknameState === "taken" ? "닉네임 중복 확인이 필요합니다" : "저장하기"}</button></div>
   </form>;
 }
 
