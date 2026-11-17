@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
        LEFT JOIN weekly_comments ON weekly_comments.post_id=posts.id
        LEFT JOIN weekly_likes ON weekly_likes.post_id=posts.id
        WHERE posts.status='published'
-         AND (COALESCE(weekly_views.views,0) >= 10 OR COALESCE(weekly_comments.comments,0) >= 3 OR COALESCE(weekly_likes.likes,0) >= 3)
        ORDER BY "weeklyScore" DESC,posts.published_at DESC,posts.id DESC LIMIT $1`,
       [limit],
     );

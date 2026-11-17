@@ -7,9 +7,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { postId } = await params;
   const user = await getSessionUser(request);
   const requestedPage = Number(request.nextUrl.searchParams.get("page") || 1);
-  const requestedPageSize = Number(request.nextUrl.searchParams.get("pageSize") || 10);
+  const requestedPageSize = Number(request.nextUrl.searchParams.get("pageSize") || 20);
   const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
-  const pageSize = Number.isFinite(requestedPageSize) ? Math.min(20, Math.max(1, Math.floor(requestedPageSize))) : 10;
+  const pageSize = Number.isFinite(requestedPageSize) ? Math.min(20, Math.max(1, Math.floor(requestedPageSize))) : 20;
   const counts = await query<{ rootCount: number; commentCount: number }>(
     `SELECT COUNT(*) FILTER(WHERE parent_id IS NULL)::int AS "rootCount",
             COUNT(*) FILTER(WHERE status='published')::int AS "commentCount"

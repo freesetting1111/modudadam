@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const category = request.nextUrl.searchParams.get("category")?.trim() || "pets";
     const requestedType = request.nextUrl.searchParams.get("type");
     const type: ActivityType = requestedType === "comments" || requestedType === "scraps" ? requestedType : "posts";
-    const pageSize = 10;
+    const pageSize = 20;
     const requestedPage = normalizePage(request.nextUrl.searchParams.get("page"));
 
     const categoryResult = await query(`SELECT code FROM categories WHERE code=$1 AND is_active=TRUE LIMIT 1`, [category]);

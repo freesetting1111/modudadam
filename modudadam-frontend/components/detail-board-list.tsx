@@ -15,7 +15,7 @@ type PageData = {
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 export function DetailBoardList({ categoryCode, currentPostId, authenticated }: { categoryCode: string; currentPostId: string; authenticated: boolean }) {
   const [data, setData] = useState<PageData | null>(null);

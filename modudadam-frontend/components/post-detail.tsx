@@ -18,7 +18,7 @@ type Pagination = { page: number; pageSize: number; totalItems: number; totalPag
 type KakaoWindow = Window & { Kakao?: { isInitialized: () => boolean; init: (key: string) => void; Share: { sendDefault: (settings: Record<string, unknown>) => void } } };
 
 const REPORT_REASONS = ["스팸·홍보/도배", "욕설·비방·혐오 표현", "음란물·부적절한 콘텐츠", "개인정보 노출", "허위사실·사기", "게시판 성격에 맞지 않음", "기타"];
-const COMMENT_PAGE_SIZE = 10;
+const COMMENT_PAGE_SIZE = 20;
 const REPLY_PAGE_SIZE = 5;
 
 export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialPost }: { postId: string; authenticated: boolean; kakaoJavascriptKey: string; initialPost: Post }) {
@@ -155,7 +155,18 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
     try {
       if (!javascriptKey) throw new Error("KAKAO_KEY_MISSING");
       const kakao = await loadKakaoSdk(javascriptKey);
-      kakao.Share.sendDefault({ objectType: "feed", content: { title: post.title, description: post.content.replace(/\s+/g, " ").slice(0, 100), imageUrl: post.images[0]?.url || `${window.location.origin}/brand/modudadam-brand-mark.png`, link: { mobileWebUrl: url, webUrl: url } }, buttons: [{ title: "게시글 보기", link: { mobileWebUrl: url, webUrl: url } }] });
+      kakao.Share.sendDefault({
+        objectType: "feed",
+        content: {
+          title: "모두의 일상을 다정하게 담아요, 모두다담",
+          description: "반려동물부터 요리, 살림, 취미까지 다양한 일상 이야기를 함께 나누는 커뮤니티입니다.",
+          imageUrl: `${window.location.origin}/share-image`,
+          imageWidth: 800,
+          imageHeight: 400,
+          link: { mobileWebUrl: url, webUrl: url },
+        },
+        buttons: [{ title: "이야기 보러가기", link: { mobileWebUrl: url, webUrl: url } }],
+      });
       setShareOpen(false);
     } catch { setNotice("카카오톡 공유를 열지 못했습니다. JavaScript 키와 허용 도메인을 확인해 주세요."); }
   }
@@ -218,7 +229,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
     {notice && <div className="community-toast" role="status">{notice}</div>}
     {shareOpen && <div className="report-backdrop" role="dialog" aria-modal="true" aria-labelledby="share-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setShareOpen(false); }}><section className="share-sheet">
       <span className="sheet-handle" /><h2 id="share-title">공유하기</h2>
-      <div className="share-options"><button type="button" onClick={() => void shareWithKakao()}><span className="kakao-share-circle">TALK</span><b>카카오톡</b></button><button type="button" onClick={() => void copyShareLink()}><span className="link-share-circle"><Share2 size={25} /></span><b>링크</b></button></div>
+      <div className="share-options"><button type="button" onClick={() => void shareWithKakao()}><span className="kakao-share-circle"><KakaoTalkIcon /></span><b>카카오톡</b></button><button type="button" onClick={() => void copyShareLink()}><span className="link-share-circle"><Share2 size={29} /></span><b>링크</b></button></div>
       <button type="button" className="share-cancel" onClick={() => setShareOpen(false)}>취소</button>
     </section></div>}
     {reportTarget && <div className="report-backdrop" role="dialog" aria-modal="true" aria-labelledby="report-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setReportTarget(null); }}><section className="report-sheet">
@@ -263,6 +274,13 @@ function CommentPagination({ pagination, onChange }: { pagination: Pagination; o
   const firstPage = Math.max(1, Math.min(pagination.page - 2, pagination.totalPages - 4));
   const pages = Array.from({ length: Math.min(5, pagination.totalPages) }, (_, index) => firstPage + index);
   return <nav className="comment-pagination" aria-label="댓글 페이지"><button type="button" disabled={pagination.page === 1} onClick={() => onChange(pagination.page - 1)} aria-label="이전 댓글 페이지"><ChevronLeft size={16} /></button>{pages.map((page) => <button type="button" key={page} className={page === pagination.page ? "active" : ""} onClick={() => onChange(page)} aria-current={page === pagination.page ? "page" : undefined}>{page}</button>)}<button type="button" disabled={pagination.page === pagination.totalPages} onClick={() => onChange(pagination.page + 1)} aria-label="다음 댓글 페이지"><ChevronRight size={16} /></button></nav>;
+}
+
+function KakaoTalkIcon() {
+  return <svg viewBox="0 0 48 48" aria-hidden="true">
+    <path fill="#391b1b" d="M24 9.2C14.1 9.2 6 15.5 6 23.2c0 5 3.4 9.4 8.5 11.9l-2.1 7.6c-.2.7.6 1.2 1.2.8l8.9-6.1c.5 0 1 .1 1.5.1 9.9 0 18-6.3 18-14.1S33.9 9.2 24 9.2Z"/>
+    <text x="24" y="26.2" fill="#fee500" fontFamily="Arial, sans-serif" fontSize="8.4" fontWeight="900" textAnchor="middle">TALK</text>
+  </svg>;
 }
 
 async function loadKakaoSdk(javascriptKey: string) {

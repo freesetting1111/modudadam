@@ -10,8 +10,8 @@ type HomePost = {
 };
 
 export default async function Home() {
-  const [weeklyPosts, latestPosts, categoryPosts] = await Promise.all([getPosts("weekly", 20), getPosts("latest", 20), getCategoryPosts()]);
-  const recommendations = dailyMix(weeklyPosts).slice(0, 3);
+  const [weeklyPosts, latestPosts, categoryPosts] = await Promise.all([getPosts("weekly", 10), getPosts("latest", 10), getCategoryPosts()]);
+  const recommendations = weeklyPosts.slice(0, 10);
   const categoryFeeds = categories.map((category) => ({
     category,
     posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 10),
@@ -20,15 +20,15 @@ export default async function Home() {
   return <div className="community-home">
     <HomeSearch />
 
-    <section className={`community-dashboard ${recommendations.length === 0 ? "single-panel" : ""}`} aria-label="커뮤니티 주요 게시글">
+    <section className="community-dashboard community-dashboard-stacked" aria-label="커뮤니티 주요 게시글">
       {recommendations.length > 0 && <article className="community-panel hot-panel">
         <header><h1><Flame size={17} /> 주간 인기</h1><span>최근 7일</span></header>
-        <div className="portal-post-list">{recommendations.map((post, index) => <PortalPost key={post.id} post={post} rank={index + 1} showCategory />)}</div>
+        <div className="portal-post-list">{recommendations.map((post, index) => <PortalPost key={post.id} post={post} rank={index + 1} />)}</div>
       </article>}
       <article className="community-panel latest-panel">
         <header><h2><Clock3 size={16} /> 새로 올라온 글</h2><span>실시간 최신</span></header>
         <div className="portal-post-list">
-          {latestPosts.length > 0 ? latestPosts.slice(0, 10).map((post) => <PortalPost key={post.id} post={post} />) : <PanelEmpty />}
+          {latestPosts.length > 0 ? latestPosts.map((post) => <PortalPost key={post.id} post={post} />) : <PanelEmpty />}
         </div>
       </article>
     </section>
@@ -49,12 +49,14 @@ export default async function Home() {
   </div>;
 }
 
-function PortalPost({ post, rank, showCategory = false }: { post: HomePost; rank?: number; showCategory?: boolean }) {
+function PortalPost({ post, rank }: { post: HomePost; rank?: number }) {
   const category = findCategory(post.categoryCode);
-  return <Link href={`/posts/${post.id}`} className="portal-post-row">
+  return <Link href={`/posts/${post.id}`} className={`portal-post-row ${rank ? "has-rank" : ""}`}>
     {rank && <strong className="portal-rank">{rank}</strong>}
-    <div className="portal-post-title">{showCategory && <small>{category?.short || post.categoryName}</small>}<span>{post.title}</span>{post.commentCount > 0 && <b>{post.commentCount}</b>}</div>
-    <time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time>
+    <div className="portal-post-copy">
+      <div className="portal-post-title"><small>{category?.short || post.categoryName}</small><span>{post.title}</span></div>
+      <div className="portal-post-meta"><span className="portal-author">{post.authorName}</span><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
+    </div>
   </Link>;
 }
 
@@ -80,17 +82,6 @@ async function getCategoryPosts(): Promise<HomePost[]> {
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };
     return body.success && Array.isArray(body.data?.posts) ? body.data.posts : [];
   } catch { return []; }
-}
-
-function dailyMix(posts: HomePost[]) {
-  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
-  return [...posts].sort((a, b) => stableScore(`${day}:${a.id}`) - stableScore(`${day}:${b.id}`));
-}
-
-function stableScore(value: string) {
-  let hash = 2166136261;
-  for (const character of value) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
-  return hash >>> 0;
 }
 
 function formatCompactDate(value: string) {

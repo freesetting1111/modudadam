@@ -20,7 +20,7 @@ export function SearchResults({ initialQuery, hideForm = false }: { initialQuery
   const [posts, setPosts] = useState<SearchPost[]>([]);
   const [category, setCategory] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, pageSize: 10, totalItems: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, pageSize: 20, totalItems: 0, totalPages: 1 });
   const [loading, setLoading] = useState(Boolean(initialQuery));
   const [error, setError] = useState("");
   const requestedQuery = useRef("");
@@ -29,7 +29,7 @@ export function SearchResults({ initialQuery, hideForm = false }: { initialQuery
     if (!initialQuery) return;
     const requestKey = `${initialQuery}:${category}:${page}`;
     requestedQuery.current = requestKey;
-    const params = new URLSearchParams({ q: initialQuery, page: String(page), limit: "10" });
+    const params = new URLSearchParams({ q: initialQuery, page: String(page), limit: "20" });
     if (category) params.set("category", category);
     apiRequest<{ posts: SearchPost[]; pagination: Pagination }>(`/api/posts?${params}`)
       .then((result) => { if (requestedQuery.current === requestKey) { setPosts(result.posts); setPagination(result.pagination); setError(""); } })
