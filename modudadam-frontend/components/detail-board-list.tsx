@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, MessageCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, MessageCircle, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { findCategory } from "@/lib/categories";
 
 type Sort = "latest" | "popular";
 type Post = {
-  id: string; title: string; authorName: string; viewCount: number; commentCount: number;
+  id: string; title: string; excerpt: string; authorName: string; viewCount: number; commentCount: number;
   createdAt: string; isNotice: boolean; isPinned: boolean;
 };
 type PageData = {
@@ -17,7 +18,7 @@ type PageData = {
 
 const PAGE_SIZE = 10;
 
-export function DetailBoardList({ categoryCode, currentPostId }: { categoryCode: string; currentPostId: string }) {
+export function DetailBoardList({ categoryCode, currentPostId, authenticated }: { categoryCode: string; currentPostId: string; authenticated: boolean }) {
   const [sort, setSort] = useState<Sort>("latest");
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,27 +54,30 @@ export function DetailBoardList({ categoryCode, currentPostId }: { categoryCode:
   const totalPages = pagination?.totalPages || 1;
   const firstPage = Math.max(1, Math.min(page - 4, totalPages - 9));
   const pages = Array.from({ length: Math.min(10, totalPages) }, (_, index) => firstPage + index);
+  const category = findCategory(categoryCode);
+  if (!category) return null;
+  const Icon = category.icon;
 
-  return <section className="detail-board-section">
-    <header className="detail-board-header"><h2>전체 글</h2><div><button type="button" className={sort === "latest" ? "active" : ""} onClick={() => changeSort("latest")}>최신순</button><span>|</span><button type="button" className={sort === "popular" ? "active" : ""} onClick={() => changeSort("popular")}>인기순</button></div></header>
-    {loading && !data && <div className="detail-board-message">게시글을 불러오고 있어요.</div>}
-    {error && <div className="detail-board-message error">{error}</div>}
-    {data && <div className="detail-board-rows" aria-busy={loading}>{data.posts.map((post) => <Link key={post.id} href={`/posts/${post.id}`} className={`detail-board-row ${post.id === currentPostId ? "current" : ""}`} aria-current={post.id === currentPostId ? "page" : undefined}>
-      <div><small>{post.isNotice || post.isPinned ? "공지" : "일반"}</small><strong>{post.title}</strong><span>{post.authorName}</span></div>
-      <div><span><Eye size={12} /> {post.viewCount}</span><span><MessageCircle size={12} /> {post.commentCount}</span><time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time></div>
+  return <section className="detail-board-section board-page">
+    <div className="category-hero"><span className={`category-icon category-icon-large category-${category.code}`}><Icon size={27} strokeWidth={1.8} /></span><div><small>커뮤니티</small><h1>{category.name}</h1><p>{category.description}</p></div></div>
+    <div className="board-toolbar board-toolbar-compact"><div className="board-sort-control"><label htmlFor="detail-board-sort">정렬</label><select id="detail-board-sort" value={sort} onChange={(event) => changeSort(event.target.value as Sort)}><option value="latest">최신순</option><option value="popular">인기순</option></select><small>{sort === "popular" ? "조회와 댓글 반영" : "최근 등록 순서"}</small></div>{authenticated && <Link className="write-button" href={`/category/${categoryCode}/write`}><PenLine size={14} /> 글쓰기</Link>}</div>
+    {loading && !data && <div className="board-message">게시글을 불러오고 있어요.</div>}
+    {error && <div className="board-message error">{error}</div>}
+    {data && <div className="board-list" aria-busy={loading}>{data.posts.map((post) => <Link key={post.id} href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.id === currentPostId ? "board-row-current" : ""}`} aria-current={post.id === currentPostId ? "page" : undefined}>
+      <div className="board-row-main"><div className="board-row-title">{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.title}</div>{post.excerpt && <p>{post.excerpt}</p>}</div>
+      <div className="board-row-meta"><span className="board-author">{post.authorName}</span><time dateTime={post.createdAt}>{formatBoardDate(post.createdAt)}</time><span aria-label={`조회 ${post.viewCount}`}><Eye size={13} /> {post.viewCount}</span><span aria-label={`댓글 ${post.commentCount}`}><MessageCircle size={13} /> {post.commentCount}</span></div>
     </Link>)}</div>}
-    {data && <nav className="detail-board-pagination" aria-label="상세 게시판 페이지">
-      <button type="button" disabled={page === 1 || loading} onClick={() => void load(sort, page - 1)} aria-label="이전 게시글 페이지"><ChevronLeft size={15} /></button>
+    {data && <nav className="board-pagination" aria-label="상세 게시판 페이지">
+      <button type="button" disabled={page === 1 || loading} onClick={() => void load(sort, page - 1)} aria-label="이전 게시글 페이지"><ChevronLeft size={17} /></button>
       {pages.map((item) => <button type="button" key={item} className={item === page ? "active" : ""} disabled={loading} onClick={() => void load(sort, item)} aria-current={item === page ? "page" : undefined}>{item}</button>)}
-      <button type="button" disabled={page === totalPages || loading} onClick={() => void load(sort, page + 1)} aria-label="다음 게시글 페이지"><ChevronRight size={15} /></button>
+      <button type="button" disabled={page === totalPages || loading} onClick={() => void load(sort, page + 1)} aria-label="다음 게시글 페이지"><ChevronRight size={17} /></button>
     </nav>}
   </section>;
 }
 
-function formatDate(value: string) {
+function formatBoardDate(value: string) {
   const date = new Date(value);
   const today = new Date();
-  return date.toDateString() === today.toDateString()
-    ? date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false })
-    : date.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".");
+  if (date.toDateString() === today.toDateString()) return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return date.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }).replace(/\s/g, "");
 }
