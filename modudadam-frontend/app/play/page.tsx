@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const contentItems = [
   { href: "/play/choice", icon: Vote, tone: "coral", eyebrow: "매일 새로운 질문", title: "오늘의 선택", description: "둘 중 마음이 가는 쪽을 고르고 모두의 선택을 확인해 보세요." },
   { href: "/play/mailbox", icon: Mail, tone: "blue", eyebrow: "고정 익명 ID", title: "다담 우체통", description: "이름을 내려놓고 마음속 이야기와 따뜻한 답장을 나눠보세요." },
-  { href: "/play/taste", icon: Sparkles, tone: "purple", eyebrow: "5개의 가벼운 질문", title: "취향 발견실", description: "일상 속 선택으로 나도 몰랐던 생활 취향을 발견해 보세요." },
+  { href: "/play/taste", icon: Sparkles, tone: "purple", eyebrow: "10문항 상세 분석", title: "취향 발견실", description: "5지선다 생활 질문으로 나도 몰랐던 취향의 결을 발견해 보세요." },
   { href: "/play/treasures", icon: MapPin, tone: "green", eyebrow: "이웃의 생활 지도", title: "동네 보물지도", description: "광고가 아닌 이웃이 직접 발견한 좋은 장소를 만나보세요." },
   { href: "/play/random", icon: Compass, tone: "amber", eyebrow: "숨은 게시글 발견", title: "랜덤 이야기 여행", description: "최신 목록 아래에 잠들어 있던 이야기를 우연히 만나보세요." },
 ] as const;

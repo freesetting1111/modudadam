@@ -108,7 +108,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           <div className="dadam-content-links">
             <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 선택</strong><small>매일 새로운 두 가지 선택</small></span><ChevronRight/></Link>
             <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>고정 익명 ID로 나누는 마음</small></span><ChevronRight/></Link>
-            <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>나의 생활 취향 알아보기</small></span><ChevronRight/></Link>
+            <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>10문항으로 알아보는 생활 취향</small></span><ChevronRight/></Link>
             <Link href="/play/treasures" onClick={closeMenu}><span className="dadam-link-icon green"><MapPin/></span><span><strong>동네 보물지도</strong><small>이웃이 발견한 좋은 장소</small></span><ChevronRight/></Link>
             <Link href="/play/random" onClick={closeMenu}><span className="dadam-link-icon amber"><Compass/></span><span><strong>랜덤 이야기 여행</strong><small>숨은 게시글 우연히 만나기</small></span><ChevronRight/></Link>
           </div>

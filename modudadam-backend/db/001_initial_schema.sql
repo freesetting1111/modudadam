@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS access_logs (
   utm_content varchar(200), utm_term varchar(200),
   gclid varchar(255), fbclid varchar(255),
   device_type varchar(20), viewport_width integer, viewport_height integer,
-  locale varchar(30), timezone varchar(80), user_agent text, ip_hash char(64),
+  locale varchar(30), timezone varchar(80), user_agent text, ip_hash char(64), ip_address inet,
   properties jsonb NOT NULL DEFAULT '{}'::jsonb,
   occurred_at timestamptz NOT NULL DEFAULT now(),
   received_at timestamptz NOT NULL DEFAULT now()
@@ -180,6 +180,7 @@ CREATE INDEX IF NOT EXISTS access_logs_anonymous_idx ON access_logs(anonymous_id
 CREATE INDEX IF NOT EXISTS access_logs_user_idx ON access_logs(user_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS access_logs_path_idx ON access_logs(path, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS access_logs_source_idx ON access_logs(utm_source, utm_medium, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS access_logs_ip_occurred_idx ON access_logs(ip_address, occurred_at DESC) WHERE ip_address IS NOT NULL;
 CREATE INDEX IF NOT EXISTS access_logs_properties_gin_idx ON access_logs USING gin(properties);
 
 CREATE TABLE IF NOT EXISTS user_attributions (

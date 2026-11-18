@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { getAnonymousId } from "@/lib/anonymous-id";
 
 export function AnalyticsTracker({ backendUrl }: { backendUrl: string }) {
   const pathname = usePathname();
   const directBackendUrl = backendUrl.replace(/\/+$/, "");
+  const lastLoggedPath = useRef<string | null>(null);
   useEffect(() => {
-    if (isLocalDevelopment()) return;
+    if (lastLoggedPath.current === pathname) return;
+    lastLoggedPath.current = pathname;
     const anonymousId = getAnonymousId();
     const query = new URLSearchParams(window.location.search);
     const firstLanding = sessionStorage.getItem("modudadam_landing_url") || window.location.href;
@@ -30,7 +32,6 @@ export function AnalyticsTracker({ backendUrl }: { backendUrl: string }) {
     }).catch(() => undefined);
   }, [pathname]);
   useEffect(() => {
-    if (isLocalDevelopment()) return;
     const anonymousId = getAnonymousId();
     let active = true;
     async function heartbeat() {
@@ -69,8 +70,4 @@ export function AnalyticsTracker({ backendUrl }: { backendUrl: string }) {
 
 function isSameOrigin(url: string) {
   try { return new URL(url).origin === window.location.origin; } catch { return true; }
-}
-
-function isLocalDevelopment() {
-  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "::1";
 }

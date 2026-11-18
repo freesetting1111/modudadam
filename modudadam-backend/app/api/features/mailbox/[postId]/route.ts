@@ -1,11 +1,17 @@
 import type { NextRequest } from "next/server";
-import { requireSessionUser } from "@/domains/auth/session";
+import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { createAnonymousAlias } from "@/domains/features/anonymous-alias";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { db, query } from "@/lib/db";
 
-export async function GET(_request: NextRequest, context: RouteContext<"/api/features/mailbox/[postId]">) {
+const REPLIES = {
+  cheer: "응원해요", understand: "이해해요", helpful: "도움이 됐어요",
+  empathy: "공감합니다", thanks: "마음을 나눠줘서 고마워요", together: "함께할게요",
+} as const;
+
+export async function GET(request: NextRequest, context: RouteContext<"/api/features/mailbox/[postId]">) {
   const { postId } = await context.params;
+  const user = await getSessionUser(request);
   if (!isUuid(postId)) return errorResponse("사연 정보가 올바르지 않습니다.");
   const postResult = await query(
     `SELECT id,author_alias AS "authorAlias",title,content,created_at AS "createdAt"
@@ -13,12 +19,15 @@ export async function GET(_request: NextRequest, context: RouteContext<"/api/fea
   );
   if (!postResult.rows[0]) return errorResponse("사연을 찾을 수 없습니다.", 404);
   const comments = await query(
-    `SELECT comments.id,participants.anonymous_alias AS "authorAlias",comments.content,comments.created_at AS "createdAt"
+    `SELECT comments.id,participants.anonymous_alias AS "authorAlias",comments.content,
+            comments.reply_type AS "replyType",comments.created_at AS "createdAt",
+            (comments.participant_user_id=$2::uuid) AS "isMine"
      FROM mailbox_comments comments JOIN mailbox_participants participants
        ON participants.post_id=comments.post_id AND participants.user_id=comments.participant_user_id
-     WHERE comments.post_id=$1 AND comments.status='published' ORDER BY comments.created_at`, [postId],
+     WHERE comments.post_id=$1 AND comments.status='published' ORDER BY comments.created_at`, [postId, user?.id || null],
   );
-  return jsonResponse({ post: postResult.rows[0], comments: comments.rows });
+  const myReply = user ? comments.rows.find((comment: { replyType?: string; isMine?: boolean }) => comment.replyType && comment.isMine) : null;
+  return jsonResponse({ post: postResult.rows[0], comments: comments.rows, myReplyType: myReply?.replyType || null });
 }
 
 export async function POST(request: NextRequest, context: RouteContext<"/api/features/mailbox/[postId]">) {
@@ -27,8 +36,9 @@ export async function POST(request: NextRequest, context: RouteContext<"/api/fea
     const { postId } = await context.params;
     if (!isUuid(postId)) return errorResponse("사연 정보가 올바르지 않습니다.");
     const body = await request.json();
-    const content = String(body.content || "").trim();
-    if (!content || content.length > 2000) return errorResponse("답장은 1자 이상 2,000자 이하로 입력해 주세요.");
+    const replyType = String(body.replyType || "") as keyof typeof REPLIES;
+    if (!(replyType in REPLIES)) return errorResponse("답장 문구를 선택해 주세요.");
+    const content = REPLIES[replyType];
     const client = await db.connect();
     try {
       await client.query("BEGIN");
@@ -49,8 +59,8 @@ export async function POST(request: NextRequest, context: RouteContext<"/api/fea
       }
       if (!participant.rows[0]) throw new Error("ALIAS_FAILED");
       const saved = await client.query(
-        `INSERT INTO mailbox_comments(post_id,participant_user_id,content) VALUES($1,$2,$3)
-         RETURNING id,content,created_at AS "createdAt"`, [postId, user.id, content],
+        `INSERT INTO mailbox_comments(post_id,participant_user_id,content,reply_type) VALUES($1,$2,$3,$4)
+         RETURNING id,content,reply_type AS "replyType",created_at AS "createdAt"`, [postId, user.id, content, replyType],
       );
       await client.query("COMMIT");
       return jsonResponse({ ...saved.rows[0], authorAlias: participant.rows[0].anonymousAlias }, { status: 201 });

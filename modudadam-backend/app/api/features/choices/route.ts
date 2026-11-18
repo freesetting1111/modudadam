@@ -8,16 +8,6 @@ type ChoiceRow = {
   optionId: string; label: string; emoji: string | null; sortOrder: number; voteCount: number; myOptionId: string | null;
 };
 
-const DAILY_PROMPTS = [
-  { question: "하루 동안 한 가지 능력을 가질 수 있다면?", description: "오늘의 선택에 참여하고 다른 사람들의 선택도 확인해 보세요.", options: [["동물과 대화하기", "🐾"], ["어디든 순간이동하기", "✨"]] },
-  { question: "쉬는 날, 더 끌리는 쪽은?", description: "정답은 없어요. 지금 마음이 가는 쪽을 골라보세요.", options: [["집에서 온전히 쉬기", "🏠"], ["밖으로 나가 새로운 곳 보기", "🌿"]] },
-  { question: "평생 하나만 고른다면?", description: "모두다담 회원들의 취향은 어느 쪽일까요?", options: [["좋아하는 음식 마음껏 먹기", "🍲"], ["좋아하는 여행 마음껏 가기", "🧳"]] },
-  { question: "기록으로 더 남기고 싶은 순간은?", description: "나중에 다시 꺼내 보고 싶은 쪽을 골라보세요.", options: [["평범하지만 편안한 하루", "☕"], ["처음 경험한 특별한 하루", "🎈"]] },
-  { question: "선물로 하나를 받을 수 있다면?", description: "지금의 나에게 더 필요한 선물은 무엇인가요?", options: [["완전히 자유로운 하루", "🛋️"], ["새로운 취미를 시작할 기회", "🎨"]] },
-  { question: "동네에 하나가 생긴다면?", description: "우리 동네에 더 있었으면 하는 공간을 골라보세요.", options: [["늦게까지 여는 조용한 서점", "📚"], ["반려동물과 함께 가는 공원", "🐶"]] },
-  { question: "하루를 시작하는 더 좋은 방법은?", description: "내 생활 리듬에 가까운 쪽을 선택해 보세요.", options: [["천천히 준비하는 여유로운 아침", "🌤️"], ["할 일을 바로 시작하는 활기찬 아침", "🏃"]] },
-] as const;
-
 export async function GET(request: NextRequest) {
   await ensureTodayChoice();
   const user = await getSessionUser(request);
@@ -74,16 +64,28 @@ function isUuid(value: string) { return /^[0-9a-f-]{36}$/i.test(value); }
 async function ensureTodayChoice() {
   const dateText = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const dayNumber = Math.floor(Date.parse(`${dateText}T00:00:00Z`) / 86_400_000);
-  const prompt = DAILY_PROMPTS[((dayNumber % DAILY_PROMPTS.length) + DAILY_PROMPTS.length) % DAILY_PROMPTS.length];
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const choice = await client.query<{ id: string }>(
-      `INSERT INTO daily_choices(question,description,active_on) VALUES($1,$2,$3::date)
-       ON CONFLICT(active_on) DO UPDATE SET active_on=EXCLUDED.active_on RETURNING id`,
-      [prompt.question, prompt.description, dateText],
+    const prompt = await client.query<{
+      id: string; question: string; description: string | null;
+      optionALabel: string; optionAEmoji: string | null; optionBLabel: string; optionBEmoji: string | null;
+    }>(
+      `SELECT id::text,question,description,option_a_label AS "optionALabel",option_a_emoji AS "optionAEmoji",
+              option_b_label AS "optionBLabel",option_b_emoji AS "optionBEmoji"
+         FROM choice_prompt_bank WHERE enabled ORDER BY id
+        OFFSET mod(($1::bigint * 137) + 53,NULLIF((SELECT COUNT(*) FROM choice_prompt_bank WHERE enabled),0)) LIMIT 1`,
+      [dayNumber],
     );
-    for (const [index, [label, emoji]] of prompt.options.entries()) {
+    if (!prompt.rows[0]) throw new Error("CHOICE_PROMPT_EMPTY");
+    const selected = prompt.rows[0];
+    const choice = await client.query<{ id: string }>(
+      `INSERT INTO daily_choices(question,description,active_on,source_prompt_id) VALUES($1,$2,$3::date,$4::bigint)
+       ON CONFLICT(active_on) DO UPDATE SET active_on=EXCLUDED.active_on RETURNING id`,
+      [selected.question, selected.description, dateText, selected.id],
+    );
+    const options = [[selected.optionALabel, selected.optionAEmoji], [selected.optionBLabel, selected.optionBEmoji]];
+    for (const [index, [label, emoji]] of options.entries()) {
       await client.query(
         `INSERT INTO daily_choice_options(choice_id,label,emoji,sort_order) VALUES($1,$2,$3,$4)
          ON CONFLICT(choice_id,sort_order) DO NOTHING`, [choice.rows[0].id, label, emoji, index + 1],

@@ -3,8 +3,6 @@ import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { query } from "@/lib/db";
 
-const RESULT_CODES = new Set(["cozy", "curious", "balanced", "spark"]);
-
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
   if (!user) return jsonResponse({ result: null });
@@ -22,7 +20,9 @@ export async function POST(request: NextRequest) {
     const quizCode = String(body.quizCode || "");
     const resultCode = String(body.resultCode || "");
     const answers = Array.isArray(body.answers) ? body.answers.map(String).slice(0, 20) : [];
-    if (quizCode !== "daily-style-v1" || !RESULT_CODES.has(resultCode)) return errorResponse("검사 결과가 올바르지 않습니다.");
+    const legacyResult = quizCode === "daily-style-v1" && new Set(["cozy", "curious", "balanced", "spark"]).has(resultCode);
+    const detailedResult = quizCode === "lifestyle-depth-v2" && /^[ER][FP][CI][XQ]$/.test(resultCode) && answers.length === 10;
+    if (!legacyResult && !detailedResult) return errorResponse("검사 결과가 올바르지 않습니다.");
     const saved = await query(
       `INSERT INTO taste_quiz_results(user_id,quiz_code,result_code,answers) VALUES($1,$2,$3,$4::jsonb)
        RETURNING id,created_at AS "createdAt"`,

@@ -1,12 +1,12 @@
-import { isIP } from "node:net";
+import { createHash } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { db, query } from "@/lib/db";
 import { getSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
+import { getRequestIp } from "@/lib/request-ip";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const BOT_PATTERN = /bot|crawler|spider|headless|lighthouse|phantomjs|selenium|puppeteer|playwright|slurp|bingpreview|facebookexternalhit|kakaotalk-scrap|naverbot|yeti/i;
-const HUMAN_VISITOR_SQL = `COALESCE(user_agent,'') !~* '(bot|crawler|spider|headless|lighthouse|phantomjs|selenium|puppeteer|playwright|slurp|bingpreview|facebookexternalhit|kakaotalk-scrap|naverbot|yeti)'`;
+const BOT_PATTERN = /bot|crawler|spider|slurp|bingpreview|facebookexternalhit|kakaotalk-scrap|naverbot|yeti/i;
 
 export async function GET() {
   const count = await getTodayVisitorCount();
@@ -23,11 +23,15 @@ export async function POST(request: NextRequest) {
     if (!user && !anonymousId) return errorResponse("방문자 식별값이 필요합니다.");
 
     const path = typeof body.path === "string" ? body.path.slice(0, 2000) : null;
-    const ipAddress = getClientIp(request);
+    const ipAddress = getRequestIp(request);
     const client = await db.connect();
     try {
       await client.query("BEGIN");
-      let identityKey = user ? `user:${user.id}` : `anonymous:${anonymousId}`;
+      let identityKey = user
+        ? `user:${user.id}`
+        : ipAddress
+          ? anonymousFingerprint(ipAddress, userAgent)
+          : `anonymous:${anonymousId}`;
       if (!user && anonymousId) {
         const linkedUser = await client.query<{ identityKey: string }>(
           `SELECT identity_key AS "identityKey" FROM daily_visitors
@@ -41,8 +45,10 @@ export async function POST(request: NextRequest) {
       if (user && anonymousId) {
         await client.query(
           `DELETE FROM daily_visitors
-           WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date AND identity_key=$1`,
-          [`anonymous:${anonymousId}`],
+           WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date
+             AND user_id IS NULL
+             AND (anonymous_id=$1::uuid OR identity_key=$2)`,
+          [anonymousId, ipAddress ? anonymousFingerprint(ipAddress, userAgent) : `anonymous:${anonymousId}`],
         );
       }
       await client.query(
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
       const count = await client.query<{ count: number }>(
         `SELECT COUNT(*)::int AS count FROM daily_visitors
-         WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date AND ${HUMAN_VISITOR_SQL}`,
+         WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date`,
       );
       await client.query("COMMIT");
       return jsonResponse({ visitorCount: count.rows[0]?.count || 0, period: "today", timezone: "Asia/Seoul" });
@@ -71,30 +77,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getClientIp(request: NextRequest) {
-  const candidates = [
-    request.headers.get("x-modudadam-client-ip"),
-    request.headers.get("cf-connecting-ip"),
-    request.headers.get("x-real-ip"),
-    request.headers.get("x-vercel-forwarded-for"),
-    request.headers.get("x-forwarded-for"),
-  ];
-
-  for (const header of candidates) {
-    for (const rawValue of header?.split(",") || []) {
-      let value = rawValue.trim();
-      if (value.startsWith("[") && value.includes("]")) value = value.slice(1, value.indexOf("]"));
-      if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(value)) value = value.slice(0, value.lastIndexOf(":"));
-      if (isIP(value)) return value;
-    }
-  }
-  return null;
+function anonymousFingerprint(ipAddress: string, userAgent: string) {
+  const digest = createHash("sha256").update(`${ipAddress}\n${userAgent}`).digest("hex");
+  return `fingerprint:${digest}`;
 }
 
 async function getTodayVisitorCount() {
   const result = await query<{ count: number }>(
     `SELECT COUNT(*)::int AS count FROM daily_visitors
-     WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date AND ${HUMAN_VISITOR_SQL}`,
+     WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date`,
   );
   return result.rows[0]?.count || 0;
 }

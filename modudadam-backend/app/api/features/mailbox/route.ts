@@ -7,15 +7,19 @@ import { db, query } from "@/lib/db";
 export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(request.nextUrl.searchParams.get("page")) || 1);
   const limit = 20;
+  const count = await query<{ count: number }>(`SELECT COUNT(*)::int AS count FROM mailbox_posts WHERE status='published'`);
+  const totalCount = count.rows[0]?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const currentPage = Math.min(page, totalPages);
   const result = await query(
     `SELECT posts.id,posts.author_alias AS "authorAlias",posts.title,posts.content,posts.created_at AS "createdAt",
        COUNT(comments.id)::int AS "commentCount"
      FROM mailbox_posts posts LEFT JOIN mailbox_comments comments ON comments.post_id=posts.id AND comments.status='published'
      WHERE posts.status='published' GROUP BY posts.id
      ORDER BY posts.created_at DESC LIMIT $1 OFFSET $2`,
-    [limit + 1, (page - 1) * limit],
+    [limit, (currentPage - 1) * limit],
   );
-  return jsonResponse({ posts: result.rows.slice(0, limit), page, hasMore: result.rows.length > limit });
+  return jsonResponse({ posts: result.rows, page: currentPage, pageSize: limit, totalCount, totalPages });
 }
 
 export async function POST(request: NextRequest) {
