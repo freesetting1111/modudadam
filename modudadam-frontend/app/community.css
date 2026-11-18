@@ -36,7 +36,7 @@
 @media(max-width:520px){
   .home-feed-section{padding-right:14px;padding-left:14px}.home-post-row,.recommendation-list .home-post-row{grid-template-columns:minmax(0,1fr) auto}
   .recommendation-rank{display:none}.home-post-meta>span:first-child{display:none}.home-post-copy p{max-width:68vw}
-  .board-row-dense{grid-template-columns:minmax(0,1fr) auto;gap:8px}.board-row-meta{justify-content:flex-end;gap:6px}.board-row-meta .board-author{display:none}
+  .board-row-dense{grid-template-columns:minmax(0,1fr) auto;gap:8px}.board-row-meta{justify-content:flex-end;gap:6px}
 }
 @media(max-width:380px){.home-post-copy p{max-width:62vw}.board-row-meta time{display:none}}
 
@@ -133,3 +133,8 @@
 
 .weekly-hot-carousel.is-paused .weekly-hot-progress i{animation-play-state:paused}.carousel-play-control[aria-pressed=true]{background:var(--board-accent);color:#fff}.weekly-hot-carousel>header .carousel-play-control[aria-pressed=true] svg{color:#fff}
 @media(max-width:380px){.weekly-hot-carousel .carousel-heading-text{display:none}}
+
+/* 대표 스탬프와 작성자 정보는 모든 커뮤니티 화면에서 같은 크기와 순서로 표시합니다. */
+.board-row-meta{font-size:12px}.board-row-meta .board-author{display:inline-flex}.board-preview-meta,.portal-post-meta{font-size:11.5px}.board-preview-meta .stamped-name,.portal-post-meta .stamped-name{max-width:96px;color:#59677b;font-size:12px;font-weight:700}.board-preview-meta .stamped-name-mark,.portal-post-meta .stamped-name-mark{font-size:14px}.post-page .post-meta>small{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:13px}.post-page .post-meta .stamped-name{color:#334158;font-size:14px;font-weight:800}.post-page .post-meta .stamped-name-mark{font-size:20px}.post-page .comment-head b{display:flex;align-items:center;gap:4px;font-size:15px}.post-page .comment-head .stamped-name-mark{font-size:19px}.my-account-summary .stamped-name-mark,.profile-summary .stamped-name-mark{font-size:23px}.profile-read-grid .stamped-name-mark{font-size:20px}
+.reply-mention{display:inline-flex;align-items:center;gap:3px;margin-right:5px}.reply-stamp{font-size:19px;line-height:1}
+@media(max-width:420px){.site-header.has-back .brand-mark{display:none}.board-row-meta{gap:7px;overflow:hidden}.board-row-meta .board-author{max-width:118px}.portal-author{display:inline-flex!important;max-width:92px}.board-preview-meta .stamped-name{max-width:90px}}

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Crown, Eye, MessageCircle, Pause, Play } fro
 import { useEffect, useRef, useState } from "react";
 import type { HomePost } from "@/app/page";
 import { categories } from "@/lib/categories";
+import { StampedName } from "@/components/stamped-name";
 
 type WeeklyGroup = { categoryCode: string; posts: HomePost[] };
 
@@ -81,7 +82,7 @@ function CarouselPost({ post, rank }: { post: HomePost; rank?: number }) {
     {rank && <strong className={`portal-rank ${rank <= 3 ? `medal-rank medal-rank-${rank}` : ""}`}>{rank <= 3 && <Crown className="rank-crown" size={14} aria-hidden="true" />}{rank}</strong>}
     <div className="portal-post-copy">
       <div className="portal-post-title"><span>{post.title}</span></div>
-      <div className="portal-post-meta"><span className="portal-author">{post.authorName}</span><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
+      <div className="portal-post-meta"><StampedName className="portal-author" name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
     </div>
   </Link>;
 }

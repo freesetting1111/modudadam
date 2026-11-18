@@ -8,6 +8,7 @@ a { color:inherit; text-decoration:none; }
 .app-shell { width:100%; max-width:600px; min-height:100vh; margin:0 auto; background:#fff; box-shadow:0 0 28px #24324a12; padding-bottom:78px; position:relative; }
 .site-header { height:64px; display:grid; grid-template-columns:52px 1fr 104px; align-items:center; border-bottom:1px solid #edf0f4; padding:0 10px; position:sticky; top:0; z-index:60; background:#fffffff7; backdrop-filter:blur(14px); }
 .menu-drawer { grid-column:1; }
+.global-back-button,.header-home-button{position:absolute;z-index:2;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:13px;background:transparent;color:#253147;cursor:pointer}.global-back-button{left:8px}.header-home-button{left:50px}.global-back-button:hover,.global-back-button:focus-visible,.header-home-button:hover,.header-home-button:focus-visible{background:#eef3fb;outline:none}.site-header.has-back .menu-drawer{position:absolute;right:8px;grid-column:auto;margin:0}.site-header.has-back .header-visitor-count{display:none}.auth-back-button{grid-column:1;position:relative;left:auto;justify-self:start}
 .brand { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; gap:8px; color:#15213a; font-size:21px; font-weight:850; letter-spacing:-1.15px; line-height:1; }
 .brand-mark { width:40px; height:40px; display:grid; place-items:center; overflow:hidden; border:1px solid #edf0f5; border-radius:14px; background:linear-gradient(145deg,#f6f8ff,#fff8ed); box-shadow:0 3px 10px #31406612; }
 .brand img { width:38px; height:38px; object-fit:contain; transform:scale(1.08); }
@@ -24,6 +25,7 @@ a { color:inherit; text-decoration:none; }
 .drawer-account-copy { min-width:0; display:flex; flex-direction:column; gap:3px; }
 .drawer-account-copy small { color:#8a94a5; font-size:10px; font-weight:650; }
 .drawer-account-copy strong { overflow:hidden; color:#263247; font-size:15px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+.stamped-name{min-width:0;display:inline-flex;align-items:center;gap:4px;vertical-align:middle;white-space:nowrap}.stamped-name-mark{flex:none;font-size:18px;line-height:1;filter:drop-shadow(0 1px 2px #24324a20)}.stamped-name-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.drawer-account-copy .stamped-name-mark{font-size:20px}
 .drawer-logout { height:34px; display:flex; align-items:center; gap:5px; padding:0 10px; border:1px solid #e0e5ed; border-radius:10px; background:#fff; color:#687386; font:inherit; font-size:11px; font-weight:700; cursor:pointer; }
 .drawer-logout:disabled { opacity:.55; cursor:wait; }
 .drawer-account-guest { grid-template-columns:46px minmax(0,1fr) auto;color:inherit; }
@@ -176,7 +178,7 @@ textarea{resize:none}
 .board-row-dense .board-row-main p{margin:3px 0 0;color:#7e8795;font-size:11px;line-height:1.35}
 .board-row-meta{display:flex;align-items:center;justify-content:flex-end;gap:9px;color:#939ba8;font-size:10px;white-space:nowrap}
 .board-row-meta span{display:flex;align-items:center;gap:3px}
-.board-row-meta .board-author{max-width:72px;overflow:hidden;color:#697485;text-overflow:ellipsis}
+.board-row-meta .board-author{max-width:112px;overflow:hidden;color:#526075;font-size:12px;font-weight:700;text-overflow:ellipsis}.board-row-meta .stamped-name-mark{font-size:15px}
 .board-pagination{display:flex;align-items:center;justify-content:center;gap:5px;padding:20px 0 4px}
 .board-pagination button{width:34px;height:34px;display:grid;place-items:center;border:1px solid #dfe4ec;border-radius:9px;background:#fff;color:#687487;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
 .board-pagination button.active{border-color:var(--brand);background:var(--brand);color:#fff}

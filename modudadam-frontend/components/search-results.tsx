@@ -7,9 +7,10 @@ import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { getAnonymousId } from "@/lib/anonymous-id";
 import { categories } from "@/lib/categories";
+import { StampedName } from "@/components/stamped-name";
 
 type SearchPost = {
-  id: string; title: string; excerpt: string; authorName: string;
+  id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string;
 };
 type Pagination = { page: number; pageSize: number; totalItems: number; totalPages: number };
@@ -72,7 +73,7 @@ export function SearchResults({ initialQuery, hideForm = false }: { initialQuery
       {!loading && !error && posts.length === 0 && <div className="board-message">일치하는 게시글이 없습니다.</div>}
       {posts.length > 0 && <div className="board-list search-result-list">{posts.map((post) => <Link href={`/posts/${post.id}`} className="board-row board-row-dense" key={post.id}>
         <div className="board-row-main"><small>{post.categoryName}</small><div className="board-row-title">{post.title}</div></div>
-        <div className="board-row-meta"><span className="board-author">{post.authorName}</span><time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
+        <div className="board-row-meta"><StampedName className="board-author" name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
       </Link>)}</div>}
       {!loading && !error && pagination.totalPages > 1 && <nav className="search-pagination" aria-label="검색 결과 페이지">
         <button type="button" onClick={() => movePage(page - 1)} disabled={page <= 1} aria-label="이전 페이지"><ChevronLeft size={15}/></button>

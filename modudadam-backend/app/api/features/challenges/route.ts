@@ -57,7 +57,7 @@ async function joinChallenge(userId:string,challengeId:string) {
 
 async function checkIn(userId:string,enrollmentId:string,note:string) {
   if (!/^[0-9a-f-]{36}$/i.test(enrollmentId)) return errorResponse("참여 정보를 확인해 주세요.");
-  if (note.length > 160) return errorResponse("인증 한마디는 160자 이하로 적어주세요.");
+  if (note.length < 10 || note.length > 160) return errorResponse("오늘 실천한 내용을 10~160자로 기록해 주세요.");
   const client = await db.connect(); const today = kstDate();
   try {
     await client.query("BEGIN");
@@ -69,11 +69,16 @@ async function checkIn(userId:string,enrollmentId:string,note:string) {
     if (!item) { await client.query("ROLLBACK"); return errorResponse("참여 중인 챌린지를 찾을 수 없습니다.",404); }
     if (item.status !== "active" || item.endsOn < today) { if (item.status === "active") await client.query(`UPDATE challenge_enrollments SET status='expired' WHERE id=$1`,[enrollmentId]); await client.query("COMMIT"); return errorResponse("인증 기간이 끝난 챌린지입니다.",409); }
     const count = await client.query<{ count:number }>(`SELECT count(*)::int AS count FROM challenge_checkins WHERE enrollment_id=$1`,[enrollmentId]);
-    const nextCount = count.rows[0].count + 1; const completed = nextCount >= item.goalDays; const reward = item.dailyAcorns + (completed ? item.completionAcorns : 0);
+    const nextCount = count.rows[0].count + 1; const completed = nextCount >= item.goalDays; const requestedReward = item.dailyAcorns + (completed ? item.completionAcorns : 0);
+    await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
+    const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[userId]);
+    const reward=Math.max(0,Math.min(requestedReward,9999-(wallet.rows[0]?.balance || 0)));
     const inserted = await client.query(`INSERT INTO challenge_checkins(enrollment_id,checkin_on,note,acorns_earned) VALUES($1,$2::date,$3,$4) ON CONFLICT(enrollment_id,checkin_on) DO NOTHING RETURNING id`,[enrollmentId,today,note || null,reward]);
     if (!inserted.rows[0]) { await client.query("ROLLBACK"); return errorResponse("오늘 인증은 이미 완료했어요.",409); }
-    await client.query(`INSERT INTO acorn_wallets(user_id,balance,lifetime_earned) VALUES($1,$2,$2) ON CONFLICT(user_id) DO UPDATE SET balance=acorn_wallets.balance+$2,lifetime_earned=acorn_wallets.lifetime_earned+$2,updated_at=now()`,[userId,reward]);
-    await client.query(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description) VALUES($1,$2,$3,$4,$5)`,[userId,reward,completed ? "challenge_complete" : "challenge_checkin",`${enrollmentId}:${today}`,completed ? `${item.title} 완료 보상` : `${item.title} 오늘의 인증`]);
+    if (reward > 0) {
+      await client.query(`UPDATE acorn_wallets SET balance=balance+$2,lifetime_earned=lifetime_earned+$2,updated_at=now() WHERE user_id=$1`,[userId,reward]);
+      await client.query(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description) VALUES($1,$2,'challenge_complete',$3,$4)`,[userId,reward,`${enrollmentId}:${today}`,`${item.title} 완료 보상`]);
+    }
     if (completed) await client.query(`UPDATE challenge_enrollments SET status='completed',completed_at=now() WHERE id=$1`,[enrollmentId]);
     await client.query("COMMIT"); return jsonResponse({ reward,completed,checkinCount:nextCount });
   } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }

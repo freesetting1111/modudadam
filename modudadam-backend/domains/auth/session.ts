@@ -10,6 +10,7 @@ export type SessionUser = {
   nickname: string;
   email: string | null;
   avatarUrl: string | null;
+  stampEmoji: string | null;
   role: string;
 };
 
@@ -27,9 +28,10 @@ export async function getSessionUser(request: NextRequest): Promise<SessionUser 
   if (!token) return null;
 
   const result = await query<{
-    id: string; nickname: string; email: string | null; avatar_url: string | null; role: string;
+    id: string; nickname: string; email: string | null; avatar_url: string | null; role: string; stamp_emoji: string | null;
   }>(
-    `SELECT users.id,users.nickname,users.email,users.avatar_url,users.role
+    `SELECT users.id,users.nickname,users.email,users.avatar_url,users.role,
+            user_stamp_emoji(users.id) AS stamp_emoji
      FROM user_sessions sessions
      JOIN users ON users.id = sessions.user_id
      WHERE sessions.token_hash = $1 AND sessions.revoked_at IS NULL
@@ -37,7 +39,7 @@ export async function getSessionUser(request: NextRequest): Promise<SessionUser 
     [hashToken(token)],
   );
   const user = result.rows[0];
-  return user ? { id: user.id, nickname: user.nickname, email: user.email, avatarUrl: user.avatar_url, role: user.role } : null;
+  return user ? { id: user.id, nickname: user.nickname, email: user.email, avatarUrl: user.avatar_url, stampEmoji: user.stamp_emoji, role: user.role } : null;
 }
 
 export async function requireSessionUser(request: NextRequest) {

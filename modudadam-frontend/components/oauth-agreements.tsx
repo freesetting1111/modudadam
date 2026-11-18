@@ -120,7 +120,7 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
       {nicknameState === "taken" && <small className="oauth-nickname-error">이미 사용 중인 닉네임입니다.</small>}
       <div className="oauth-profile-fields">
         <div className="oauth-profile-selects">
-          <label><span><b>성별</b><em>필수</em></span><select value={gender} onChange={(event) => setGender(event.target.value)}><option value="">선택해 주세요</option><option value="male">남성</option><option value="female">여성</option><option value="other">기타</option></select></label>
+          <label><span><b>성별</b><em>필수</em></span><select value={gender} onChange={(event) => setGender(event.target.value)}><option value="">선택해 주세요</option><option value="male">남성</option><option value="female">여성</option></select></label>
           <label><span><b>연령대</b><em>필수</em></span><select value={ageRange} onChange={(event) => setAgeRange(event.target.value)}><option value="">선택해 주세요</option><option value="10-19">10대</option><option value="20-29">20대</option><option value="30-39">30대</option><option value="40-49">40대</option><option value="50-59">50대</option><option value="60+">60대 이상</option></select></label>
         </div>
         <label className="oauth-phone-field" htmlFor="signup-phone"><span><b>휴대폰 번호</b><em>필수 · 직접 입력</em></span><input id="signup-phone" type="tel" inputMode="numeric" autoComplete="tel" value={phoneNumber} maxLength={11} placeholder="01012345678" aria-invalid={phoneNumber.length > 0 && !isValidPhoneNumber(phoneNumber)} onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, "").slice(0, 11))} /></label>

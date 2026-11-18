@@ -4,21 +4,26 @@ import { db, query } from "@/lib/db";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 
 const kstDate = () => new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit" }).format(new Date());
+const rarityOrder = ["uncommon","common","rare","epic","legendary","mythic"];
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireSessionUser(request);
-    await ensureAccount(user.id);
+    await ensureAccount(user.id,user.email);
     const requestedMonth = request.nextUrl.searchParams.get("month") || kstDate().slice(0,7);
     const month = /^\d{4}-\d{2}$/.test(requestedMonth) ? requestedMonth : kstDate().slice(0,7);
     const [wallet,checkins,stamps,recent] = await Promise.all([
       query<{ balance:number;lifetimeEarned:number;lifetimeSpent:number }>(`SELECT balance,lifetime_earned AS "lifetimeEarned",lifetime_spent AS "lifetimeSpent" FROM acorn_wallets WHERE user_id=$1`,[user.id]),
       query<{ attendanceOn:string;stampCode:string;emoji:string;acornsEarned:number }>(`SELECT checkins.attendance_on::text AS "attendanceOn",checkins.stamp_code AS "stampCode",catalog.emoji,checkins.acorns_earned AS "acornsEarned" FROM attendance_checkins checkins JOIN attendance_stamp_catalog catalog ON catalog.code=checkins.stamp_code WHERE checkins.user_id=$1 AND to_char(checkins.attendance_on,'YYYY-MM')=$2 ORDER BY checkins.attendance_on`,[user.id,month]),
-      query<{ code:string;name:string;emoji:string;description:string;price:number;owned:boolean;equipped:boolean }>(`SELECT catalog.code,catalog.name,catalog.emoji,catalog.description,catalog.price,(owned.stamp_code IS NOT NULL) AS owned,COALESCE(owned.equipped,false) AS equipped FROM attendance_stamp_catalog catalog LEFT JOIN user_attendance_stamps owned ON owned.stamp_code=catalog.code AND owned.user_id=$1 WHERE catalog.enabled ORDER BY catalog.sort_order`,[user.id]),
+      query<{ code:string;name:string;emoji:string;description:string;price:number;rarity:string;owned:boolean;equipped:boolean }>(`SELECT catalog.code,catalog.name,catalog.emoji,catalog.description,catalog.price,catalog.rarity,(owned.stamp_code IS NOT NULL) AS owned,COALESCE(owned.equipped,false) AS equipped FROM attendance_stamp_catalog catalog LEFT JOIN user_attendance_stamps owned ON owned.stamp_code=catalog.code AND owned.user_id=$1 WHERE catalog.enabled AND (catalog.access_scope='public' OR ($2::text='freesetting@naver.com' AND catalog.access_scope='operator')) ORDER BY catalog.sort_order`,[user.id,user.email?.trim().toLowerCase() || null]),
       query<{ attendanceOn:string }>(`SELECT attendance_on::text AS "attendanceOn" FROM attendance_checkins WHERE user_id=$1 ORDER BY attendance_on DESC LIMIT 60`,[user.id]),
     ]);
     const today = kstDate();
-    return jsonResponse({ month,today,todayChecked:recent.rows.some((row) => row.attendanceOn === today),streak:calculateStreak(recent.rows.map((row) => row.attendanceOn),today),wallet:wallet.rows[0],checkins:checkins.rows,stamps:stamps.rows });
+    const completedRarities = new Set(rarityOrder.filter((rarity) => {
+      const tier=stamps.rows.filter((stamp) => stamp.rarity===rarity); return tier.length>0 && tier.every((stamp) => stamp.owned);
+    }));
+    const stampItems=stamps.rows.map((stamp) => ({ ...stamp,unlocked:stamp.rarity==='operator' || rarityOrder.slice(0,rarityOrder.indexOf(stamp.rarity)).every((rarity) => completedRarities.has(rarity)) }));
+    return jsonResponse({ month,today,todayChecked:recent.rows.some((row) => row.attendanceOn === today),streak:calculateStreak(recent.rows.map((row) => row.attendanceOn),today),wallet:wallet.rows[0],checkins:checkins.rows,stamps:stampItems });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.",401);
     return errorResponse("출석부를 불러오지 못했습니다.",500);
@@ -30,7 +35,7 @@ export async function POST(request: NextRequest) {
     const user = await requireSessionUser(request);
     const body = await request.json();
     if (body.action === "attend") return attend(user.id);
-    if (body.action === "purchase") return purchaseStamp(user.id,String(body.stampCode || ""));
+    if (body.action === "purchase") return purchaseStamp(user.id,user.email,String(body.stampCode || ""));
     if (body.action === "equip") return equipStamp(user.id,String(body.stampCode || ""));
     return errorResponse("요청 내용을 확인해 주세요.");
   } catch (error) {
@@ -39,9 +44,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function ensureAccount(userId:string) {
+async function ensureAccount(userId:string,email:string | null) {
   await query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
   await query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) VALUES($1,'basic',true) ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);
+  await query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) VALUES($1,'sprout',false) ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);
+  if (email?.trim().toLowerCase()==='freesetting@naver.com') await query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) SELECT $1,code,false FROM attendance_stamp_catalog WHERE enabled AND access_scope='operator' ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);
 }
 
 async function attend(userId:string) {
@@ -50,30 +57,39 @@ async function attend(userId:string) {
     await client.query("BEGIN");
     await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
     await client.query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) VALUES($1,'basic',true) ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);
+    await client.query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) VALUES($1,'sprout',false) ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);
     const exists = await client.query(`SELECT id FROM attendance_checkins WHERE user_id=$1 AND attendance_on=$2::date`,[userId,today]);
     if (exists.rows[0]) { await client.query("ROLLBACK"); return errorResponse("오늘 출석 스탬프는 이미 받았어요.",409); }
     const recent = await client.query<{ attendanceOn:string }>(`SELECT attendance_on::text AS "attendanceOn" FROM attendance_checkins WHERE user_id=$1 ORDER BY attendance_on DESC LIMIT 60`,[userId]);
     const streak = calculateStreak(recent.rows.map((row) => row.attendanceOn),previousDate(today,1)) + 1;
     const bonus = streak % 30 === 0 ? 10 : streak % 7 === 0 ? 3 : 0;
-    const reward = 1 + bonus;
+    const wallet = await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[userId]);
+    const reward = Math.max(0,Math.min(1+bonus,9999-(wallet.rows[0]?.balance || 0)));
     const equipped = await client.query<{ stampCode:string }>(`SELECT stamp_code AS "stampCode" FROM user_attendance_stamps WHERE user_id=$1 AND equipped LIMIT 1`,[userId]);
     const stampCode = equipped.rows[0]?.stampCode || "basic";
     await client.query(`INSERT INTO attendance_checkins(user_id,attendance_on,stamp_code,acorns_earned) VALUES($1,$2::date,$3,$4)`,[userId,today,stampCode,reward]);
-    await client.query(`UPDATE acorn_wallets SET balance=balance+$2,lifetime_earned=lifetime_earned+$2,updated_at=now() WHERE user_id=$1`,[userId,reward]);
-    await client.query(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description) VALUES($1,$2,$3,$4,$5)`,[userId,reward,bonus ? "attendance_bonus" : "attendance",today,bonus ? `${streak}일 연속 출석 보너스` : "오늘의 출석"]);
+    if (reward>0) {
+      await client.query(`UPDATE acorn_wallets SET balance=balance+$2,lifetime_earned=lifetime_earned+$2,updated_at=now() WHERE user_id=$1`,[userId,reward]);
+      await client.query(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description) VALUES($1,$2,$3,$4,$5)`,[userId,reward,bonus ? "attendance_bonus" : "attendance",today,bonus ? `${streak}일 연속 출석 보너스` : "오늘의 출석"]);
+    }
     await client.query("COMMIT");
-    return jsonResponse({ reward,streak,bonus,stampCode },{ status:201 });
+    return jsonResponse({ reward,streak,bonus:Math.min(bonus,reward),walletFull:reward===0,stampCode },{ status:201 });
   } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
 }
 
-async function purchaseStamp(userId:string,stampCode:string) {
+async function purchaseStamp(userId:string,email:string | null,stampCode:string) {
   const client = await db.connect();
   try {
     await client.query("BEGIN"); await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
-    const stamp = await client.query<{ name:string;price:number }>(`SELECT name,price FROM attendance_stamp_catalog WHERE code=$1 AND enabled FOR UPDATE`,[stampCode]);
+    const stamp = await client.query<{ name:string;price:number;rarity:string }>(`SELECT name,price,rarity FROM attendance_stamp_catalog WHERE code=$1 AND enabled AND (access_scope='public' OR ($2::text='freesetting@naver.com' AND access_scope='operator')) FOR UPDATE`,[stampCode,email?.trim().toLowerCase() || null]);
     if (!stamp.rows[0]) { await client.query("ROLLBACK"); return errorResponse("스탬프를 찾을 수 없습니다.",404); }
     const owned = await client.query(`SELECT 1 FROM user_attendance_stamps WHERE user_id=$1 AND stamp_code=$2`,[userId,stampCode]);
     if (owned.rows[0]) { await client.query("ROLLBACK"); return errorResponse("이미 보유한 스탬프입니다.",409); }
+    const previousRarities=rarityOrder.slice(0,rarityOrder.indexOf(stamp.rows[0].rarity));
+    if (previousRarities.length) {
+      const locked=await client.query(`SELECT 1 FROM attendance_stamp_catalog catalog WHERE catalog.enabled AND catalog.rarity=ANY($2::text[]) AND NOT EXISTS(SELECT 1 FROM user_attendance_stamps owned WHERE owned.user_id=$1 AND owned.stamp_code=catalog.code) LIMIT 1`,[userId,previousRarities]);
+      if (locked.rows[0]) { await client.query("ROLLBACK"); return errorResponse("이전 등급의 스탬프를 모두 모아야 해금할 수 있습니다.",423); }
+    }
     const deducted = await client.query(`UPDATE acorn_wallets SET balance=balance-$2,lifetime_spent=lifetime_spent+$2,updated_at=now() WHERE user_id=$1 AND balance >= $2 RETURNING balance`,[userId,stamp.rows[0].price]);
     if (!deducted.rows[0]) { await client.query("ROLLBACK"); return errorResponse("도토리가 부족합니다.",409); }
     await client.query(`INSERT INTO user_attendance_stamps(user_id,stamp_code) VALUES($1,$2)`,[userId,stampCode]);

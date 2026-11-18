@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Eye, MessageCircle, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { StampedName } from "@/components/stamped-name";
 
 export type BoardPost = {
-  id: string; title: string; excerpt: string; authorName: string; viewCount: number;
+  id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null; viewCount: number;
   commentCount: number; createdAt: string; isNotice: boolean; isPinned: boolean;
 };
 export type BoardFeedPage = { posts: BoardPost[]; nextCursor: string | null };
@@ -70,7 +71,7 @@ export function BoardList({ categoryCode, categoryName, authenticated, initialPa
             <div className="board-row-title">{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.title}</div>
           </div>
           <div className="board-row-meta">
-            <span className="board-author">{post.authorName}</span>
+            <StampedName className="board-author" name={post.authorName} stamp={post.authorStampEmoji} />
             <time dateTime={post.createdAt}>{formatBoardDate(post.createdAt)}</time>
             <span aria-label={`조회 ${post.viewCount}`}><Eye size={13} /> {post.viewCount}</span>
             <span aria-label={`댓글 ${post.commentCount}`}><MessageCircle size={13} /> {post.commentCount}</span>

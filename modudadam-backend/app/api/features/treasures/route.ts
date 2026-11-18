@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   const result = await query(
     `SELECT treasures.id,treasures.title,treasures.treasure_type AS "treasureType",treasures.description,
        treasures.address,treasures.latitude::float8 AS latitude,treasures.longitude::float8 AS longitude,
-       treasures.created_at AS "createdAt",users.nickname AS "authorName"
+       treasures.created_at AS "createdAt",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji"
      FROM local_treasures treasures JOIN users ON users.id=treasures.author_id
      WHERE treasures.status='published' AND ($1::text IS NULL OR treasures.treasure_type=$1)
      ORDER BY treasures.created_at DESC LIMIT $2 OFFSET $3`,
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
          latitude::float8 AS latitude,longitude::float8 AS longitude,created_at AS "createdAt"`,
       [user.id, title, treasureType, description, address, latitude, longitude],
     );
-    return jsonResponse({ ...saved.rows[0], authorName: user.nickname }, { status: 201 });
+    return jsonResponse({ ...saved.rows[0], authorName: user.nickname, authorStampEmoji: user.stampEmoji }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.", 401);
     return errorResponse("동네 보물을 등록하지 못했습니다.", 500);

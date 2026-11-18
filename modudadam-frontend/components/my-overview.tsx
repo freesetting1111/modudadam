@@ -7,11 +7,13 @@ import { useEffect, useState } from "react";
 import { ChevronRight, LoaderCircle, LogOut, Pencil } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { MyMenuIcon } from "@/components/my-menu-icon";
+import { StampedName } from "@/components/stamped-name";
 
 type Profile = {
   nickname: string;
   statusMessage: string;
   avatarUrl: string | null;
+  stampEmoji: string | null;
   provider: "kakao" | "naver" | "local";
 };
 
@@ -49,7 +51,7 @@ export function MyOverview() {
   return <div className="my-dashboard">
     <section className="my-account-summary">
       <span className="my-account-avatar"><Image src={profile.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={64} height={64} unoptimized={Boolean(profile.avatarUrl)} /></span>
-      <div><strong>{profile.nickname}</strong><p>{profile.statusMessage || "프로필을 완성하고 나를 소개해 보세요."}</p></div>
+      <div><strong><StampedName name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>{profile.statusMessage || "프로필을 완성하고 나를 소개해 보세요."}</p></div>
       <Link href="/my/profile"><Pencil size={14} /> 편집</Link>
     </section>
 
@@ -57,6 +59,7 @@ export function MyOverview() {
       <h2>커뮤니티</h2>
       <nav className="my-menu-list" aria-label="커뮤니티 메뉴">
         <MenuLink href="/my/activity" icon="community" tone="blue" title="내 커뮤니티 활동" description="작성글, 작성 댓글, 스크랩을 게시판별로 확인해요." />
+        <MenuLink href="/my/stamps" icon="stamp" tone="green" title="내 스탬프" description="닉네임 옆에 표시할 대표 스탬프를 선택해요." />
       </nav>
     </section>
 
@@ -74,6 +77,6 @@ export function MyOverview() {
   </div>;
 }
 
-function MenuLink({ href, icon, tone, title, description }: { href: string; icon: "community" | "profile" | "policy"; tone: string; title: string; description: string }) {
+function MenuLink({ href, icon, tone, title, description }: { href: string; icon: "community" | "profile" | "policy" | "stamp"; tone: string; title: string; description: string }) {
   return <Link className="my-menu-item" href={href}><span className={`my-menu-icon ${tone}`}><MyMenuIcon type={icon}/></span><div><strong>{title}</strong><small>{description}</small></div><ChevronRight size={18}/></Link>;
 }

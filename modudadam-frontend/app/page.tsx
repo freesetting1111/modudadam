@@ -4,9 +4,10 @@ import { HomeSearch } from "@/components/home-search";
 import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
 import { categories } from "@/lib/categories";
 import { API_SERVER_URL } from "@/lib/server-config";
+import { StampedName } from "@/components/stamped-name";
 
 export type HomePost = {
-  id: string; title: string; excerpt: string; authorName: string;
+  id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string;
 };
 
@@ -40,7 +41,7 @@ export default async function Home() {
           <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
           <div>{posts.length > 0 ? posts.map((post) => <Link className="board-preview-post" href={`/posts/${post.id}`} key={post.id}>
             <span className="board-preview-title">{post.title}</span>
-            <span className="board-preview-meta"><span>{post.authorName}</span><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
+            <span className="board-preview-meta"><StampedName name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
           </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}/write`}>등록된 게시글이 없습니다.</Link>}</div>
         </article>;
       })}</div>

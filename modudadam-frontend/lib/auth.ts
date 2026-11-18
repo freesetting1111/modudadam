@@ -6,6 +6,7 @@ export type SessionUser = {
   nickname: string;
   email: string | null;
   avatarUrl: string | null;
+  stampEmoji: string | null;
   role: string;
 };
 

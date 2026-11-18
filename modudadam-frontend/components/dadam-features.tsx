@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, Compass, LocateFixed, Mail, MapPin, MessageCircle, RefreshCw, Save, Send, Share2, Sparkles, Vote } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { categories } from "@/lib/categories";
+import { StampedName } from "@/components/stamped-name";
 
 function FeatureHero({ icon: Icon, eyebrow, title, description }: { icon: typeof Vote; eyebrow: string; title: string; description: string }) {
   return <header className="dadam-feature-hero"><span><Icon size={25}/></span><div><small>{eyebrow}</small><h1>{title}</h1><p>{description}</p></div></header>;
@@ -206,7 +207,7 @@ function buildTasteProfile(scores: Record<TasteDimension,number>) {
   };
 }
 
-type Treasure = { id: string; title: string; treasureType: string; description: string; address: string; latitude: number | null; longitude: number | null; authorName: string; createdAt: string };
+type Treasure = { id: string; title: string; treasureType: string; description: string; address: string; latitude: number | null; longitude: number | null; authorName: string; authorStampEmoji: string | null; createdAt: string };
 const treasureTypes = { walk: "산책", food: "먹거리", pet: "반려동물", rest: "쉼터", photo: "사진 명소", helpful: "생활 정보" } as const;
 
 export function TreasureMap() {
@@ -223,7 +224,7 @@ export function TreasureMap() {
     {compose && <form className="feature-form" onSubmit={submit}><label>장소 이름<input name="title" required maxLength={100}/></label><label>유형<select name="treasureType" required>{Object.entries(treasureTypes).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>주소<input name="address" required maxLength={300} placeholder="도로명이나 찾기 쉬운 위치를 적어주세요"/></label><label>소개<textarea name="description" required maxLength={1000} rows={4}/></label><p className="location-privacy">집 주소처럼 개인을 특정할 수 있는 위치는 등록하지 마세요.</p><button className="location-button" type="button" onClick={locate}><LocateFixed size={16}/>{coords ? "현재 위치를 확인했어요" : "현재 위치 함께 등록"}</button><button type="submit">지도에 등록하기</button></form>}
     <header className="treasure-list-heading"><div><h2>이웃이 발견한 장소</h2><p>장소를 선택하면 위치와 자세한 이야기를 볼 수 있어요.</p></div><strong>{totalItems.toLocaleString()}곳</strong></header>
     {selected && <div className="treasure-map-frame">{mapUrl ? <iframe title={`${selected.title} 지도`} src={mapUrl} loading="lazy"/> : <div><MapPin size={28}/><strong>등록된 좌표가 없는 장소예요.</strong></div>}</div>}
-    {loading ? <div className="feature-loading">동네의 보물을 찾고 있어요.</div> : <div className="treasure-list">{items.map((item) => <button key={item.id} type="button" className={selected?.id === item.id ? "selected" : ""} onClick={() => setSelected((current) => current?.id === item.id ? null : item)}><b>{treasureTypes[item.treasureType as keyof typeof treasureTypes] || "장소"}</b><strong>{item.title}</strong><p>{item.description}</p><span><MapPin size={13}/>{item.address}</span><small>{item.authorName} · {formatDate(item.createdAt)}</small><em>{selected?.id === item.id ? "지도 닫기" : "지도 보기"}</em></button>)}</div>}
+    {loading ? <div className="feature-loading">동네의 보물을 찾고 있어요.</div> : <div className="treasure-list">{items.map((item) => <button key={item.id} type="button" className={selected?.id === item.id ? "selected" : ""} onClick={() => setSelected((current) => current?.id === item.id ? null : item)}><b>{treasureTypes[item.treasureType as keyof typeof treasureTypes] || "장소"}</b><strong>{item.title}</strong><p>{item.description}</p><span><MapPin size={13}/>{item.address}</span><small><StampedName name={item.authorName} stamp={item.authorStampEmoji} /> · {formatDate(item.createdAt)}</small><em>{selected?.id === item.id ? "지도 닫기" : "지도 보기"}</em></button>)}</div>}
     {!loading && !items.length && <div className="feature-empty">아직 등록된 동네 보물이 없습니다.</div>}
     {!loading && items.length > 0 && <nav className="feature-pagination" aria-label="동네 보물지도 페이지"><button type="button" disabled={page <= 1} onClick={() => changePage(page - 1)}><ChevronLeft size={18}/></button>{mailboxPageNumbers(page,totalPages).map((number) => <button type="button" className={number === page ? "active" : ""} key={number} onClick={() => changePage(number)}>{number}</button>)}<button type="button" disabled={page >= totalPages} onClick={() => changePage(page + 1)}><ChevronRight size={18}/></button></nav>}
     {error && <p className="feature-error">{error}</p>}
@@ -248,13 +249,13 @@ async function loadKakaoSdk(javascriptKey: string) {
   return kakaoWindow.Kakao;
 }
 
-type RandomPost = { id: string; title: string; excerpt: string; authorName: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string };
+type RandomPost = { id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null; categoryName: string; viewCount: number; commentCount: number; createdAt: string };
 export function RandomJourney() {
   const [post, setPost] = useState<RandomPost | null>(null); const [category, setCategory] = useState(""); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
   async function travel() { setLoading(true); setError(""); try { const data = await apiRequest<{ post: RandomPost | null }>(`/api/features/random-story${category ? `?category=${encodeURIComponent(category)}` : ""}`); setPost(data.post); } catch (caught) { setError(caught instanceof Error ? caught.message : "이야기를 찾지 못했습니다."); } finally { setLoading(false); } }
   return <section className="dadam-feature-page random-page"><FeatureHero icon={Compass} eyebrow="STORY JOURNEY" title="랜덤 이야기 여행" description="최신 글 아래에 잠들어 있던 모두다담의 이야기를 우연히 만나보세요."/>
     <article className="random-machine"><label>여행할 게시판<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">모든 게시판</option>{categories.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label><button type="button" onClick={() => void travel()} disabled={loading}><Compass size={20}/>{loading ? "이야기를 찾는 중..." : post ? "다른 이야기 만나기" : "랜덤 여행 시작"}</button></article>
-    {post && <Link className="random-story-card" href={`/posts/${post.id}`}><small>{post.categoryName}</small><h2>{post.title}</h2><p>{post.excerpt || "본문을 열어 이야기를 확인해 보세요."}</p><span>{post.authorName} · 조회 {post.viewCount} · 댓글 {post.commentCount}</span><b>이야기 읽기 <ArrowRight size={16}/></b></Link>}
+    {post && <Link className="random-story-card" href={`/posts/${post.id}`}><small>{post.categoryName}</small><h2>{post.title}</h2><p>{post.excerpt || "본문을 열어 이야기를 확인해 보세요."}</p><span><StampedName name={post.authorName} stamp={post.authorStampEmoji} /> · 조회 {post.viewCount} · 댓글 {post.commentCount}</span><b>이야기 읽기 <ArrowRight size={16}/></b></Link>}
     {!post && !loading && <div className="random-orbit"><i/><span>?</span><p>어떤 이야기를 만나게 될까요?</p></div>}{error && <p className="feature-error">{error}</p>}
   </section>;
 }

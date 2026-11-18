@@ -1,4 +1,4 @@
-type MyMenuIconProps = { type: "community" | "profile" | "policy" };
+type MyMenuIconProps = { type: "community" | "profile" | "policy" | "stamp" };
 
 export function MyMenuIcon({ type }: MyMenuIconProps) {
   if (type === "community") return <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -14,6 +14,12 @@ export function MyMenuIcon({ type }: MyMenuIconProps) {
     <path d="M7.5 14a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"/>
     <circle className="accent" cx="11.5" cy="13.5" r="1"/><circle className="accent" cx="16.5" cy="13.5" r="1"/>
     <path d="M12 16.5c1.1.9 2.9.9 4 0M21.3 20.7l5-5 2 2-5 5-3 .9.9-2.9Z"/>
+  </svg>;
+
+  if (type === "stamp") return <svg viewBox="0 0 32 32" aria-hidden="true">
+    <circle className="soft" cx="16" cy="16" r="13"/>
+    <path d="M9 9h14v14H9zM12 12h8v8h-8z"/>
+    <path className="accent" d="m16 12.5 1.1 2.2 2.4.4-1.8 1.7.5 2.5-2.2-1.2-2.2 1.2.5-2.5-1.8-1.7 2.4-.4 1.1-2.2Z"/>
   </svg>;
 
   return <svg viewBox="0 0 32 32" aria-hidden="true">

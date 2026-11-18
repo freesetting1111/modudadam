@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       posts.post_type AS "postType",posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
       posts.published_at AS "publishedAt",posts.created_at AS "createdAt",posts.updated_at AS "updatedAt",
       categories.code AS "categoryCode",categories.name AS "categoryName",
-      users.id AS "authorId",users.nickname AS "authorName",
+      users.id AS "authorId",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
       (posts.author_id=$2::uuid) AS "canEdit",
       ($2::uuid IS NOT NULL AND posts.author_id<>$2::uuid) AS "canReport",
       EXISTS(SELECT 1 FROM post_reactions WHERE post_id=posts.id AND user_id=$2::uuid AND reaction='like') AS "isLiked",

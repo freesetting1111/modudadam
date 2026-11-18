@@ -3,7 +3,7 @@ import { cache } from "react";
 import { API_SERVER_URL } from "@/lib/server-config";
 
 export type PublicPost = {
-  id: string; title: string; content: string; authorName: string;
+  id: string; title: string; content: string; authorName: string; authorStampEmoji: string | null;
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number;
   createdAt: string; publishedAt?: string; updatedAt: string; canEdit: boolean; canReport: boolean;
   isLiked: boolean; likeCount: number; isBookmarked: boolean; bookmarkCount: number;

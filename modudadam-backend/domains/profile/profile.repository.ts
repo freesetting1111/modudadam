@@ -11,6 +11,7 @@ export type UserProfile = {
   gender: string | null;
   ageRange: string | null;
   avatarUrl: string | null;
+  stampEmoji: string | null;
   provider: "kakao" | "naver" | "local";
   providerNickname: string | null;
 };
@@ -25,6 +26,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
       users.gender,
       users.age_range AS "ageRange",
       users.avatar_url AS "avatarUrl",
+      user_stamp_emoji(users.id) AS "stampEmoji",
       COALESCE(oauth.provider::text, 'local') AS provider,
       oauth.provider_nickname AS "providerNickname"
      FROM users

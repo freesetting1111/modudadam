@@ -4,10 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Gift, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { apiRequest } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
+import { StampedName } from "@/components/stamped-name";
 
 export function SiteHeader({ initialUser }: { initialUser: SessionUser | null }) {
   const pathname = usePathname();
@@ -31,8 +32,8 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
 
   useEffect(() => {
     const updateNickname = (event: Event) => {
-      const nickname = (event as CustomEvent<{ nickname?: string }>).detail?.nickname;
-      if (nickname) setUser((current) => current ? { ...current, nickname } : current);
+      const detail = (event as CustomEvent<{ nickname?: string; stampEmoji?: string | null }>).detail;
+      setUser((current) => current ? { ...current, ...(detail?.nickname ? { nickname: detail.nickname } : {}), ...(detail && "stampEmoji" in detail ? { stampEmoji: detail.stampEmoji ?? null } : {}) } : current);
     };
     window.addEventListener("modudadam:profile-updated", updateNickname);
     return () => window.removeEventListener("modudadam:profile-updated", updateNickname);
@@ -62,6 +63,18 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
 
   const closeMenu = () => setIsMenuOpen(false);
 
+  function goBack() {
+    closeMenu();
+    const fallback = pathname.startsWith("/play/") ? "/play"
+      : pathname.startsWith("/my/") ? "/my"
+      : "/";
+    try {
+      const referrer = document.referrer ? new URL(document.referrer) : null;
+      if (referrer?.origin === window.location.origin) return router.back();
+    } catch { /* 잘못된 referrer는 상위 화면으로 이동 */ }
+    router.push(fallback);
+  }
+
   async function logout() {
     setLoggingOut(true);
     try {
@@ -76,11 +89,13 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
   }
 
   if (pathname === "/login" || pathname === "/signup/agreements") {
-    return <header className="site-header login-site-header"><Link href="/" className="brand"><span className="brand-mark"><Image src="/brand/modudadam-brand-mark.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link><Link href={pathname === "/signup/agreements" ? "/login" : "/"} className="login-close" aria-label="화면 닫기"><X size={23} /></Link></header>;
+    return <header className="site-header login-site-header"><button type="button" className="global-back-button auth-back-button" onClick={goBack} aria-label="이전 화면으로 돌아가기"><ArrowLeft size={23} /></button><Link href="/" className="brand"><span className="brand-mark"><Image src="/brand/modudadam-brand-mark.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link></header>;
   }
 
   return (
-    <header className="site-header">
+    <header className={`site-header ${pathname !== "/" ? "has-back" : ""}`}>
+      {pathname !== "/" && <button type="button" className="global-back-button" onClick={goBack} aria-label="이전 화면으로 돌아가기"><ArrowLeft size={23} strokeWidth={2.1} /></button>}
+      {pathname !== "/" && <Link href="/" className="header-home-button" aria-label="홈으로 이동"><Home size={22} strokeWidth={1.9} /></Link>}
       <div className="menu-drawer">
         <button
           type="button"
@@ -95,7 +110,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
         <div id="site-menu" className="drawer-panel" data-open={isMenuOpen || undefined} aria-hidden={!isMenuOpen}>
           {pathname !== "/login" && (user ? <div className="drawer-account">
             <Link href="/my" className="drawer-account-profile" onClick={closeMenu}><span className="drawer-account-avatar"><Image className={user.avatarUrl ? undefined : "default-avatar"} src={user.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={44} height={44} unoptimized={Boolean(user.avatarUrl)} /></span>
-            <span className="drawer-account-copy"><small>마이페이지</small><strong>{user.nickname}</strong></span><ChevronRight size={18} /></Link>
+            <span className="drawer-account-copy"><small>마이페이지</small><strong><StampedName name={user.nickname} stamp={user.stampEmoji} /></strong></span><ChevronRight size={18} /></Link>
             <button type="button" className="drawer-logout" onClick={logout} disabled={loggingOut}><LogOut size={16} /> {loggingOut ? "처리 중" : "로그아웃"}</button>
           </div> : <Link href="/login" className="drawer-account drawer-account-guest" onClick={closeMenu}>
             <span className="drawer-account-avatar"><CircleUserRound size={25} /></span>
@@ -107,7 +122,8 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           <h2>다담 콘텐츠</h2>
           <div className="dadam-content-links">
             <Link href="/play/attendance" onClick={closeMenu}><span className="dadam-link-icon green"><CalendarCheck2/></span><span><strong>다담 출석부</strong><small>스탬프를 찍고 도토리 모으기</small></span><ChevronRight/></Link>
-            <Link href="/play/challenges" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 챌린지</strong><small>이웃과 함께 만드는 생활 습관</small></span><ChevronRight/></Link>
+            <Link href="/play/stamps" onClick={closeMenu}><span className="dadam-link-icon purple"><Gift/></span><span><strong>도토리 스탬프 상점</strong><small>도토리로 대표 스탬프 꾸미기</small></span><ChevronRight/></Link>
+            <Link href="/play/missions" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 미션</strong><small>생활 퀴즈를 풀고 도토리 모으기</small></span><ChevronRight/></Link>
             <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 선택</strong><small>매일 새로운 두 가지 선택</small></span><ChevronRight/></Link>
             <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>고정 익명 ID로 나누는 마음</small></span><ChevronRight/></Link>
             <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>10문항으로 알아보는 생활 취향</small></span><ChevronRight/></Link>
