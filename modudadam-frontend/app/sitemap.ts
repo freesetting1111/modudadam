@@ -19,8 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch { /* 정적 URL만으로도 사이트맵을 생성합니다. */ }
   return [
     { url: siteUrl, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
-    { url: `${siteUrl}/about`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${siteUrl}/events`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${siteUrl}/play`, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteUrl}/play/choice`, changeFrequency: "daily", priority: 0.8 },
     { url: `${siteUrl}/play/mailbox`, changeFrequency: "daily", priority: 0.8 },
     { url: `${siteUrl}/play/taste`, changeFrequency: "monthly", priority: 0.7 },

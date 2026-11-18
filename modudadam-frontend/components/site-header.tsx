@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarHeart, ChevronRight, CircleHelp, CircleUserRound, Compass, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, UserRound, Vote, X } from "lucide-react";
+import { CalendarHeart, ChevronRight, CircleUserRound, Compass, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, UserRound, Vote, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { apiRequest } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
@@ -112,7 +112,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
             <Link href="/play/random" onClick={closeMenu}><span className="dadam-link-icon amber"><Compass/></span><span><strong>랜덤 이야기 여행</strong><small>숨은 게시글 우연히 만나기</small></span><ChevronRight/></Link>
           </div>
           <h2>서비스 바로가기</h2>
-          <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/events" onClick={closeMenu}><CalendarHeart /> 이벤트</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link>{user && <Link href="/my" onClick={closeMenu}><UserRound /> 마이페이지</Link>}<Link href="/about" onClick={closeMenu}><CircleHelp /> 모두다담 소개</Link></div>
+          <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/events" onClick={closeMenu}><CalendarHeart /> 이벤트</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link>{user && <Link href="/my" onClick={closeMenu}><UserRound /> 마이페이지</Link>}</div>
         </div>
       </div>
       <Link href="/" className="brand" onClick={closeMenu}><span className="brand-mark"><Image src="/brand/modudadam-brand-mark.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>

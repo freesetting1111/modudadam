@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { House, Search, UserRound } from "lucide-react";
+import { House, Search, Shapes, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const baseItems = [
   { href: "/", icon: House, label: "홈" },
+  { href: "/play", icon: Shapes, label: "콘텐츠" },
   { href: "/search", icon: Search, label: "검색" },
 ] as const;
 
