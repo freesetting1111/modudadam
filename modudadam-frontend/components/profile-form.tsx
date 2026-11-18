@@ -158,13 +158,13 @@ export function ProfileForm({ initialEditing = false, standalone = false }: { in
       <span className="profile-avatar">
         <Image className={profile.avatarUrl ? undefined : "default-avatar"} src={profile.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={72} height={72} unoptimized={Boolean(profile.avatarUrl)} />
       </span>
-      <div><small>{providerLabel(profile.provider)} 계정</small><strong><StampedName name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>{profile.statusMessage || "아직 상태 메시지가 없어요."}</p></div>
+      <div><small>{providerLabel(profile.provider)} 계정</small><strong><StampedName full name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>{profile.statusMessage || "아직 상태 메시지가 없어요."}</p></div>
       <button className="profile-edit-button" type="button" onClick={() => { setEditing(true); setSuccess(""); }}><Pencil size={15} /> 프로필 편집</button>
     </div>
     <section className="profile-section profile-read-section">
       <div className="profile-section-title"><UserRound size={19} /><div><h2>내 정보</h2><p>등록된 계정 정보를 확인할 수 있어요.</p></div></div>
       <dl className="profile-read-grid">
-        <div><dt>닉네임</dt><dd><StampedName name={profile.nickname} stamp={profile.stampEmoji} /></dd></div>
+        <div><dt>닉네임</dt><dd><StampedName full name={profile.nickname} stamp={profile.stampEmoji} /></dd></div>
         <div><dt>상태 메시지</dt><dd>{profile.statusMessage || "미등록"}</dd></div>
         <div><dt>성별</dt><dd>{genderLabel(profile.gender)}</dd></div>
         <div><dt>연령대</dt><dd>{ageRangeLabel(profile.ageRange)}</dd></div>
@@ -180,7 +180,7 @@ export function ProfileForm({ initialEditing = false, standalone = false }: { in
       <span className="profile-avatar">
         <Image className={profile.avatarUrl ? undefined : "default-avatar"} src={profile.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={72} height={72} unoptimized={Boolean(profile.avatarUrl)} />
       </span>
-      <div><small>{providerLabel(profile.provider)} 계정</small><strong><StampedName name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>모두다담에서 사용할 프로필을 관리해요.</p></div>
+      <div><small>{providerLabel(profile.provider)} 계정</small><strong><StampedName full name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>모두다담에서 사용할 프로필을 관리해요.</p></div>
     </div>
 
     <section className="profile-section">

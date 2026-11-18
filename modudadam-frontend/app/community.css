@@ -156,10 +156,11 @@
 }
 
 .board-preview-meta .stamped-name,
+.board-preview-meta>span.stamped-name:first-child,
 .portal-post-meta .stamped-name,
 .board-row-meta .board-author{
   width:auto;
-  max-width:180px;
+  max-width:none;
   overflow:visible;
   flex:none;
 }
@@ -167,8 +168,8 @@
 .board-preview-meta .stamped-name-text,
 .portal-post-meta .stamped-name-text,
 .board-row-meta .board-author .stamped-name-text{
-  overflow:hidden;
-  text-overflow:ellipsis;
+  overflow:visible;
+  text-overflow:clip;
 }
 
 @media(max-width:520px){
@@ -207,7 +208,7 @@
   .portal-author,
   .portal-post-meta .stamped-name,
   .board-row-meta .board-author{
-    max-width:180px;
+    max-width:none;
   }
 }
 
@@ -221,6 +222,6 @@
   .board-preview-meta .stamped-name,
   .portal-post-meta .stamped-name,
   .board-row-meta .board-author{
-    max-width:155px;
+    max-width:none;
   }
 }

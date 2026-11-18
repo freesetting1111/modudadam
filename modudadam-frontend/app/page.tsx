@@ -59,7 +59,7 @@ function BoardPreview({ category, posts }: { category: PreviewBoard; posts: Home
     <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
     <div>{posts.length > 0 ? posts.map((post) => <Link className={`board-preview-post ${post.isRead ? "is-read" : ""}`} href={`/posts/${post.id}`} key={post.id}>
       <span className="board-preview-title">{post.title}</span>
-      <span className="board-preview-meta"><StampedName name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
+      <span className="board-preview-meta"><StampedName full name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
     </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}`}>등록된 게시글이 없습니다.</Link>}</div>
   </article>;
 }

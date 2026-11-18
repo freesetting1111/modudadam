@@ -72,7 +72,7 @@ export function BoardList({ categoryCode, categoryName, canWrite, initialPage }:
             <div className="board-row-title">{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.title}</div>
           </div>
           <div className="board-row-meta">
-            <StampedName className="board-author" name={post.authorName} stamp={post.authorStampEmoji} />
+            <StampedName full className="board-author" name={post.authorName} stamp={post.authorStampEmoji} />
             <time dateTime={post.createdAt}>{formatBoardDate(post.createdAt)}</time>
             <span aria-label={`조회 ${post.viewCount}`}><Eye size={13} /> {post.viewCount}</span>
             <span aria-label={`댓글 ${post.commentCount}`}><MessageCircle size={13} /> {post.commentCount}</span>

@@ -111,7 +111,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
         <div id="site-menu" className="drawer-panel" data-open={isMenuOpen || undefined} aria-hidden={!isMenuOpen}>
           {pathname !== "/login" && (user ? <div className="drawer-account">
             <Link href="/my" className="drawer-account-profile" onClick={closeMenu}><span className="drawer-account-avatar"><Image className={user.avatarUrl ? undefined : "default-avatar"} src={user.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={44} height={44} unoptimized={Boolean(user.avatarUrl)} /></span>
-            <span className="drawer-account-copy"><small>마이페이지</small><strong><StampedName name={user.nickname} stamp={user.stampEmoji} /></strong></span><ChevronRight size={18} /></Link>
+            <span className="drawer-account-copy"><small>마이페이지</small><strong><StampedName full name={user.nickname} stamp={user.stampEmoji} /></strong></span><ChevronRight size={18} /></Link>
             <button type="button" className="drawer-logout" onClick={logout} disabled={loggingOut}><LogOut size={16} /> {loggingOut ? "처리 중" : "로그아웃"}</button>
           </div> : <Link href="/login" className="drawer-account drawer-account-guest" onClick={closeMenu}>
             <span className="drawer-account-avatar"><CircleUserRound size={25} /></span>

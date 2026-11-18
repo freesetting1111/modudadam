@@ -51,7 +51,7 @@ export function MyOverview() {
   return <div className="my-dashboard">
     <section className="my-account-summary">
       <span className="my-account-avatar"><Image src={profile.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={64} height={64} unoptimized={Boolean(profile.avatarUrl)} /></span>
-      <div><strong><StampedName name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>{profile.statusMessage || "프로필을 완성하고 나를 소개해 보세요."}</p></div>
+      <div><strong><StampedName full name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>{profile.statusMessage || "프로필을 완성하고 나를 소개해 보세요."}</p></div>
       <Link href="/my/profile"><Pencil size={14} /> 편집</Link>
     </section>
 
