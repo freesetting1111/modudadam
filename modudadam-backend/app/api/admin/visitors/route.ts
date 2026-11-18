@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 
 const VISITOR_ADMIN_EMAIL = "freesetting@naver.com";
+const HUMAN_VISITOR_FILTER = `COALESCE(visitors.user_agent,'') !~* '(bot|crawler|spider|headless|lighthouse|phantomjs|selenium|puppeteer|playwright|slurp|bingpreview|facebookexternalhit|kakaotalk-scrap|naverbot|yeti)'`;
 
 type VisitorRow = {
   identityKey: string;
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
   const requestedPage = Number.parseInt(request.nextUrl.searchParams.get("page") || "1", 10);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const pageSize = 20;
-  const filterSql = `visitors.visit_date=$1::date AND (
+  const filterSql = `visitors.visit_date=$1::date AND ${HUMAN_VISITOR_FILTER} AND (
     $2::text='' OR COALESCE(users.nickname,'') ILIKE '%' || $2 || '%'
     OR COALESCE(users.email,'') ILIKE '%' || $2 || '%'
     OR COALESCE(host(visitors.ip_address),'') ILIKE '%' || $2 || '%'

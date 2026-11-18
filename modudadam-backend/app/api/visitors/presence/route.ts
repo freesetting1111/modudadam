@@ -5,7 +5,8 @@ import { getSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const BOT_PATTERN = /bot|crawler|spider|slurp|bingpreview|facebookexternalhit|kakaotalk-scrap|naverbot|yeti/i;
+const BOT_PATTERN = /bot|crawler|spider|headless|lighthouse|phantomjs|selenium|puppeteer|playwright|slurp|bingpreview|facebookexternalhit|kakaotalk-scrap|naverbot|yeti/i;
+const HUMAN_VISITOR_SQL = `COALESCE(user_agent,'') !~* '(bot|crawler|spider|headless|lighthouse|phantomjs|selenium|puppeteer|playwright|slurp|bingpreview|facebookexternalhit|kakaotalk-scrap|naverbot|yeti)'`;
 
 export async function GET() {
   const count = await getTodayVisitorCount();
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       );
       const count = await client.query<{ count: number }>(
         `SELECT COUNT(*)::int AS count FROM daily_visitors
-         WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date`,
+         WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date AND ${HUMAN_VISITOR_SQL}`,
       );
       await client.query("COMMIT");
       return jsonResponse({ visitorCount: count.rows[0]?.count || 0, period: "today", timezone: "Asia/Seoul" });
@@ -93,7 +94,7 @@ function getClientIp(request: NextRequest) {
 async function getTodayVisitorCount() {
   const result = await query<{ count: number }>(
     `SELECT COUNT(*)::int AS count FROM daily_visitors
-     WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date`,
+     WHERE visit_date=(NOW() AT TIME ZONE 'Asia/Seoul')::date AND ${HUMAN_VISITOR_SQL}`,
   );
   return result.rows[0]?.count || 0;
 }

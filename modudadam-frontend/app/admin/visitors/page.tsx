@@ -82,7 +82,7 @@ export default async function VisitorAdminPage({ searchParams }: PageProps) {
 
       <div className="visitor-result-summary"><strong>{totalCount.toLocaleString()}명</strong><span>최근 방문 순 · 페이지당 {pageSize}명</span></div>
       <div className="visitor-admin-list">
-        {visitors.length ? visitors.map((visitor, index) => (
+        {visitors.length ? visitors.map((visitor) => (
           <article className="visitor-admin-card" key={visitor.identityKey}>
             <div className={`visitor-avatar ${visitor.userId ? "member" : "guest"}`}>
               {visitor.userId ? <LogIn size={20} /> : <UsersRound size={20} />}
@@ -91,7 +91,6 @@ export default async function VisitorAdminPage({ searchParams }: PageProps) {
               <div className="visitor-admin-name">
                 <strong>{visitor.nickname || `비회원 ${shortId(visitor.anonymousId)}`}</strong>
                 <span>{visitor.userId ? "회원" : "비회원"}</span>
-                <em>#{(page - 1) * pageSize + index + 1}</em>
               </div>
               {visitor.email && <p className="visitor-email">{visitor.email}</p>}
               <dl>
