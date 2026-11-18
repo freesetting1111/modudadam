@@ -1,17 +1,25 @@
 import Link from "next/link";
-import { ChevronRight, Clock3, Eye, Flame, MessageCircle } from "lucide-react";
+import { ChevronRight, Eye, MessageCircle } from "lucide-react";
 import { HomeSearch } from "@/components/home-search";
-import { categories, findCategory } from "@/lib/categories";
+import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
+import { categories } from "@/lib/categories";
 import { API_SERVER_URL } from "@/lib/server-config";
 
-type HomePost = {
+export type HomePost = {
   id: string; title: string; excerpt: string; authorName: string;
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string;
 };
 
 export default async function Home() {
-  const [weeklyPosts, latestPosts, categoryPosts] = await Promise.all([getPosts("weekly", 10), getPosts("latest", 10), getCategoryPosts()]);
-  const recommendations = weeklyPosts.slice(0, 10);
+  const [weeklyPosts, categoryPosts] = await Promise.all([getWeeklyPostsByCategory(), getCategoryPosts()]);
+  const weeklyGroups = categories.map((category) => ({
+    categoryCode: category.code,
+    posts: weeklyPosts.filter((post) => post.categoryCode === category.code).slice(0, 5),
+  }));
+  const latestGroups = categories.map((category) => ({
+    categoryCode: category.code,
+    posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 5),
+  }));
   const categoryFeeds = categories.map((category) => ({
     category,
     posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 10),
@@ -21,16 +29,7 @@ export default async function Home() {
     <HomeSearch />
 
     <section className="community-dashboard community-dashboard-stacked" aria-label="커뮤니티 주요 게시글">
-      {recommendations.length > 0 && <article className="community-panel hot-panel">
-        <header><h1><Flame size={17} /> 주간 인기</h1><span>최근 7일</span></header>
-        <div className="portal-post-list">{recommendations.map((post, index) => <PortalPost key={post.id} post={post} rank={index + 1} />)}</div>
-      </article>}
-      <article className="community-panel latest-panel">
-        <header><h2><Clock3 size={16} /> 새로 올라온 글</h2><span>실시간 최신</span></header>
-        <div className="portal-post-list">
-          {latestPosts.length > 0 ? latestPosts.map((post) => <PortalPost key={post.id} post={post} />) : <PanelEmpty />}
-        </div>
-      </article>
+      <CategoryPostCarousels hotGroups={weeklyGroups} latestGroups={latestGroups} />
     </section>
 
     <section className="board-directory">
@@ -42,31 +41,16 @@ export default async function Home() {
           <div>{posts.length > 0 ? posts.map((post) => <Link className="board-preview-post" href={`/posts/${post.id}`} key={post.id}>
             <span className="board-preview-title">{post.title}</span>
             <span className="board-preview-meta"><span>{post.authorName}</span><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
-          </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}/write`}>첫 이야기를 남겨보세요</Link>}</div>
+          </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}/write`}>등록된 게시글이 없습니다.</Link>}</div>
         </article>;
       })}</div>
     </section>
   </div>;
 }
 
-function PortalPost({ post, rank }: { post: HomePost; rank?: number }) {
-  const category = findCategory(post.categoryCode);
-  return <Link href={`/posts/${post.id}`} className={`portal-post-row ${rank ? "has-rank" : ""}`}>
-    {rank && <strong className="portal-rank">{rank}</strong>}
-    <div className="portal-post-copy">
-      <div className="portal-post-title"><small>{category?.short || post.categoryName}</small><span>{post.title}</span></div>
-      <div className="portal-post-meta"><span className="portal-author">{post.authorName}</span><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
-    </div>
-  </Link>;
-}
-
-function PanelEmpty() {
-  return <div className="panel-empty"><MessageCircle size={16} /><span>아직 등록된 글이 없습니다.</span></div>;
-}
-
-async function getPosts(sort: "latest" | "weekly", limit: number): Promise<HomePost[]> {
+async function getWeeklyPostsByCategory(): Promise<HomePost[]> {
   try {
-    const params = new URLSearchParams({ sort, limit: String(limit) });
+    const params = new URLSearchParams({ weeklyByCategory: "true", perCategory: "5" });
     const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { next: { revalidate: 60 } });
     if (!response.ok) return [];
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };

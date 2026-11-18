@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarHeart, ChevronRight, CircleHelp, CircleUserRound, Home, LogOut, Menu, Search, UserRound, X } from "lucide-react";
+import { CalendarHeart, ChevronRight, CircleHelp, CircleUserRound, Compass, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, UserRound, Vote, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { apiRequest } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
@@ -103,6 +103,14 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           </Link>)}
           <h2>카테고리</h2>
           <CategoryGrid onNavigate={closeMenu}/>
+          <h2>다담 콘텐츠</h2>
+          <div className="dadam-content-links">
+            <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 선택</strong><small>매일 새로운 두 가지 선택</small></span><ChevronRight/></Link>
+            <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>고정 익명 ID로 나누는 마음</small></span><ChevronRight/></Link>
+            <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>나의 생활 취향 알아보기</small></span><ChevronRight/></Link>
+            <Link href="/play/treasures" onClick={closeMenu}><span className="dadam-link-icon green"><MapPin/></span><span><strong>동네 보물지도</strong><small>이웃이 발견한 좋은 장소</small></span><ChevronRight/></Link>
+            <Link href="/play/random" onClick={closeMenu}><span className="dadam-link-icon amber"><Compass/></span><span><strong>랜덤 이야기 여행</strong><small>숨은 게시글 우연히 만나기</small></span><ChevronRight/></Link>
+          </div>
           <h2>서비스 바로가기</h2>
           <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/events" onClick={closeMenu}><CalendarHeart /> 이벤트</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link>{user && <Link href="/my" onClick={closeMenu}><UserRound /> 마이페이지</Link>}<Link href="/about" onClick={closeMenu}><CircleHelp /> 모두다담 소개</Link></div>
         </div>

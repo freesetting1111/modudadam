@@ -8,6 +8,7 @@ import { getServerSessionUser } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 import "./community.css";
+import "./features.css";
 
 const notoSansKr = Noto_Sans_KR({ variable: "--font-noto-sans-kr", weight: "variable", preload: false, display: "swap" });
 

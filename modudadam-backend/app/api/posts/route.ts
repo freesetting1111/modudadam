@@ -24,6 +24,46 @@ export async function GET(request: NextRequest) {
      WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
        AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')`;
 
+  if (request.nextUrl.searchParams.get("weeklyByCategory") === "true") {
+    const perCategory = Math.min(5, Math.max(1, Number(request.nextUrl.searchParams.get("perCategory")) || 5));
+    const weekly = await query(
+      `WITH weekly_views AS (
+         SELECT post_id,COUNT(*)::int AS views FROM post_views
+         WHERE first_viewed_at >= NOW() - INTERVAL '7 days' GROUP BY post_id
+       ), weekly_comments AS (
+         SELECT post_id,COUNT(*)::int AS comments FROM comments
+         WHERE status='published' AND created_at >= NOW() - INTERVAL '7 days' GROUP BY post_id
+       ), weekly_likes AS (
+         SELECT post_id,COUNT(*)::int AS likes FROM post_reactions
+         WHERE reaction='like' AND created_at >= NOW() - INTERVAL '7 days' GROUP BY post_id
+       ), scored AS (
+         SELECT posts.id,posts.title,posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
+           posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",posts.created_at AS "createdAt",
+           posts.published_at,categories.id AS category_id,categories.code AS "categoryCode",
+           categories.name AS "categoryName",users.nickname AS "authorName",
+           COALESCE(weekly_views.views,0) AS "weeklyViews",
+           COALESCE(weekly_comments.comments,0) AS "weeklyComments",
+           COALESCE(weekly_likes.likes,0) AS "weeklyLikes",
+           (COALESCE(weekly_views.views,0) + COALESCE(weekly_comments.comments,0)*3 + COALESCE(weekly_likes.likes,0)*2) AS "weeklyScore"
+         FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
+         LEFT JOIN weekly_views ON weekly_views.post_id=posts.id
+         LEFT JOIN weekly_comments ON weekly_comments.post_id=posts.id
+         LEFT JOIN weekly_likes ON weekly_likes.post_id=posts.id
+         WHERE posts.status='published'
+       ), ranked AS (
+         SELECT scored.*,ROW_NUMBER() OVER(
+           PARTITION BY category_id ORDER BY "weeklyScore" DESC,published_at DESC,id DESC
+         ) AS category_rank
+         FROM scored WHERE "weeklyScore" > 0
+       )
+       SELECT id,title,"viewCount","commentCount","isNotice","isPinned","createdAt",
+         "categoryCode","categoryName","authorName","weeklyViews","weeklyComments","weeklyLikes","weeklyScore"
+       FROM ranked WHERE category_rank <= $1 ORDER BY "categoryCode",category_rank`,
+      [perCategory],
+    );
+    return jsonResponse({ posts: weekly.rows });
+  }
+
   if (request.nextUrl.searchParams.get("groupedByCategory") === "true") {
     const perCategory = Math.min(10, Math.max(1, Number(request.nextUrl.searchParams.get("perCategory")) || 10));
     const grouped = await query(

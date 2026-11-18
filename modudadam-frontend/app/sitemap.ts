@@ -21,6 +21,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: siteUrl, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/about`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${siteUrl}/events`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${siteUrl}/play/choice`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${siteUrl}/play/mailbox`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${siteUrl}/play/taste`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${siteUrl}/play/treasures`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${siteUrl}/play/random`, changeFrequency: "weekly", priority: 0.7 },
     ...categories.map((category) => ({ url: `${siteUrl}/category/${category.code}`, changeFrequency: "daily" as const, priority: 0.8 })),
     ...posts.map((post) => ({ url: `${siteUrl}/posts/${post.id}`, lastModified: new Date(post.updatedAt), changeFrequency: "weekly" as const, priority: 0.7 })),
   ];
