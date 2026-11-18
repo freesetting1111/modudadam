@@ -46,7 +46,7 @@ export const viewport = { width: "device-width", initialScale: 1, maximumScale: 
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const sessionUser = await getServerSessionUser();
-  const gaId = process.env.NEXT_PUBLIC_GA_ID?.trim();
+  const gaId = process.env.NEXT_GA_ID?.trim();
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
       <body className="antialiased" suppressHydrationWarning>
