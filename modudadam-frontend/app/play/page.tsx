@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Compass, Mail, MapPin, Shapes, Sparkles, Vote } from "lucide-react";
+import { ArrowRight, CalendarCheck2, Compass, Mail, MapPin, Shapes, Sparkles, Trophy, Vote } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "콘텐츠",
@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 };
 
 const contentItems = [
+  { href: "/play/attendance", icon: CalendarCheck2, tone: "green", eyebrow: "매일 한 번 스탬프", title: "다담 출석부", description: "출석 스탬프를 찍고 도토리로 새로운 스탬프를 모아보세요." },
+  { href: "/play/challenges", icon: Trophy, tone: "amber", eyebrow: "함께 만드는 생활 습관", title: "다담 챌린지", description: "작은 목표를 함께 실천하고 인증하며 도토리를 모아보세요." },
   { href: "/play/choice", icon: Vote, tone: "coral", eyebrow: "매일 새로운 질문", title: "오늘의 선택", description: "둘 중 마음이 가는 쪽을 고르고 모두의 선택을 확인해 보세요." },
   { href: "/play/mailbox", icon: Mail, tone: "blue", eyebrow: "고정 익명 ID", title: "다담 우체통", description: "이름을 내려놓고 마음속 이야기와 따뜻한 답장을 나눠보세요." },
   { href: "/play/taste", icon: Sparkles, tone: "purple", eyebrow: "10문항 상세 분석", title: "취향 발견실", description: "5지선다 생활 질문으로 나도 몰랐던 취향의 결을 발견해 보세요." },

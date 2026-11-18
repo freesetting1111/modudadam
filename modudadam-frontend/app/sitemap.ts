@@ -22,6 +22,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/events`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/play`, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteUrl}/play/choice`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${siteUrl}/play/attendance`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${siteUrl}/play/challenges`, changeFrequency: "daily", priority: 0.8 },
     { url: `${siteUrl}/play/mailbox`, changeFrequency: "daily", priority: 0.8 },
     { url: `${siteUrl}/play/taste`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${siteUrl}/play/treasures`, changeFrequency: "daily", priority: 0.8 },

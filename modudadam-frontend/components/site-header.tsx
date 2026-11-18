@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarHeart, ChevronRight, CircleUserRound, Compass, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, UserRound, Vote, X } from "lucide-react";
+import { CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { apiRequest } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
@@ -106,6 +106,8 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           <CategoryGrid onNavigate={closeMenu}/>
           <h2>다담 콘텐츠</h2>
           <div className="dadam-content-links">
+            <Link href="/play/attendance" onClick={closeMenu}><span className="dadam-link-icon green"><CalendarCheck2/></span><span><strong>다담 출석부</strong><small>스탬프를 찍고 도토리 모으기</small></span><ChevronRight/></Link>
+            <Link href="/play/challenges" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 챌린지</strong><small>이웃과 함께 만드는 생활 습관</small></span><ChevronRight/></Link>
             <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 선택</strong><small>매일 새로운 두 가지 선택</small></span><ChevronRight/></Link>
             <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>고정 익명 ID로 나누는 마음</small></span><ChevronRight/></Link>
             <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>10문항으로 알아보는 생활 취향</small></span><ChevronRight/></Link>

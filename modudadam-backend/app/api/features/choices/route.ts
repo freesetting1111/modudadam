@@ -18,10 +18,18 @@ export async function GET(request: NextRequest) {
             ))::int AS remaining
        FROM choice_prompt_bank prompts WHERE enabled`,
   );
+  const [choice, previousChoice] = await Promise.all([
+    findChoice(user?.id || null, 0),
+    findChoice(user?.id || null, 1),
+  ]);
+  return jsonResponse({ choice, previousChoice, questionBankSize: bank.rows[0]?.count || 0, remainingQuestionCount: bank.rows[0]?.remaining || 0 });
+}
+
+async function findChoice(userId: string | null, daysAgo: number) {
   const result = await query<ChoiceRow>(
     `WITH selected AS (
        SELECT id,question,description,active_on FROM daily_choices
-       WHERE status='published' AND active_on = (now() AT TIME ZONE 'Asia/Seoul')::date
+       WHERE status='published' AND active_on = (now() AT TIME ZONE 'Asia/Seoul')::date - $2::int
        LIMIT 1
      )
      SELECT selected.id,selected.question,selected.description,selected.active_on::text AS "activeOn",
@@ -33,15 +41,15 @@ export async function GET(request: NextRequest) {
      GROUP BY selected.id,selected.question,selected.description,selected.active_on,
        options.id,options.label,options.emoji,options.sort_order,mine.option_id
      ORDER BY options.sort_order`,
-    [user?.id || null],
+    [userId, daysAgo],
   );
-  if (!result.rows.length) return jsonResponse({ choice: null, questionBankSize: bank.rows[0]?.count || 0, remainingQuestionCount: bank.rows[0]?.remaining || 0 });
+  if (!result.rows.length) return null;
   const first = result.rows[0];
-  return jsonResponse({ choice: {
+  return {
     id: first.id, question: first.question, description: first.description, activeOn: first.activeOn,
     myOptionId: first.myOptionId,
     options: result.rows.map((row) => ({ id: row.optionId, label: row.label, emoji: row.emoji, voteCount: row.voteCount })),
-  }, questionBankSize: bank.rows[0]?.count || 0, remainingQuestionCount: bank.rows[0]?.remaining || 0 });
+  };
 }
 
 export async function POST(request: NextRequest) {

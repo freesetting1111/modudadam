@@ -7,16 +7,28 @@ const TYPES = new Set(["walk", "food", "pet", "rest", "photo", "helpful"]);
 
 export async function GET(request: NextRequest) {
   const type = request.nextUrl.searchParams.get("type");
+  const requestedPage = Number(request.nextUrl.searchParams.get("page") || "1");
+  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageSize = 20;
+  const validType = type && TYPES.has(type) ? type : null;
+  const count = await query<{ count: string }>(
+    `SELECT count(*)::text AS count FROM local_treasures
+      WHERE status='published' AND ($1::text IS NULL OR treasure_type=$1)`,
+    [validType],
+  );
+  const totalItems = Number(count.rows[0]?.count || 0);
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
   const result = await query(
     `SELECT treasures.id,treasures.title,treasures.treasure_type AS "treasureType",treasures.description,
        treasures.address,treasures.latitude::float8 AS latitude,treasures.longitude::float8 AS longitude,
        treasures.created_at AS "createdAt",users.nickname AS "authorName"
      FROM local_treasures treasures JOIN users ON users.id=treasures.author_id
      WHERE treasures.status='published' AND ($1::text IS NULL OR treasures.treasure_type=$1)
-     ORDER BY treasures.created_at DESC LIMIT 100`,
-    [type && TYPES.has(type) ? type : null],
+     ORDER BY treasures.created_at DESC LIMIT $2 OFFSET $3`,
+    [validType, pageSize, (currentPage - 1) * pageSize],
   );
-  return jsonResponse({ treasures: result.rows });
+  return jsonResponse({ treasures: result.rows, page: currentPage, pageSize, totalItems, totalPages });
 }
 
 export async function POST(request: NextRequest) {

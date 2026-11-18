@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, Compass, LocateFixed, Mail, MapPin, MessageCircle, RefreshCw, Send, Sparkles, Vote } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Compass, LocateFixed, Mail, MapPin, MessageCircle, RefreshCw, Save, Send, Share2, Sparkles, Vote } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { categories } from "@/lib/categories";
 
@@ -28,11 +28,12 @@ type Choice = { id: string; question: string; description: string | null; active
 export function TodayChoice() {
   const redirectLogin = useLoginRedirect();
   const [choice, setChoice] = useState<Choice | null>(null);
+  const [previousChoice, setPreviousChoice] = useState<Choice | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const load = () => apiRequest<{ choice: Choice | null }>("/api/features/choices").then((data) => setChoice(data.choice)).catch((caught) => setError(caught instanceof Error ? caught.message : "오늘의 선택을 불러오지 못했습니다.")).finally(() => setLoading(false));
+  const load = () => apiRequest<{ choice: Choice | null; previousChoice: Choice | null }>("/api/features/choices").then((data) => { setChoice(data.choice); setPreviousChoice(data.previousChoice); }).catch((caught) => setError(caught instanceof Error ? caught.message : "오늘의 선택을 불러오지 못했습니다.")).finally(() => setLoading(false));
   useEffect(() => { void load(); }, []);
   const total = choice?.options.reduce((sum, option) => sum + option.voteCount, 0) || 0;
 
@@ -57,13 +58,25 @@ export function TodayChoice() {
         const selected = choice.myOptionId === option.id;
         return <button key={option.id} type="button" className={selected ? "selected" : ""} onClick={() => void voteFor(option.id)} disabled={pending}>
           <i style={{ width: choice.myOptionId ? `${percent}%` : 0 }}/><span className="choice-emoji">{option.emoji}</span><strong>{option.label}</strong>
-          {choice.myOptionId && <b>{percent}%</b>}
+          {choice.myOptionId && <b><span>{option.voteCount.toLocaleString()}명</span><span>{percent}%</span></b>}
         </button>;
       })}</div>
-      <small>{choice.myOptionId ? `${total.toLocaleString()}명이 선택했어요 · 선택을 다시 누르면 변경할 수 있어요.` : "선택하면 전체 결과를 확인할 수 있어요."}</small>
+      <small>{choice.myOptionId ? `총 ${total.toLocaleString()}명이 참여했어요 · 선택을 다시 누르면 변경할 수 있어요.` : "선택하면 전체 결과를 확인할 수 있어요."}</small>
       {error && <p className="feature-error">{error}</p>}
     </article>}
+    {previousChoice && <PreviousChoiceResult choice={previousChoice}/>} 
   </section>;
+}
+
+function PreviousChoiceResult({ choice }: { choice: Choice }) {
+  const total = choice.options.reduce((sum,option) => sum + option.voteCount,0);
+  const highest = Math.max(...choice.options.map((option) => option.voteCount));
+  return <article className="previous-choice-card">
+    <header><div><small>YESTERDAY&apos;S RESULT</small><h2>어제의 선택 결과</h2></div><time>{new Date(`${choice.activeOn}T00:00:00+09:00`).toLocaleDateString("ko-KR",{ month:"long",day:"numeric",weekday:"short" })}</time></header>
+    <h3>{choice.question}</h3>
+    <div className="previous-choice-options">{choice.options.map((option) => { const percent = total ? Math.round(option.voteCount / total * 100) : 0; const winner = total > 0 && option.voteCount === highest; const mine = choice.myOptionId === option.id; return <section className={winner ? "winner" : ""} key={option.id}><i style={{ width:`${percent}%` }}/><div><span>{option.emoji}</span><strong>{option.label}</strong>{mine && <em>내 선택</em>}{winner && <b>최다 선택</b>}</div><p><strong>{option.voteCount.toLocaleString()}명</strong><span>{percent}%</span></p></section>; })}</div>
+    <footer>총 {total.toLocaleString()}명이 참여했어요.</footer>
+  </article>;
 }
 
 type MailboxPost = { id: string; authorAlias: string; title: string; content: string; createdAt: string; commentCount: number };
@@ -134,23 +147,47 @@ export function DadamMailbox() {
 type TasteDimension = "energy" | "rhythm" | "social" | "expression";
 type TasteQuestion = { id: string; dimension: TasteDimension; question: string; options: Array<{ label: string; score: number }> };
 const dimensionLabels: Record<TasteDimension,[string,string]> = { energy:["안온한 충전","새로운 자극"], rhythm:["계획적 리듬","유연한 흐름"], social:["독립적 몰입","관계 속 활력"], expression:["차분한 간직","선명한 표현"] };
+type KakaoWindow = Window & { Kakao?: { isInitialized: () => boolean; init: (key: string) => void; Share: { sendDefault: (settings: Record<string, unknown>) => void } } };
 
-export function TasteLab() {
+export function TasteLab({ kakaoJavascriptKey }: { kakaoJavascriptKey: string }) {
+  const redirectLogin = useLoginRedirect();
   const [questions,setQuestions] = useState<TasteQuestion[]>([]); const [loading,setLoading] = useState(true); const [error,setError] = useState("");
   const [step, setStep] = useState(0); const [answers, setAnswers] = useState<Array<{ questionId:string; score:number }>>([]); const [finalScores, setFinalScores] = useState<Record<TasteDimension,number> | null>(null); const [notice, setNotice] = useState("");
+  const [saved,setSaved] = useState(false); const [actionPending,setActionPending] = useState(false);
   const loadQuestions = useCallback(() => { setLoading(true); setError(""); return apiRequest<{ questions:TasteQuestion[] }>("/api/features/taste").then((data) => setQuestions(data.questions)).catch((caught) => setError(caught instanceof Error ? caught.message : "취향 문항을 불러오지 못했습니다.")).finally(() => setLoading(false)); },[]);
   useEffect(() => { let active = true; void apiRequest<{ questions:TasteQuestion[] }>("/api/features/taste").then((data) => { if (active) setQuestions(data.questions); }).catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : "취향 문항을 불러오지 못했습니다."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; },[]);
   async function answer(score: number) {
     const next = [...answers, { questionId:questions[step].id,score }]; setAnswers(next);
     if (step < questions.length - 1) { setStep(step + 1); return; }
-    try { const data = await apiRequest<{ scores:Record<TasteDimension,number>; saved:boolean }>("/api/features/taste", { method: "POST", body: JSON.stringify({ answers: next }) }); setFinalScores(data.scores); setNotice(data.saved ? "상세 결과를 계정에 저장했어요." : "로그인하면 다음에도 이 결과를 확인할 수 있어요."); }
+    try { const data = await apiRequest<{ scores:Record<TasteDimension,number> }>("/api/features/taste", { method: "POST", body: JSON.stringify({ action:"analyze",answers: next }) }); setFinalScores(data.scores); setSaved(false); setNotice(""); }
     catch (caught) { setError(caught instanceof Error ? caught.message : "결과를 분석하지 못했습니다."); }
   }
-  function reset() { setStep(0); setAnswers([]); setFinalScores(null); setNotice(""); void loadQuestions(); }
+  async function saveResult(showNotice = true) {
+    if (saved) return true;
+    setActionPending(true); setNotice("");
+    try {
+      await apiRequest("/api/features/taste", { method:"POST", body:JSON.stringify({ action:"save",answers }) });
+      setSaved(true); if (showNotice) setNotice("취향 결과를 저장했어요."); return true;
+    } catch (caught) {
+      if (!redirectLogin(caught)) setNotice(caught instanceof Error ? caught.message : "결과를 저장하지 못했습니다.");
+      return false;
+    } finally { setActionPending(false); }
+  }
+  async function shareResult() {
+    if (!profile || !(await saveResult(false))) return;
+    try {
+      if (!kakaoJavascriptKey) throw new Error("KAKAO_KEY_MISSING");
+      const kakao = await loadKakaoSdk(kakaoJavascriptKey);
+      const url = `${window.location.origin}/play/taste`;
+      kakao.Share.sendDefault({ objectType:"feed",content:{ title:`나의 생활 취향 · ${profile.name}`,description:profile.summary,imageUrl:`${window.location.origin}/share-image`,imageWidth:800,imageHeight:400,link:{ mobileWebUrl:url,webUrl:url } },buttons:[{ title:"나도 취향 발견하기",link:{ mobileWebUrl:url,webUrl:url } }] });
+      setNotice("카카오톡 공유 화면을 열었어요.");
+    } catch { setNotice("카카오톡 공유를 열지 못했습니다. 잠시 후 다시 시도해 주세요."); }
+  }
+  function reset() { setStep(0); setAnswers([]); setFinalScores(null); setNotice(""); setSaved(false); void loadQuestions(); }
   const profile = finalScores ? buildTasteProfile(finalScores) : null;
   const current = questions[step];
   return <section className="dadam-feature-page taste-page"><FeatureHero icon={Sparkles} eyebrow="TASTE LAB" title="취향 발견실" description="일상 속 선택을 따라가며 나에게 잘 맞는 생활 취향을 발견해 보세요."/>
-    {loading ? <div className="feature-loading">취향 문항을 준비하고 있어요.</div> : error ? <div className="feature-empty">{error}<button type="button" onClick={() => void loadQuestions()}>다시 불러오기</button></div> : !profile || !finalScores ? current && <article className="taste-card"><div className="taste-progress"><i style={{ width: `${(step + 1) / questions.length * 100}%` }}/></div><small>{step + 1} / {questions.length}</small><h2>{current.question}</h2><div>{current.options.map((option) => <button type="button" key={option.label} onClick={() => void answer(option.score)}><span>{option.label}</span><ArrowRight size={19}/></button>)}</div></article> : <article className="taste-result"><span>{profile.emoji}</span><small>나의 생활 취향</small><h2>{profile.name}</h2><p>{profile.summary}</p><div className="taste-analysis">{(Object.keys(finalScores) as TasteDimension[]).map((dimension) => { const max = dimension === "social" || dimension === "expression" ? 4 : 6; const percent = Math.round((finalScores[dimension] + max) / (max * 2) * 100); return <div key={dimension}><span>{dimensionLabels[dimension][0]}</span><i><b style={{ width: `${percent}%` }}/></i><span>{dimensionLabels[dimension][1]}</span></div>; })}</div><div className="taste-detail"><section><strong>잘 맞는 일상</strong><p>{profile.fit}</p></section><section><strong>나만의 강점</strong><p>{profile.strength}</p></section><section><strong>균형을 위한 제안</strong><p>{profile.tip}</p></section></div><button type="button" onClick={reset}><RefreshCw size={18}/> 다시 해보기</button>{notice && <em>{notice}</em>}</article>}
+    {loading ? <div className="feature-loading">취향 문항을 준비하고 있어요.</div> : error ? <div className="feature-empty">{error}<button type="button" onClick={() => void loadQuestions()}>다시 불러오기</button></div> : !profile || !finalScores ? current && <article className="taste-card"><div className="taste-progress"><i style={{ width: `${(step + 1) / questions.length * 100}%` }}/></div><small>{step + 1} / {questions.length}</small><h2>{current.question}</h2><div>{current.options.map((option) => <button type="button" key={option.label} onClick={() => void answer(option.score)}><span>{option.label}</span><ArrowRight size={19}/></button>)}</div></article> : <article className="taste-result"><span>{profile.emoji}</span><small>나의 생활 취향</small><h2>{profile.name}</h2><p>{profile.summary}</p><div className="taste-analysis">{(Object.keys(finalScores) as TasteDimension[]).map((dimension) => { const max = dimension === "social" || dimension === "expression" ? 4 : 6; const percent = Math.round((finalScores[dimension] + max) / (max * 2) * 100); return <div key={dimension}><span>{dimensionLabels[dimension][0]}</span><i><b style={{ width: `${percent}%` }}/></i><span>{dimensionLabels[dimension][1]}</span></div>; })}</div><div className="taste-detail"><section><strong>잘 맞는 일상</strong><p>{profile.fit}</p></section><section><strong>나만의 강점</strong><p>{profile.strength}</p></section><section><strong>균형을 위한 제안</strong><p>{profile.tip}</p></section></div><div className="taste-result-actions"><button type="button" disabled={saved || actionPending} onClick={() => void saveResult()}><Save size={18}/>{saved ? "저장 완료" : actionPending ? "저장 중..." : "결과 저장"}</button><button type="button" disabled={actionPending} onClick={() => void shareResult()}><Share2 size={18}/>카카오톡 공유</button></div><button className="taste-retry" type="button" onClick={reset}><RefreshCw size={18}/> 다시 해보기</button>{notice && <em>{notice}</em>}</article>}
   </section>;
 }
 
@@ -174,18 +211,41 @@ const treasureTypes = { walk: "산책", food: "먹거리", pet: "반려동물", 
 
 export function TreasureMap() {
   const redirectLogin = useLoginRedirect(); const [items, setItems] = useState<Treasure[]>([]); const [selected, setSelected] = useState<Treasure | null>(null); const [compose, setCompose] = useState(false); const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null); const [error, setError] = useState("");
-  const load = () => apiRequest<{ treasures: Treasure[] }>("/api/features/treasures").then((data) => { setItems(data.treasures); setSelected((current) => current || data.treasures.find((item) => item.latitude !== null) || data.treasures[0] || null); }).catch((caught) => setError(caught instanceof Error ? caught.message : "동네 보물을 불러오지 못했습니다."));
-  useEffect(() => { void load(); }, []);
+  const [page,setPage] = useState(1); const [totalPages,setTotalPages] = useState(1); const [totalItems,setTotalItems] = useState(0); const [loading,setLoading] = useState(true);
+  const load = useCallback((targetPage:number) => apiRequest<{ treasures: Treasure[];page:number;totalPages:number;totalItems:number }>(`/api/features/treasures?page=${targetPage}`).then((data) => { setItems(data.treasures); setPage(data.page); setTotalPages(data.totalPages); setTotalItems(data.totalItems); setSelected(null); }).catch((caught) => setError(caught instanceof Error ? caught.message : "동네 보물을 불러오지 못했습니다.")).finally(() => setLoading(false)),[]);
+  useEffect(() => { void load(page); }, [load,page]);
+  function changePage(targetPage:number) { setLoading(true); setError(""); setPage(targetPage); }
   function locate() { navigator.geolocation?.getCurrentPosition((position) => setCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude }), () => setError("현재 위치를 확인하지 못했습니다."), { enableHighAccuracy: true, timeout: 8000 }); }
-  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); try { await apiRequest("/api/features/treasures", { method: "POST", body: JSON.stringify({ title: form.get("title"), treasureType: form.get("treasureType"), description: form.get("description"), address: form.get("address"), latitude: coords?.latitude, longitude: coords?.longitude }) }); setCompose(false); setCoords(null); await load(); } catch (caught) { if (!redirectLogin(caught)) setError(caught instanceof Error ? caught.message : "장소를 등록하지 못했습니다."); } }
+  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); try { await apiRequest("/api/features/treasures", { method: "POST", body: JSON.stringify({ title: form.get("title"), treasureType: form.get("treasureType"), description: form.get("description"), address: form.get("address"), latitude: coords?.latitude, longitude: coords?.longitude }) }); setCompose(false); setCoords(null); setLoading(true); if (page === 1) await load(1); else changePage(1); } catch (caught) { if (!redirectLogin(caught)) setError(caught instanceof Error ? caught.message : "장소를 등록하지 못했습니다."); } }
   const mapUrl = selected?.latitude != null && selected.longitude != null ? `https://www.openstreetmap.org/export/embed.html?bbox=${selected.longitude - .006}%2C${selected.latitude - .004}%2C${selected.longitude + .006}%2C${selected.latitude + .004}&layer=mapnik&marker=${selected.latitude}%2C${selected.longitude}` : null;
   return <section className="dadam-feature-page treasure-page"><FeatureHero icon={MapPin} eyebrow="LOCAL TREASURE" title="동네 보물지도" description="광고가 아닌, 이웃이 직접 발견한 생활 속 좋은 장소를 모아요."/>
     <button className="feature-primary-button" type="button" onClick={() => setCompose((value) => !value)}><MapPin size={17}/>{compose ? "등록 취소" : "동네 보물 등록"}</button>
     {compose && <form className="feature-form" onSubmit={submit}><label>장소 이름<input name="title" required maxLength={100}/></label><label>유형<select name="treasureType" required>{Object.entries(treasureTypes).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>주소<input name="address" required maxLength={300} placeholder="도로명이나 찾기 쉬운 위치를 적어주세요"/></label><label>소개<textarea name="description" required maxLength={1000} rows={4}/></label><p className="location-privacy">집 주소처럼 개인을 특정할 수 있는 위치는 등록하지 마세요.</p><button className="location-button" type="button" onClick={locate}><LocateFixed size={16}/>{coords ? "현재 위치를 확인했어요" : "현재 위치 함께 등록"}</button><button type="submit">지도에 등록하기</button></form>}
-    <div className="treasure-map-frame">{mapUrl ? <iframe title={`${selected?.title} 지도`} src={mapUrl} loading="lazy"/> : <div><MapPin size={28}/><strong>위치가 등록된 장소를 선택해 주세요.</strong></div>}</div>
-    <div className="treasure-list">{items.map((item) => <button key={item.id} type="button" className={selected?.id === item.id ? "selected" : ""} onClick={() => setSelected(item)}><b>{treasureTypes[item.treasureType as keyof typeof treasureTypes] || "장소"}</b><strong>{item.title}</strong><p>{item.description}</p><span><MapPin size={13}/>{item.address}</span><small>{item.authorName} · {formatDate(item.createdAt)}</small></button>)}</div>
-    {!items.length && <div className="feature-empty">아직 등록된 동네 보물이 없습니다.</div>}{error && <p className="feature-error">{error}</p>}
+    <header className="treasure-list-heading"><div><h2>이웃이 발견한 장소</h2><p>장소를 선택하면 위치와 자세한 이야기를 볼 수 있어요.</p></div><strong>{totalItems.toLocaleString()}곳</strong></header>
+    {selected && <div className="treasure-map-frame">{mapUrl ? <iframe title={`${selected.title} 지도`} src={mapUrl} loading="lazy"/> : <div><MapPin size={28}/><strong>등록된 좌표가 없는 장소예요.</strong></div>}</div>}
+    {loading ? <div className="feature-loading">동네의 보물을 찾고 있어요.</div> : <div className="treasure-list">{items.map((item) => <button key={item.id} type="button" className={selected?.id === item.id ? "selected" : ""} onClick={() => setSelected((current) => current?.id === item.id ? null : item)}><b>{treasureTypes[item.treasureType as keyof typeof treasureTypes] || "장소"}</b><strong>{item.title}</strong><p>{item.description}</p><span><MapPin size={13}/>{item.address}</span><small>{item.authorName} · {formatDate(item.createdAt)}</small><em>{selected?.id === item.id ? "지도 닫기" : "지도 보기"}</em></button>)}</div>}
+    {!loading && !items.length && <div className="feature-empty">아직 등록된 동네 보물이 없습니다.</div>}
+    {!loading && items.length > 0 && <nav className="feature-pagination" aria-label="동네 보물지도 페이지"><button type="button" disabled={page <= 1} onClick={() => changePage(page - 1)}><ChevronLeft size={18}/></button>{mailboxPageNumbers(page,totalPages).map((number) => <button type="button" className={number === page ? "active" : ""} key={number} onClick={() => changePage(number)}>{number}</button>)}<button type="button" disabled={page >= totalPages} onClick={() => changePage(page + 1)}><ChevronRight size={18}/></button></nav>}
+    {error && <p className="feature-error">{error}</p>}
   </section>;
+}
+
+async function loadKakaoSdk(javascriptKey: string) {
+  const kakaoWindow = window as KakaoWindow;
+  if (!kakaoWindow.Kakao) {
+    await new Promise<void>((resolve,reject) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[data-kakao-sdk="true"]');
+      if (existing) { existing.addEventListener("load",() => resolve(),{ once:true }); existing.addEventListener("error",() => reject(new Error("KAKAO_SDK_FAILED")),{ once:true }); return; }
+      const script = document.createElement("script");
+      script.src = "https://t1.kakaocdn.net/kakao_js_sdk/2.8.5/kakao.min.js";
+      script.integrity = "sha384-v6JKY3z4FUkWq21oZDHZe74YvuPk/WUrVLrDHTBojHXClOSa3iXy7sCXPY1jkFbj";
+      script.crossOrigin = "anonymous"; script.async = true; script.dataset.kakaoSdk = "true";
+      script.onload = () => resolve(); script.onerror = () => reject(new Error("KAKAO_SDK_FAILED")); document.head.appendChild(script);
+    });
+  }
+  if (!kakaoWindow.Kakao) throw new Error("KAKAO_SDK_FAILED");
+  if (!kakaoWindow.Kakao.isInitialized()) kakaoWindow.Kakao.init(javascriptKey);
+  return kakaoWindow.Kakao;
 }
 
 type RandomPost = { id: string; title: string; excerpt: string; authorName: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string };

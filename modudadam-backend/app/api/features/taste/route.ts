@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getSessionUser(request);
     const body = await request.json();
+    const action = body.action === "save" ? "save" : "analyze";
+    if (action === "save" && !user) return errorResponse("결과를 저장하려면 로그인이 필요합니다.", 401);
     const answers: Array<{ questionId: string; score: number }> = Array.isArray(body.answers) ? body.answers.slice(0,10).map((answer: unknown) => {
       const item = answer as { questionId?: unknown; score?: unknown };
       return { questionId: String(item?.questionId || ""), score: Number(item?.score) };
@@ -54,11 +56,11 @@ export async function POST(request: NextRequest) {
     if (dimensions.some((dimension) => counts[dimension] < 2)) return errorResponse("분석 문항의 구성이 올바르지 않습니다.");
     const dominant = [...dimensions].sort((a,b) => Math.abs(scores[b]) - Math.abs(scores[a]))[0];
     const resultCode = `${axisCode(scores.energy,"E","R")}${axisCode(scores.rhythm,"F","P")}${axisCode(scores.social,"C","I")}${axisCode(scores.expression,"X","Q")}${dominant[0].toUpperCase()}`;
-    if (user) await query(
+    if (action === "save" && user) await query(
       `INSERT INTO taste_quiz_results(user_id,quiz_code,result_code,answers) VALUES($1,'lifestyle-bank-v3',$2,$3::jsonb)`,
       [user.id,resultCode,JSON.stringify(answers)],
     );
-    return jsonResponse({ scores,resultCode,saved:Boolean(user) }, { status: 201 });
+    return jsonResponse({ scores,resultCode,saved:action === "save" }, { status: action === "save" ? 201 : 200 });
   } catch {
     return errorResponse("취향 분석 결과를 계산하지 못했습니다.",500);
   }
