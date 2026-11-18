@@ -1,11 +1,12 @@
 import type { NextRequest } from "next/server";
 import { db, query } from "@/lib/db";
-import { requireSessionUser } from "@/domains/auth/session";
+import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { MAX_POST_IMAGES } from "@/lib/s3";
 import { normalizePostContentHtml } from "@/domains/community/post-content";
 
 export async function GET(request: NextRequest) {
+  const viewerKey = await getViewerKey(request);
   const category = request.nextUrl.searchParams.get("category");
   const search = request.nextUrl.searchParams.get("q")?.trim();
   const requestedSort = request.nextUrl.searchParams.get("sort");
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
        FROM ranked WHERE category_rank <= $1 ORDER BY "categoryCode",category_rank`,
       [perCategory],
     );
-    return jsonResponse({ posts: weekly.rows });
+    return jsonResponse({ posts: await attachReadState(weekly.rows,viewerKey) });
   }
 
   if (request.nextUrl.searchParams.get("groupedByCategory") === "true") {
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
        FROM ranked WHERE category_rank <= $1 ORDER BY "categoryCode",category_rank`,
       [perCategory],
     );
-    return jsonResponse({ posts: grouped.rows });
+    return jsonResponse({ posts: await attachReadState(grouped.rows,viewerKey) });
   }
 
   if (sort === "weekly") {
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
        ORDER BY "weeklyScore" DESC,posts.published_at DESC,posts.id DESC LIMIT $1`,
       [limit],
     );
-    return jsonResponse({ posts: weekly.rows, nextCursor: null, hasMore: false });
+    return jsonResponse({ posts: await attachReadState(weekly.rows,viewerKey), nextCursor: null, hasMore: false });
   }
 
   const cursor = decodeCursor(request.nextUrl.searchParams.get("cursor"), sort);
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest) {
       ? `posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC`
       : `posts.is_pinned DESC,posts.published_at DESC,posts.id DESC`;
     const result = await query(`${select} ORDER BY ${orderBy} LIMIT $3 OFFSET $4`, [category, search || null, limit, (page - 1) * limit]);
-    return jsonResponse({ posts: result.rows, pagination: { page, pageSize: limit, totalItems, totalPages } });
+    return jsonResponse({ posts: await attachReadState(result.rows,viewerKey), pagination: { page, pageSize: limit, totalItems, totalPages } });
   }
 
   const result = sort === "popular"
@@ -175,7 +176,7 @@ export async function GET(request: NextRequest) {
     id: String(last.id),
     ...(sort === "popular" ? { score: Number(last.popularityScore) } : {}),
   }) : null;
-  return jsonResponse({ posts, nextCursor, hasMore });
+  return jsonResponse({ posts: await attachReadState(posts,viewerKey), nextCursor, hasMore });
 }
 
 export async function POST(request: NextRequest) {
@@ -272,4 +273,20 @@ function decodeCursor(value: string | null, sort: "latest" | "popular"): PostCur
   } catch {
     return null;
   }
+}
+
+async function getViewerKey(request:NextRequest) {
+  const user=await getSessionUser(request);
+  if (user) return `user:${user.id}`;
+  const visitorId=request.cookies.get("modudadam_visitor")?.value || "";
+  return /^[0-9a-f-]{36}$/i.test(visitorId) ? `visitor:${visitorId}` : null;
+}
+
+async function attachReadState<T extends Record<string,unknown>>(rows:T[],viewerKey:string|null) {
+  if (!rows.length) return rows;
+  if (!viewerKey) return rows.map((row) => ({ ...row,isRead:false }));
+  const ids=rows.map((row) => String(row.id)).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  const viewed=await query<{ postId:string }>(`SELECT post_id::text AS "postId" FROM post_views WHERE viewer_key=$1 AND post_id=ANY($2::uuid[])`,[viewerKey,ids]);
+  const readIds=new Set(viewed.rows.map((row) => row.postId));
+  return rows.map((row) => ({ ...row,isRead:readIds.has(String(row.id)) }));
 }

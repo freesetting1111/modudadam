@@ -112,6 +112,7 @@ export async function completeOAuthLoginTicket(
 
     const profile = row.profile;
     const userId = await upsertOAuthUser(profile, client, agreements, requestedNickname);
+    await ensureAcornWallet(userId, client);
     if (agreements) {
       for (const consentKey of ["age_over_14", "service_terms", "privacy_collection"]) {
         await client.query(
@@ -292,6 +293,7 @@ export async function registerLocalUser(input: RegisterInput) {
       [normalizeNickname(input.loginId), input.email, input.realName, input.phoneNumber],
     );
     const userId = user.rows[0].id;
+    await ensureAcornWallet(userId, client);
     await client.query(
       `INSERT INTO user_local_accounts(user_id,login_id,password_hash) VALUES($1,$2,$3)`,
       [userId, input.loginId, passwordHash],
@@ -303,6 +305,15 @@ export async function registerLocalUser(input: RegisterInput) {
   } finally {
     client.release();
   }
+}
+
+async function ensureAcornWallet(userId: string, client: PoolClient) {
+  await client.query(
+    `INSERT INTO acorn_wallets(user_id)
+     VALUES($1)
+     ON CONFLICT(user_id) DO NOTHING`,
+    [userId],
+  );
 }
 
 export async function loginLocalUser(loginId: string, password: string, userAgent?: string) {

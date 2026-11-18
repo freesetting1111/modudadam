@@ -73,7 +73,7 @@ function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant
 }
 
 function CarouselPost({ post, rank }: { post: HomePost; rank?: number }) {
-  return <Link href={`/posts/${post.id}`} className={`portal-post-row ${rank ? "has-rank" : ""}`}>
+  return <Link href={`/posts/${post.id}`} className={`portal-post-row ${rank ? "has-rank" : ""} ${post.isRead ? "is-read" : ""}`}>
     {rank && <strong className={`portal-rank ${rank <= 3 ? `medal-rank medal-rank-${rank}` : ""}`}>{rank <= 3 && <Crown className="rank-crown" size={14} aria-hidden="true" />}{rank}</strong>}
     <div className="portal-post-copy">
       <div className="portal-post-title"><span>{post.title}</span></div>

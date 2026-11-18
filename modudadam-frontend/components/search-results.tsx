@@ -12,6 +12,7 @@ import { StampedName } from "@/components/stamped-name";
 type SearchPost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string;
+  isRead:boolean;
 };
 type Pagination = { page: number; pageSize: number; totalItems: number; totalPages: number };
 
@@ -71,7 +72,7 @@ export function SearchResults({ initialQuery, hideForm = false }: { initialQuery
       </nav>
       {error && <div className="board-message error">{error}</div>}
       {!loading && !error && posts.length === 0 && <div className="board-message">일치하는 게시글이 없습니다.</div>}
-      {posts.length > 0 && <div className="board-list search-result-list">{posts.map((post) => <Link href={`/posts/${post.id}`} className="board-row board-row-dense" key={post.id}>
+      {posts.length > 0 && <div className="board-list search-result-list">{posts.map((post) => <Link href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.isRead ? "is-read" : ""}`} key={post.id}>
         <div className="board-row-main"><small>{post.categoryName}</small><div className="board-row-title">{post.title}</div></div>
         <div className="board-row-meta"><StampedName className="board-author" name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
       </Link>)}</div>}

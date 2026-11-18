@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ChevronRight, Eye, MessageCircle } from "lucide-react";
 import { HomeSearch } from "@/components/home-search";
 import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
@@ -9,10 +10,12 @@ import { StampedName } from "@/components/stamped-name";
 export type HomePost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string;
+  isRead: boolean;
 };
 
 export default async function Home() {
-  const [weeklyPosts, categoryPosts] = await Promise.all([getWeeklyPostsByCategory(), getCategoryPosts()]);
+  const cookieHeader=(await cookies()).toString();
+  const [weeklyPosts, categoryPosts] = await Promise.all([getWeeklyPostsByCategory(cookieHeader), getCategoryPosts(cookieHeader)]);
   const weeklyGroups = categories.map((category) => ({
     categoryCode: category.code,
     posts: weeklyPosts.filter((post) => post.categoryCode === category.code).slice(0, 5),
@@ -54,27 +57,27 @@ function BoardPreview({ category, posts }: { category: PreviewBoard; posts: Home
   const Icon = category.icon;
   return <article className={`board-preview-card board-preview-${category.code}`}>
     <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
-    <div>{posts.length > 0 ? posts.map((post) => <Link className="board-preview-post" href={`/posts/${post.id}`} key={post.id}>
+    <div>{posts.length > 0 ? posts.map((post) => <Link className={`board-preview-post ${post.isRead ? "is-read" : ""}`} href={`/posts/${post.id}`} key={post.id}>
       <span className="board-preview-title">{post.title}</span>
       <span className="board-preview-meta"><StampedName name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
     </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}`}>등록된 게시글이 없습니다.</Link>}</div>
   </article>;
 }
 
-async function getWeeklyPostsByCategory(): Promise<HomePost[]> {
+async function getWeeklyPostsByCategory(cookieHeader:string): Promise<HomePost[]> {
   try {
     const params = new URLSearchParams({ weeklyByCategory: "true", perCategory: "5" });
-    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store" });
+    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store",headers:cookieHeader ? { cookie:cookieHeader } : undefined });
     if (!response.ok) return [];
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };
     return body.success && Array.isArray(body.data?.posts) ? body.data.posts : [];
   } catch { return []; }
 }
 
-async function getCategoryPosts(): Promise<HomePost[]> {
+async function getCategoryPosts(cookieHeader:string): Promise<HomePost[]> {
   try {
     const params = new URLSearchParams({ groupedByCategory: "true", perCategory: "10" });
-    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store" });
+    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store",headers:cookieHeader ? { cookie:cookieHeader } : undefined });
     if (!response.ok) return [];
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };
     return body.success && Array.isArray(body.data?.posts) ? body.data.posts : [];

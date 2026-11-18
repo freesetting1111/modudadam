@@ -9,6 +9,7 @@ import { StampedName } from "@/components/stamped-name";
 export type BoardPost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null; viewCount: number;
   commentCount: number; createdAt: string; isNotice: boolean; isPinned: boolean;
+  isRead: boolean;
 };
 export type BoardFeedPage = { posts: BoardPost[]; nextCursor: string | null };
 
@@ -66,7 +67,7 @@ export function BoardList({ categoryCode, categoryName, canWrite, initialPage }:
     {!loading && !error && posts.length === 0 && <div className="empty-card"><strong>등록된 게시글이 없습니다</strong><p>{categoryName} 게시판에 첫 게시글을 작성해 보세요.</p>{canWrite && <Link href={`/category/${categoryCode}/write`}>게시글 작성</Link>}</div>}
     {posts.length > 0 && <>
       <div className="board-list" aria-busy={loading}>{posts.map((post) =>
-        <Link href={`/posts/${post.id}`} className="board-row board-row-dense" key={post.id}>
+        <Link href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.isRead ? "is-read" : ""}`} key={post.id}>
           <div className="board-row-main">
             <div className="board-row-title">{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.title}</div>
           </div>
