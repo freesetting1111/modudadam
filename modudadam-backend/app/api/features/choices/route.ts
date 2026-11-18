@@ -11,6 +11,13 @@ type ChoiceRow = {
 export async function GET(request: NextRequest) {
   await ensureTodayChoice();
   const user = await getSessionUser(request);
+  const bank = await query<{ count: number; remaining: number }>(
+    `SELECT COUNT(*)::int AS count,
+            COUNT(*) FILTER(WHERE NOT EXISTS(
+              SELECT 1 FROM daily_choices choices WHERE choices.source_prompt_id=prompts.id
+            ))::int AS remaining
+       FROM choice_prompt_bank prompts WHERE enabled`,
+  );
   const result = await query<ChoiceRow>(
     `WITH selected AS (
        SELECT id,question,description,active_on FROM daily_choices
@@ -28,13 +35,13 @@ export async function GET(request: NextRequest) {
      ORDER BY options.sort_order`,
     [user?.id || null],
   );
-  if (!result.rows.length) return jsonResponse({ choice: null });
+  if (!result.rows.length) return jsonResponse({ choice: null, questionBankSize: bank.rows[0]?.count || 0, remainingQuestionCount: bank.rows[0]?.remaining || 0 });
   const first = result.rows[0];
   return jsonResponse({ choice: {
     id: first.id, question: first.question, description: first.description, activeOn: first.activeOn,
     myOptionId: first.myOptionId,
     options: result.rows.map((row) => ({ id: row.optionId, label: row.label, emoji: row.emoji, voteCount: row.voteCount })),
-  } });
+  }, questionBankSize: bank.rows[0]?.count || 0, remainingQuestionCount: bank.rows[0]?.remaining || 0 });
 }
 
 export async function POST(request: NextRequest) {
@@ -63,27 +70,33 @@ function isUuid(value: string) { return /^[0-9a-f-]{36}$/i.test(value); }
 
 async function ensureTodayChoice() {
   const dateText = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const dayNumber = Math.floor(Date.parse(`${dateText}T00:00:00Z`) / 86_400_000);
   const client = await db.connect();
   try {
     await client.query("BEGIN");
+    const existing = await client.query(`SELECT id FROM daily_choices WHERE active_on=$1::date LIMIT 1`,[dateText]);
+    if (existing.rows[0]) { await client.query("COMMIT"); return; }
     const prompt = await client.query<{
       id: string; question: string; description: string | null;
       optionALabel: string; optionAEmoji: string | null; optionBLabel: string; optionBEmoji: string | null;
     }>(
       `SELECT id::text,question,description,option_a_label AS "optionALabel",option_a_emoji AS "optionAEmoji",
               option_b_label AS "optionBLabel",option_b_emoji AS "optionBEmoji"
-         FROM choice_prompt_bank WHERE enabled ORDER BY id
-        OFFSET mod(($1::bigint * 137) + 53,NULLIF((SELECT COUNT(*) FROM choice_prompt_bank WHERE enabled),0)) LIMIT 1`,
-      [dayNumber],
+         FROM choice_prompt_bank prompts
+        WHERE enabled AND NOT EXISTS(
+          SELECT 1 FROM daily_choices choices WHERE choices.source_prompt_id=prompts.id
+        )
+        ORDER BY md5(prompts.id::text || $1)
+        FOR UPDATE SKIP LOCKED LIMIT 1`,
+      [dateText],
     );
-    if (!prompt.rows[0]) throw new Error("CHOICE_PROMPT_EMPTY");
+    if (!prompt.rows[0]) { await client.query("COMMIT"); return; }
     const selected = prompt.rows[0];
     const choice = await client.query<{ id: string }>(
       `INSERT INTO daily_choices(question,description,active_on,source_prompt_id) VALUES($1,$2,$3::date,$4::bigint)
-       ON CONFLICT(active_on) DO UPDATE SET active_on=EXCLUDED.active_on RETURNING id`,
+       ON CONFLICT(active_on) DO NOTHING RETURNING id`,
       [selected.question, selected.description, dateText, selected.id],
     );
+    if (!choice.rows[0]) { await client.query("COMMIT"); return; }
     const options = [[selected.optionALabel, selected.optionAEmoji], [selected.optionBLabel, selected.optionBEmoji]];
     for (const [index, [label, emoji]] of options.entries()) {
       await client.query(
