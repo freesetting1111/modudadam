@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Eye, MessageCircle, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api";
-import { findCategory } from "@/lib/categories";
+import { findBoard } from "@/lib/categories";
 import { StampedName } from "@/components/stamped-name";
 
 type Post = {
@@ -18,7 +18,7 @@ type PageData = {
 
 const PAGE_SIZE = 20;
 
-export function DetailBoardList({ categoryCode, currentPostId, authenticated }: { categoryCode: string; currentPostId: string; authenticated: boolean }) {
+export function DetailBoardList({ categoryCode, currentPostId, canWrite }: { categoryCode: string; currentPostId: string; canWrite: boolean }) {
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,13 +51,13 @@ export function DetailBoardList({ categoryCode, currentPostId, authenticated }: 
   const totalPages = pagination?.totalPages || 1;
   const firstPage = Math.max(1, Math.min(page - 4, totalPages - 9));
   const pages = Array.from({ length: Math.min(10, totalPages) }, (_, index) => firstPage + index);
-  const category = findCategory(categoryCode);
+  const category = findBoard(categoryCode);
   if (!category) return null;
   const Icon = category.icon;
 
   return <section className="detail-board-section board-page">
     <div className="category-hero"><span className={`category-icon category-icon-large category-${category.code}`}><Icon size={27} strokeWidth={1.8} /></span><div><small>커뮤니티</small><h1>{category.name}</h1><p>{category.description}</p></div></div>
-    {authenticated && <div className="board-toolbar board-toolbar-compact board-toolbar-write-only"><Link className="write-button" href={`/category/${categoryCode}/write`}><PenLine size={14} /> 글쓰기</Link></div>}
+    {canWrite && <div className="board-toolbar board-toolbar-compact board-toolbar-write-only"><Link className="write-button" href={`/category/${categoryCode}/write`}><PenLine size={14} /> 글쓰기</Link></div>}
     {loading && !data && <div className="board-message">게시글을 불러오고 있어요.</div>}
     {error && <div className="board-message error">{error}</div>}
     {data && <div className="board-list" aria-busy={loading}>{data.posts.map((post) => <Link key={post.id} href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.id === currentPostId ? "board-row-current" : ""}`} aria-current={post.id === currentPostId ? "page" : undefined}>

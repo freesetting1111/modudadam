@@ -14,7 +14,7 @@ export type BoardFeedPage = { posts: BoardPost[]; nextCursor: string | null };
 
 const PAGE_SIZE = 20;
 
-export function BoardList({ categoryCode, categoryName, authenticated, initialPage }: { categoryCode: string; categoryName: string; authenticated: boolean; initialPage?: BoardFeedPage }) {
+export function BoardList({ categoryCode, categoryName, canWrite, initialPage }: { categoryCode: string; categoryName: string; canWrite: boolean; initialPage?: BoardFeedPage }) {
   const [pages, setPages] = useState<BoardFeedPage[]>(initialPage ? [initialPage] : []);
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(!initialPage);
@@ -60,10 +60,10 @@ export function BoardList({ categoryCode, categoryName, authenticated, initialPa
   const visiblePageCount = pages.length + (pages.at(-1)?.nextCursor ? 1 : 0);
 
   return <>
-    {authenticated && <div className="board-toolbar board-toolbar-compact board-toolbar-write-only"><Link className="write-button" href={`/category/${categoryCode}/write`}><PenLine size={14} /> 글쓰기</Link></div>}
+    {canWrite && <div className="board-toolbar board-toolbar-compact board-toolbar-write-only"><Link className="write-button" href={`/category/${categoryCode}/write`}><PenLine size={14} /> 글쓰기</Link></div>}
     {loading && posts.length === 0 && <div className="board-message">게시글을 불러오고 있어요.</div>}
     {error && <div className="board-message error">{error}</div>}
-    {!loading && !error && posts.length === 0 && <div className="empty-card"><strong>등록된 게시글이 없습니다</strong><p>{categoryName} 게시판에 첫 게시글을 작성해 보세요.</p>{authenticated && <Link href={`/category/${categoryCode}/write`}>게시글 작성</Link>}</div>}
+    {!loading && !error && posts.length === 0 && <div className="empty-card"><strong>등록된 게시글이 없습니다</strong><p>{categoryName} 게시판에 첫 게시글을 작성해 보세요.</p>{canWrite && <Link href={`/category/${categoryCode}/write`}>게시글 작성</Link>}</div>}
     {posts.length > 0 && <>
       <div className="board-list" aria-busy={loading}>{posts.map((post) =>
         <Link href={`/posts/${post.id}`} className="board-row board-row-dense" key={post.id}>

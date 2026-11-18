@@ -226,7 +226,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
       })}</div>
       <CommentPagination pagination={pagination} onChange={(page) => { setReplyingTo(null); loadComments(page).catch(() => setCommentError("댓글을 불러오지 못했습니다.")); }} />
     </section>
-    <DetailBoardList categoryCode={post.categoryCode} currentPostId={post.id} authenticated={authenticated} />
+    <DetailBoardList categoryCode={post.categoryCode} currentPostId={post.id} canWrite={post.categoryCode === "notice" ? post.canEdit : authenticated} />
     {notice && <div className="community-toast" role="status">{notice}</div>}
     {shareOpen && <div className="report-backdrop" role="dialog" aria-modal="true" aria-labelledby="share-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setShareOpen(false); }}><section className="share-sheet">
       <span className="sheet-handle" /><h2 id="share-title">공유하기</h2>

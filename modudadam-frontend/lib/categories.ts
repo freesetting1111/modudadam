@@ -1,8 +1,13 @@
 import {
-  Baby, BookOpenText, Bot, BriefcaseBusiness, CarFront, ChartNoAxesCombined,
+  Baby, BellRing, BookOpenText, Bot, BriefcaseBusiness, CarFront, ChartNoAxesCombined,
   Clapperboard, CookingPot, Dumbbell, House, Landmark, Luggage, MapPinned,
-  Palette, PawPrint, Sparkles,
+  MessageSquareText, Palette, PawPrint, Sparkles,
 } from "lucide-react";
+
+export const specialBoards = [
+  { code:"notice",name:"공지사항",icon:BellRing,short:"공지사항",description:"모두다담의 중요한 소식과 이용 안내" },
+  { code:"free",name:"자유게시판",icon:MessageSquareText,short:"자유게시판",description:"주제에 관계없이 편하게 이야기를 나누는 공간" },
+] as const;
 
 export const categories = [
   { code: "pets", name: "동물·반려동물", icon: PawPrint, short: "반려동물", description: "반려동물 기록, 양육 정보, 용품과 장소" },
@@ -24,3 +29,5 @@ export const categories = [
 ] as const;
 
 export function findCategory(code: string) { return categories.find((category) => category.code === code); }
+export function findBoard(code:string) { return specialBoards.find((board) => board.code===code) || findCategory(code); }
+export function isNoticeBoard(code:string) { return code==="notice"; }

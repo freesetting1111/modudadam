@@ -7,8 +7,8 @@ export function StampedName({ name, stamp, className = "" }: { name: string; sta
 
 function stampEffect(stamp: string) {
   if (["🛡️","⚜️","🦉"].includes(stamp)) return "stamp-effect-operator";
-  if (["🌈👑","👑✨🌰"].includes(stamp)) return "stamp-effect-mythic";
-  if (["🌌","🔥🪽","👑🐿️"].includes(stamp)) return "stamp-effect-legendary";
-  if (["💜","💙","✨","🎨","🎵","🏆","🏅"].includes(stamp)) return "stamp-effect-epic";
+  if (["🌈👑","👑✨🌰","🌌👑"].includes(stamp)) return "stamp-effect-mythic";
+  if (["🌌","🔥🪽","👑🐿️","👑✨"].includes(stamp)) return "stamp-effect-legendary";
+  if (["💜","💙","✨","🎨","🎵","🏆","🏅","🏆✨"].includes(stamp)) return "stamp-effect-epic";
   return "";
 }

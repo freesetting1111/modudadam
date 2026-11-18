@@ -26,7 +26,6 @@ export function CategoryPostCarousels({ hotGroups, latestGroups }: { hotGroups: 
 function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant: "hot" | "latest" }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [cycleKey, setCycleKey] = useState(0);
   const touchStart = useRef<number | null>(null);
   const groupCount = groups.length;
   const group = groups[activeIndex] || groups[0];
@@ -45,10 +44,7 @@ function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant
     return () => window.clearInterval(timer);
   }, [activeIndex, groupCount, isPaused]);
 
-  const togglePaused = () => {
-    if (isPaused) setCycleKey((current) => current + 1);
-    setIsPaused((current) => !current);
-  };
+  const togglePaused = () => setIsPaused((current) => !current);
 
   return <article className={`community-panel ${isHot ? "hot-panel" : "latest-panel"} weekly-hot-carousel ${isPaused ? "is-paused" : ""}`} aria-roledescription="carousel" aria-label={`카테고리별 ${isHot ? "주간 인기 TOP 5" : "NEW 게시글"}`}>
     <header>
@@ -73,7 +69,6 @@ function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant
       }}>
       {group?.posts.length ? group.posts.map((post, index) => <CarouselPost key={post.id} post={post} rank={isHot ? index + 1 : undefined} />) : <div className="weekly-hot-empty"><CategoryIcon size={20} /><strong>{category.name}</strong><span>{isHot ? "이번 주 인기 게시글이 없습니다." : "최근 등록된 게시글이 없습니다."}</span></div>}
     </div>
-    <div className="weekly-hot-progress" aria-hidden="true"><i key={`${activeIndex}-${cycleKey}`} /></div>
   </article>;
 }
 

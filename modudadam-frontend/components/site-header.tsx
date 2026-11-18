@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Gift, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
+import { specialBoards } from "@/lib/categories";
 import { apiRequest } from "@/lib/api";
 import type { SessionUser } from "@/lib/auth";
 import { StampedName } from "@/components/stamped-name";
@@ -117,6 +118,8 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
             <span className="drawer-account-copy"><small>모두다담에 오신 걸 환영해요</small><strong>로그인</strong></span>
             <ChevronRight size={19} />
           </Link>)}
+          <h2>커뮤니티</h2>
+          <div className="drawer-grid drawer-special-boards">{specialBoards.map((board) => { const Icon=board.icon;return <Link href={`/category/${board.code}`} key={board.code} onClick={closeMenu}><span className={`drawer-icon category-${board.code}`}><Icon size={24} strokeWidth={1.9}/></span><span className="drawer-label">{board.name}</span></Link>; })}</div>
           <h2>카테고리</h2>
           <CategoryGrid onNavigate={closeMenu}/>
           <h2>다담 콘텐츠</h2>

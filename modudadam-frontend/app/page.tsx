@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight, Eye, MessageCircle } from "lucide-react";
 import { HomeSearch } from "@/components/home-search";
 import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
-import { categories } from "@/lib/categories";
+import { categories, specialBoards } from "@/lib/categories";
 import { API_SERVER_URL } from "@/lib/server-config";
 import { StampedName } from "@/components/stamped-name";
 
@@ -25,9 +25,17 @@ export default async function Home() {
     category,
     posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 10),
   }));
+  const specialBoardFeeds = specialBoards.map((category) => ({
+    category,
+    posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 3),
+  }));
 
   return <div className="community-home">
     <HomeSearch />
+
+    <section className="home-special-board-section" aria-label="공지사항과 자유게시판">
+      <div className="board-card-grid">{specialBoardFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} />)}</div>
+    </section>
 
     <section className="community-dashboard community-dashboard-stacked" aria-label="커뮤니티 주요 게시글">
       <CategoryPostCarousels hotGroups={weeklyGroups} latestGroups={latestGroups} />
@@ -35,24 +43,28 @@ export default async function Home() {
 
     <section className="board-directory">
       <div className="directory-heading"><div><h2>주제별 게시판</h2><p>관심 있는 게시판의 새 글을 바로 확인하세요.</p></div><span>{categories.length}개</span></div>
-      <div className="board-card-grid">{categoryFeeds.map(({ category, posts }) => {
-        const Icon = category.icon;
-        return <article className="board-preview-card" key={category.code}>
-          <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
-          <div>{posts.length > 0 ? posts.map((post) => <Link className="board-preview-post" href={`/posts/${post.id}`} key={post.id}>
-            <span className="board-preview-title">{post.title}</span>
-            <span className="board-preview-meta"><StampedName name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
-          </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}/write`}>등록된 게시글이 없습니다.</Link>}</div>
-        </article>;
-      })}</div>
+      <div className="board-card-grid">{categoryFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} />)}</div>
     </section>
   </div>;
+}
+
+type PreviewBoard = (typeof categories)[number] | (typeof specialBoards)[number];
+
+function BoardPreview({ category, posts }: { category: PreviewBoard; posts: HomePost[] }) {
+  const Icon = category.icon;
+  return <article className={`board-preview-card board-preview-${category.code}`}>
+    <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
+    <div>{posts.length > 0 ? posts.map((post) => <Link className="board-preview-post" href={`/posts/${post.id}`} key={post.id}>
+      <span className="board-preview-title">{post.title}</span>
+      <span className="board-preview-meta"><StampedName name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
+    </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}`}>등록된 게시글이 없습니다.</Link>}</div>
+  </article>;
 }
 
 async function getWeeklyPostsByCategory(): Promise<HomePost[]> {
   try {
     const params = new URLSearchParams({ weeklyByCategory: "true", perCategory: "5" });
-    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { next: { revalidate: 60 } });
+    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store" });
     if (!response.ok) return [];
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };
     return body.success && Array.isArray(body.data?.posts) ? body.data.posts : [];
@@ -62,7 +74,7 @@ async function getWeeklyPostsByCategory(): Promise<HomePost[]> {
 async function getCategoryPosts(): Promise<HomePost[]> {
   try {
     const params = new URLSearchParams({ groupedByCategory: "true", perCategory: "10" });
-    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { next: { revalidate: 60 } });
+    const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store" });
     if (!response.ok) return [];
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };
     return body.success && Array.isArray(body.data?.posts) ? body.data.posts : [];

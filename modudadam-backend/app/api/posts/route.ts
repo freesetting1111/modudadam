@@ -182,10 +182,12 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireSessionUser(request);
     const body = await request.json();
+    const categoryCode=String(body.categoryCode || "").trim();
     const title = String(body.title || "").trim();
     const content = String(body.content || "").trim();
     const imageIds = normalizeImageIds(body.imageIds);
-    if (!body.categoryCode || !title) return errorResponse("카테고리와 제목을 입력해 주세요.");
+    if (!categoryCode || !title) return errorResponse("카테고리와 제목을 입력해 주세요.");
+    if (categoryCode==="notice" && user.email?.trim().toLowerCase()!=="freesetting@naver.com") return errorResponse("공지사항은 운영자만 작성할 수 있습니다.",403);
     if (!imageIds || imageIds.length > MAX_POST_IMAGES) return errorResponse(`이미지는 최대 ${MAX_POST_IMAGES}장까지 첨부할 수 있습니다.`);
     if (!content && imageIds.length === 0) return errorResponse("내용을 입력하거나 이미지를 한 장 이상 넣어 주세요.");
     if (title.length > 80) return errorResponse("제목은 80자까지 입력할 수 있습니다.");
@@ -196,10 +198,10 @@ export async function POST(request: NextRequest) {
     try {
       await client.query("BEGIN");
       const result = await client.query<{ id: string }>(
-        `INSERT INTO posts(category_id,author_id,title,content,post_type,attributes,published_at)
-         SELECT id,$1,$2,$3,$4,$5::jsonb,now() FROM categories WHERE code=$6
+        `INSERT INTO posts(category_id,author_id,title,content,post_type,attributes,is_notice,published_at)
+         SELECT id,$1,$2,$3,$4,$5::jsonb,(code='notice'),now() FROM categories WHERE code=$6 AND is_active
          RETURNING id`,
-        [user.id, title, content, body.postType || "community", JSON.stringify({ contentHtml }), body.categoryCode],
+        [user.id, title, content, body.postType || "community", JSON.stringify({ contentHtml }), categoryCode],
       );
       const post = result.rows[0];
       if (!post) throw new Error("CATEGORY_NOT_FOUND");

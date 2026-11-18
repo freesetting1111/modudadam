@@ -13,7 +13,10 @@ export async function GET(request:NextRequest) {
       const categories = await query<{ code:string;name:string;icon:string;completedToday:boolean }>(
         `SELECT categories.code,categories.name,categories.icon,
           EXISTS(SELECT 1 FROM daily_mission_attempts attempts WHERE attempts.category_code=categories.code AND attempts.user_id=$1::uuid AND attempts.mission_on=$2::date AND attempts.completed_at IS NOT NULL) AS "completedToday"
-         FROM categories WHERE categories.is_active ORDER BY categories.sort_order`,[user?.id || null,today]);
+         FROM categories
+         WHERE categories.is_active
+           AND EXISTS(SELECT 1 FROM daily_mission_concepts concepts WHERE concepts.category_code=categories.code)
+         ORDER BY categories.sort_order`,[user?.id || null,today]);
       const wallet = user ? await query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1`,[user.id]) : null;
       return jsonResponse({ categories:categories.rows,walletBalance:wallet?.rows[0]?.balance || 0,today });
     }

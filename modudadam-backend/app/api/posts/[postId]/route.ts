@@ -49,14 +49,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       posts.published_at AS "publishedAt",posts.created_at AS "createdAt",posts.updated_at AS "updatedAt",
       categories.code AS "categoryCode",categories.name AS "categoryName",
       users.id AS "authorId",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
-      (posts.author_id=$2::uuid) AS "canEdit",
+      (CASE WHEN categories.code='notice' THEN lower(COALESCE($3::text,''))='freesetting@naver.com' ELSE posts.author_id=$2::uuid END) AS "canEdit",
       ($2::uuid IS NOT NULL AND posts.author_id<>$2::uuid) AS "canReport",
       EXISTS(SELECT 1 FROM post_reactions WHERE post_id=posts.id AND user_id=$2::uuid AND reaction='like') AS "isLiked",
       (SELECT count(*)::int FROM post_reactions WHERE post_id=posts.id AND reaction='like') AS "likeCount",
       EXISTS(SELECT 1 FROM post_bookmarks WHERE post_id=posts.id AND user_id=$2::uuid) AS "isBookmarked",
       posts.bookmark_count AS "bookmarkCount"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
-     WHERE posts.id=$1 AND posts.status='published'`, [postId, user?.id || null]);
+     WHERE posts.id=$1 AND posts.status='published'`, [postId, user?.id || null,user?.email || null]);
   if (!detail.rows[0]) return errorResponse("글을 찾을 수 없습니다.", 404);
   const imageResult = await query<PostImageRow>(
     `SELECT id,object_key AS "objectKey",original_name AS "originalName",mime_type AS "mimeType",
@@ -104,9 +104,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     try {
       await client.query("BEGIN");
       const result = await client.query<{ id: string }>(
-        `UPDATE posts SET title=$3,content=$4,attributes=COALESCE($5::jsonb,attributes),updated_at=now()
-         WHERE id=$1 AND author_id=$2 AND status='published' RETURNING id`,
-        [postId,user.id,title,content,JSON.stringify({ contentHtml })]);
+        `UPDATE posts SET title=$3,content=$4,attributes=COALESCE($5::jsonb,posts.attributes),updated_at=now()
+         FROM categories
+         WHERE posts.id=$1 AND posts.category_id=categories.id AND posts.status='published'
+           AND (CASE WHEN categories.code='notice' THEN lower(COALESCE($6::text,''))='freesetting@naver.com' ELSE posts.author_id=$2 END)
+         RETURNING posts.id`,
+        [postId,user.id,title,content,JSON.stringify({ contentHtml }),user.email]);
       if (!result.rows[0]) throw new Error("POST_NOT_FOUND");
 
       const current = await client.query<{ id: string; objectKey: string }>(
@@ -155,20 +158,23 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const user=await requireSessionUser(request); const { postId }=await params;
     const client = await db.connect();
-    let objectKeys: string[] = [];
+    let objectKeys:string[]=[];
     try {
       await client.query("BEGIN");
-      const result=await client.query<{id:string}>("UPDATE posts SET status='deleted',deleted_at=now(),updated_at=now() WHERE id=$1 AND author_id=$2 RETURNING id",[postId,user.id]);
+      const result=await client.query<{id:string}>(`UPDATE posts SET status='deleted',deleted_at=now(),updated_at=now()
+        FROM categories WHERE posts.id=$1 AND posts.category_id=categories.id AND posts.status='published'
+          AND (CASE WHEN categories.code='notice' THEN lower(COALESCE($3::text,''))='freesetting@naver.com' ELSE posts.author_id=$2 END)
+        RETURNING posts.id`,[postId,user.id,user.email]);
       if (!result.rows[0]) {
         await client.query("ROLLBACK");
         return errorResponse("삭제 권한이 없거나 글이 없습니다.",404);
       }
-      const images = await client.query<{ objectKey: string }>(
+      const images=await client.query<{ objectKey:string }>(
         `UPDATE post_images SET post_id=NULL,status='deleted',deleted_at=now()
-         WHERE post_id=$1 AND owner_id=$2 AND status='attached' RETURNING object_key AS "objectKey"`,
-        [postId, user.id],
+         WHERE post_id=$1 AND status='attached' RETURNING object_key AS "objectKey"`,
+        [postId],
       );
-      objectKeys = images.rows.map((image) => image.objectKey);
+      objectKeys=images.rows.map((image) => image.objectKey);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");

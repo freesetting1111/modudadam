@@ -3,12 +3,14 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { WriteForm } from "@/components/write-form";
 import { getServerSessionUser } from "@/lib/auth";
-import { findCategory } from "@/lib/categories";
+import { findBoard } from "@/lib/categories";
 
 export default async function CategoryWritePage({ params }: { params: Promise<{ code: string }> }) {
-  const category = findCategory((await params).code);
+  const category = findBoard((await params).code);
   if (!category) notFound();
-  if (!await getServerSessionUser()) redirect(`/login?returnTo=${encodeURIComponent(`/category/${category.code}/write`)}`);
+  const user=await getServerSessionUser();
+  if (!user) redirect(`/login?returnTo=${encodeURIComponent(`/category/${category.code}/write`)}`);
+  if (category.code==="notice" && user.email?.trim().toLowerCase()!=="freesetting@naver.com") redirect(`/category/${category.code}`);
   const Icon = category.icon;
 
   return <section className="content-page write-page compose-page">
