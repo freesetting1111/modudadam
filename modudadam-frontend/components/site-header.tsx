@@ -16,6 +16,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
   const [user, setUser] = useState(initialUser);
   const [loggingOut, setLoggingOut] = useState(false);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const canViewVisitors = user?.email?.trim().toLowerCase() === "freesetting@naver.com";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -116,7 +117,13 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
         </div>
       </div>
       <Link href="/" className="brand" onClick={closeMenu}><span className="brand-mark"><Image src="/brand/modudadam-brand-mark.png" alt="" width={38} height={38} priority /></span><strong>모두다담</strong></Link>
-      <span className="header-visitor-count" title="한국 시간 기준 오늘 방문한 중복 제외 방문자"><i aria-hidden="true" />오늘 {visitorCount === null ? "-" : visitorCount.toLocaleString()}명</span>
+      {canViewVisitors ? (
+        <Link className="header-visitor-count header-visitor-link" href="/admin/visitors" title="오늘 방문자 목록 보기">
+          <i aria-hidden="true" />오늘 {visitorCount === null ? "-" : visitorCount.toLocaleString()}명
+        </Link>
+      ) : (
+        <span className="header-visitor-count" title="한국 시간 기준 오늘 방문한 중복 제외 방문자"><i aria-hidden="true" />오늘 {visitorCount === null ? "-" : visitorCount.toLocaleString()}명</span>
+      )}
     </header>
   );
 }
