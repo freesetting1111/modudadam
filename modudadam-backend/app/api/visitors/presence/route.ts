@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
 
 function getClientIp(request: NextRequest) {
   const candidates = [
+    request.headers.get("x-modudadam-client-ip"),
     request.headers.get("cf-connecting-ip"),
     request.headers.get("x-real-ip"),
     request.headers.get("x-vercel-forwarded-for"),

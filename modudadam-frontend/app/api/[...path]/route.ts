@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -36,8 +37,11 @@ async function proxyRequest(request: NextRequest, context: ProxyContext) {
   requestHeaders.delete("host");
   requestHeaders.delete("content-length");
   requestHeaders.delete("connection");
+  requestHeaders.delete("x-modudadam-client-ip");
   requestHeaders.set("x-forwarded-host", request.nextUrl.host);
   requestHeaders.set("x-forwarded-proto", request.nextUrl.protocol.replace(":", ""));
+  const clientIp = getIncomingClientIp(request);
+  if (clientIp) requestHeaders.set("x-modudadam-client-ip", clientIp);
 
   try {
     const body = methodsWithBody.has(request.method)
@@ -65,6 +69,30 @@ async function proxyRequest(request: NextRequest, context: ProxyContext) {
     console.error(`[api-proxy] ${request.method} ${targetUrl.pathname}`, error);
     return proxyError("백엔드 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.", 502);
   }
+}
+
+function getIncomingClientIp(request: NextRequest) {
+  const candidates = [
+    request.headers.get("x-vercel-forwarded-for"),
+    request.headers.get("x-forwarded-for"),
+    request.headers.get("x-real-ip"),
+    request.headers.get("cf-connecting-ip"),
+  ];
+
+  for (const header of candidates) {
+    for (const rawValue of header?.split(",") || []) {
+      const value = normalizeIp(rawValue);
+      if (value) return value;
+    }
+  }
+  return null;
+}
+
+function normalizeIp(rawValue: string) {
+  let value = rawValue.trim();
+  if (value.startsWith("[") && value.includes("]")) value = value.slice(1, value.indexOf("]"));
+  if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(value)) value = value.slice(0, value.lastIndexOf(":"));
+  return isIP(value) ? value : null;
 }
 
 export function GET(request: NextRequest, context: ProxyContext) {

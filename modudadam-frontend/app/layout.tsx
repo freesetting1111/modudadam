@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { getServerSessionUser } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/site-url";
+import { API_SERVER_URL } from "@/lib/server-config";
 import "./globals.css";
 import "./community.css";
 import "./features.css";
@@ -50,7 +51,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
       <body className="antialiased" suppressHydrationWarning>
         <div className="app-shell">
-          <AnalyticsTracker />
+          <AnalyticsTracker backendUrl={API_SERVER_URL} />
           <SiteHeader initialUser={sessionUser} />
           <main>{children}</main>
           <footer>© 모두다담 · 일상을 다정하게 담아요</footer>
