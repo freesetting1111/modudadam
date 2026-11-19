@@ -44,10 +44,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const sessionUser = await getServerSessionUser();
   const gaId = process.env.NEXT_GA_ID?.trim();
   const naverSiteVerification = process.env.NAVER_SITE_VERIFICATION?.trim();
+  const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
       <head>
         {naverSiteVerification ? <meta name="naver-site-verification" content={naverSiteVerification} /> : null}
+        {googleSiteVerification ? <meta name="google-site-verification" content={googleSiteVerification} /> : null}
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <div className="app-shell">
