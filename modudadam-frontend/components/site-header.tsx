@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Gift, HandCoins, Home, LogOut, Mail, MapPin, Menu, Search, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Gift, HandCoins, Home, Hourglass, LogOut, Mail, MapPin, Menu, Search, ShieldQuestion, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { specialBoards } from "@/lib/categories";
 import { apiRequest } from "@/lib/api";
@@ -128,6 +128,8 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
             <Link href="/play/stamps" onClick={closeMenu}><span className="dadam-link-icon purple"><Gift/></span><span><strong>도토리 스탬프 상점</strong><small>도토리로 대표 스탬프 꾸미기</small></span><ChevronRight/></Link>
             <Link href="/play/acorn-gift" onClick={closeMenu}><span className="dadam-link-icon amber"><HandCoins/></span><span><strong>도토리 선물하기</strong><small>이웃에게 도토리와 마음 전하기</small></span><ChevronRight/></Link>
             <Link href="/play/missions" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 미션</strong><small>생활 퀴즈를 풀고 도토리 모으기</small></span><ChevronRight/></Link>
+            <Link href="/play/detective" onClick={closeMenu}><span className="dadam-link-icon blue"><ShieldQuestion/></span><span><strong>다담 추리방</strong><small>열 명의 용의자 중 진실 찾기</small></span><ChevronRight/></Link>
+            <Link href="/play/time-capsule" onClick={closeMenu}><span className="dadam-link-icon purple"><Hourglass/></span><span><strong>다담 타임캡슐</strong><small>미래의 나에게 마음 봉인하기</small></span><ChevronRight/></Link>
             <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 선택</strong><small>매일 새로운 두 가지 선택</small></span><ChevronRight/></Link>
             <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>고정 익명 ID로 나누는 마음</small></span><ChevronRight/></Link>
             <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>10문항으로 알아보는 생활 취향</small></span><ChevronRight/></Link>

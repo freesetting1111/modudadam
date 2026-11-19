@@ -88,13 +88,29 @@ export async function POST(request:NextRequest) {
 }
 
 async function ensureDailyMission(category:string,today:string) {
-  const variant=(Math.floor(new Date(`${today}T00:00:00Z`).getTime()/86400000)%20)+1;
   await query(
-    `INSERT INTO daily_mission_questions(mission_on,category_code,slot,question_id)
-     SELECT $1::date,$2::text,row_number() OVER(ORDER BY concepts.sort_order),bank.id
-     FROM mission_question_concepts concepts JOIN mission_question_bank bank
-       ON bank.category_code=concepts.category_code AND bank.concept_key=concepts.concept_key AND bank.variant_no=$3::smallint AND bank.enabled
-     WHERE concepts.category_code=$2::text
-     ON CONFLICT(mission_on,category_code,slot) DO NOTHING`,[today,category,variant]);
+    `WITH unused AS (
+       SELECT bank.id,0 AS priority
+         FROM mission_question_bank bank
+        WHERE bank.category_code=$2::text AND bank.enabled
+          AND NOT EXISTS (
+            SELECT 1 FROM daily_mission_questions history
+             WHERE history.category_code=$2::text AND history.question_id=bank.id
+          )
+     ), fallback AS (
+       SELECT bank.id,1 AS priority
+         FROM mission_question_bank bank
+        WHERE bank.category_code=$2::text AND bank.enabled
+          AND (SELECT count(*) FROM unused)<10
+          AND NOT EXISTS (SELECT 1 FROM unused WHERE unused.id=bank.id)
+     ), picked AS (
+       SELECT id,row_number() OVER(ORDER BY md5(id::text || $1::text)) AS slot
+         FROM (SELECT * FROM unused UNION ALL SELECT * FROM fallback) pool
+        ORDER BY priority,md5(id::text || $1::text)
+        LIMIT 10
+     )
+     INSERT INTO daily_mission_questions(mission_on,category_code,slot,question_id)
+     SELECT $1::date,$2::text,slot,id FROM picked
+     ON CONFLICT(mission_on,category_code,slot) DO NOTHING`,[today,category]);
 }
 export function OPTIONS() { return corsPreflightResponse(); }

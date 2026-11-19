@@ -145,9 +145,12 @@ export function DadamMailbox() {
   </section>;
 }
 
-type TasteDimension = "energy" | "rhythm" | "social" | "expression";
+type TasteDimension = "neuroticism" | "extraversion" | "openness" | "agreeableness" | "conscientiousness";
 type TasteQuestion = { id: string; dimension: TasteDimension; question: string; options: Array<{ label: string; score: number }> };
-const dimensionLabels: Record<TasteDimension,[string,string]> = { energy:["안온한 충전","새로운 자극"], rhythm:["계획적 리듬","유연한 흐름"], social:["독립적 몰입","관계 속 활력"], expression:["차분한 간직","선명한 표현"] };
+const dimensionLabels: Record<TasteDimension,[string,string]> = {
+  neuroticism:["정서적 안정","민감한 감지"], extraversion:["내향적 몰입","외향적 활력"], openness:["익숙한 현실","새로운 탐색"],
+  agreeableness:["독립적 판단","협력과 배려"], conscientiousness:["유연한 대응","계획과 완수"],
+};
 type KakaoWindow = Window & { Kakao?: { isInitialized: () => boolean; init: (key: string) => void; Share: { sendDefault: (settings: Record<string, unknown>) => void } } };
 
 export function TasteLab({ kakaoJavascriptKey }: { kakaoJavascriptKey: string }) {
@@ -188,22 +191,21 @@ export function TasteLab({ kakaoJavascriptKey }: { kakaoJavascriptKey: string })
   const profile = finalScores ? buildTasteProfile(finalScores) : null;
   const current = questions[step];
   return <section className="dadam-feature-page taste-page"><FeatureHero icon={Sparkles} eyebrow="TASTE LAB" title="취향 발견실" description="일상 속 선택을 따라가며 나에게 잘 맞는 생활 취향을 발견해 보세요."/>
-    {loading ? <div className="feature-loading">취향 문항을 준비하고 있어요.</div> : error ? <div className="feature-empty">{error}<button type="button" onClick={() => void loadQuestions()}>다시 불러오기</button></div> : !profile || !finalScores ? current && <article className="taste-card"><div className="taste-progress"><i style={{ width: `${(step + 1) / questions.length * 100}%` }}/></div><small>{step + 1} / {questions.length}</small><h2>{current.question}</h2><div>{current.options.map((option) => <button type="button" key={option.label} onClick={() => void answer(option.score)}><span>{option.label}</span><ArrowRight size={19}/></button>)}</div></article> : <article className="taste-result"><span>{profile.emoji}</span><small>나의 생활 취향</small><h2>{profile.name}</h2><p>{profile.summary}</p><div className="taste-analysis">{(Object.keys(finalScores) as TasteDimension[]).map((dimension) => { const max = dimension === "social" || dimension === "expression" ? 4 : 6; const percent = Math.round((finalScores[dimension] + max) / (max * 2) * 100); return <div key={dimension}><span>{dimensionLabels[dimension][0]}</span><i><b style={{ width: `${percent}%` }}/></i><span>{dimensionLabels[dimension][1]}</span></div>; })}</div><div className="taste-detail"><section><strong>잘 맞는 일상</strong><p>{profile.fit}</p></section><section><strong>나만의 강점</strong><p>{profile.strength}</p></section><section><strong>균형을 위한 제안</strong><p>{profile.tip}</p></section></div><div className="taste-result-actions"><button type="button" disabled={saved || actionPending} onClick={() => void saveResult()}><Save size={18}/>{saved ? "저장 완료" : actionPending ? "저장 중..." : "결과 저장"}</button><button type="button" disabled={actionPending} onClick={() => void shareResult()}><Share2 size={18}/>카카오톡 공유</button></div><button className="taste-retry" type="button" onClick={reset}><RefreshCw size={18}/> 다시 해보기</button>{notice && <em>{notice}</em>}</article>}
+    {loading ? <div className="feature-loading">취향 문항을 준비하고 있어요.</div> : error ? <div className="feature-empty">{error}<button type="button" onClick={() => void loadQuestions()}>다시 불러오기</button></div> : !profile || !finalScores ? current && <article className="taste-card"><div className="taste-progress"><i style={{ width: `${(step + 1) / questions.length * 100}%` }}/></div><small>{step + 1} / {questions.length}</small><h2>{current.question}</h2><div>{current.options.map((option) => <button type="button" key={option.label} onClick={() => void answer(option.score)}><span>{option.label}</span><ArrowRight size={19}/></button>)}</div></article> : <article className="taste-result"><span>{profile.emoji}</span><small>나의 생활 취향</small><h2>{profile.name}</h2><p>{profile.summary}</p><div className="taste-analysis">{(Object.keys(finalScores) as TasteDimension[]).map((dimension) => { const max = 4; const percent = Math.round((finalScores[dimension] + max) / (max * 2) * 100); return <div key={dimension}><span>{dimensionLabels[dimension][0]}</span><i><b style={{ width: `${percent}%` }}/></i><span>{dimensionLabels[dimension][1]}</span></div>; })}</div><div className="taste-detail"><section><strong>잘 맞는 일상</strong><p>{profile.fit}</p></section><section><strong>나만의 강점</strong><p>{profile.strength}</p></section><section><strong>균형을 위한 제안</strong><p>{profile.tip}</p></section></div><div className="taste-result-actions"><button type="button" disabled={saved || actionPending} onClick={() => void saveResult()}><Save size={18}/>{saved ? "저장 완료" : actionPending ? "저장 중..." : "결과 저장"}</button><button type="button" disabled={actionPending} onClick={() => void shareResult()}><Share2 size={18}/>카카오톡 공유</button></div><button className="taste-retry" type="button" onClick={reset}><RefreshCw size={18}/> 다시 해보기</button>{notice && <em>{notice}</em>}</article>}
   </section>;
 }
 
 function buildTasteProfile(scores: Record<TasteDimension,number>) {
-  const energy = Math.sign(scores.energy); const rhythm = Math.sign(scores.rhythm); const social = Math.sign(scores.social); const expression = Math.sign(scores.expression);
-  const names = [energy > 0 ? "호기심 탐험가" : energy < 0 ? "포근한 충전가" : "균형 잡힌 전환가", rhythm > 0 ? "유연한 발견자" : rhythm < 0 ? "단단한 설계자" : "균형 잡힌 조율가", social > 0 ? "다정한 연결자" : social < 0 ? "깊이 있는 몰입가" : "관계 균형가", expression > 0 ? "선명한 표현가" : expression < 0 ? "고요한 수집가" : "담백한 표현가"];
   const dominant = (Object.keys(scores) as TasteDimension[]).sort((a,b) => Math.abs(scores[b]) - Math.abs(scores[a]))[0];
-  const dominantTitles: Record<TasteDimension,string> = { energy:"에너지 중심형",rhythm:"생활 리듬 중심형",social:"관계 감각 중심형",expression:"표현 취향 중심형" };
+  const high = (dimension:TasteDimension) => scores[dimension] > 0;
+  const dominantTitles: Record<TasteDimension,string> = { neuroticism:"섬세한 감지자",extraversion:"활력 있는 연결자",openness:"호기심 많은 탐색가",agreeableness:"다정한 조율자",conscientiousness:"꾸준한 완성가" };
   return {
-    emoji: dominant === "energy" ? (energy > 0 ? "🧭" : energy < 0 ? "🫖" : "🌤️") : dominant === "rhythm" ? (rhythm > 0 ? "🌊" : rhythm < 0 ? "🗓️" : "⚖️") : dominant === "social" ? (social > 0 ? "🤝" : social < 0 ? "🌙" : "🌿") : (expression > 0 ? "✨" : expression < 0 ? "📚" : "🪞"),
-    name: `${dominantTitles[dominant]} · ${names[0]} ${names[2]}`,
-    summary: `${energy > 0 ? "새로운 자극에서 에너지를 얻는 편" : energy < 0 ? "익숙하고 편안한 환경에서 에너지를 회복하는 편" : "휴식과 새로움을 상황에 맞게 오가는 편"}이며, ${rhythm > 0 ? "상황의 흐름을 유연하게 활용합니다" : rhythm < 0 ? "미리 구조를 세울 때 마음이 안정됩니다" : "계획과 즉흥성을 균형 있게 사용합니다"}. ${social > 0 ? "사람과 경험을 나눌 때 만족이 커지고" : social < 0 ? "혼자 충분히 생각할 때 내 취향이 또렷해지며" : "혼자 있는 시간과 관계 속 시간을 고르게 필요로 하며"}, ${expression > 0 ? "좋아하는 것을 분명히 드러냅니다" : expression < 0 ? "좋아하는 것을 조용히 오래 간직합니다" : "필요한 순간에만 담백하게 표현합니다"}.`,
-    fit: `${energy > 0 ? "새로운 장소나 짧은 체험" : energy < 0 ? "편안한 공간과 충분한 휴식" : "익숙함 속 작은 변화"}에 ${rhythm > 0 ? "선택할 여백이 있는 일정" : rhythm < 0 ? "예측 가능한 일정" : "핵심만 정한 가벼운 계획"}을 더하면 만족도가 높아요.`,
-    strength: `${social > 0 ? "분위기와 감정을 읽고 관계를 따뜻하게 만드는 힘" : social < 0 ? "깊이 관찰하고 생각을 자기 방식으로 완성하는 힘" : "혼자와 함께의 경계를 자연스럽게 조절하는 힘"}이 있습니다. ${expression > 0 ? "취향을 분명하게 전달하는 감각" : expression < 0 ? "쉽게 휩쓸리지 않고 오래 좋아하는 집중력" : "상황에 맞는 표현의 강도를 고르는 감각"}도 강점이에요.`,
-    tip: `${energy > 0 ? "자극이 이어질 때는 아무 일정 없는 회복 시간을" : energy < 0 ? "안전한 일상 속에 아주 작은 새로움을" : "그날의 에너지 상태를 먼저 확인하는 습관을"} 의도적으로 넣어보세요. ${rhythm > 0 ? "중요한 약속만큼은 미리 기준을 정하면" : rhythm < 0 ? "계획 사이에 빈칸을 남겨두면" : "중요한 일과 자유로운 일을 구분하면"} 지금의 장점이 더 편안하게 살아납니다.`,
+    emoji: dominant === "openness" ? "🧭" : dominant === "extraversion" ? "🤝" : dominant === "agreeableness" ? "🌿" : dominant === "conscientiousness" ? "🗓️" : "🫧",
+    name: dominantTitles[dominant],
+    summary: `${high("openness") ? "새로운 관점과 경험을 탐색하는 힘" : "익숙한 방식에서 안정적으로 답을 찾는 힘"}이 있고, ${high("extraversion") ? "사람과 활동 속에서 에너지를 얻는 편" : "혼자 깊게 몰입하며 에너지를 회복하는 편"}입니다. ${high("agreeableness") ? "상대의 마음과 협력을 중요하게 여기며" : "필요할 때는 독립적인 기준을 분명히 세우며"}, ${high("conscientiousness") ? "계획한 일을 끝까지 완성하려는 경향" : "변화에 맞춰 유연하게 움직이는 경향"}이 나타납니다.`,
+    fit: `${high("openness") ? "배움과 변화가 있는 환경" : "역할과 기준이 분명한 환경"}에서 ${high("extraversion") ? "사람들과 아이디어를 나눌 기회" : "방해받지 않고 집중할 시간"}가 주어질 때 만족도가 높습니다.`,
+    strength: `${high("agreeableness") ? "관계를 부드럽게 조율하는 공감력" : "주변 분위기에 휩쓸리지 않는 판단력"}과 ${high("conscientiousness") ? "약속을 실행으로 옮기는 꾸준함" : "예상 밖 상황에 빠르게 적응하는 유연성"}이 강점입니다.`,
+    tip: `${high("neuroticism") ? "감정을 빨리 알아차리는 만큼 회복 시간을 일정에 먼저 확보해 보세요." : "침착함이 강점이지만 중요한 감정 신호를 지나치지 않도록 잠깐씩 상태를 확인해 보세요."} 결과는 우열이 아니라 현재 자주 사용하는 성향의 조합입니다.`,
   };
 }
 
