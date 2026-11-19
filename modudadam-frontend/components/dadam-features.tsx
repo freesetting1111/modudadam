@@ -34,7 +34,7 @@ export function TodayChoice() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const load = () => apiRequest<{ choice: Choice | null; previousChoice: Choice | null }>("/api/features/choices").then((data) => { setChoice(data.choice); setPreviousChoice(data.previousChoice); }).catch((caught) => setError(caught instanceof Error ? caught.message : "오늘의 선택을 불러오지 못했습니다.")).finally(() => setLoading(false));
+  const load = () => apiRequest<{ choice: Choice | null; previousChoice: Choice | null }>("/api/features/choices").then((data) => { setChoice(data.choice); setPreviousChoice(data.previousChoice); }).catch((caught) => setError(caught instanceof Error ? caught.message : "오늘의 극한 밸런스를 불러오지 못했습니다.")).finally(() => setLoading(false));
   useEffect(() => { void load(); }, []);
   const total = choice?.options.reduce((sum, option) => sum + option.voteCount, 0) || 0;
 
@@ -50,7 +50,7 @@ export function TodayChoice() {
   }
 
   return <section className="dadam-feature-page choice-page">
-    <FeatureHero icon={Vote} eyebrow="TODAY'S PICK" title="오늘의 선택" description="둘 중 지금 마음이 가는 쪽을 골라보세요."/>
+    <FeatureHero icon={Vote} eyebrow="DAILY EXTREME BALANCE" title="오늘의 극한 밸런스" description="피할 수 없는 두 선택, 지금 당신의 답을 골라보세요."/>
     {loading ? <div className="feature-loading">오늘의 질문을 준비하고 있어요.</div> : !choice ? <div className="feature-empty">오늘의 질문이 아직 등록되지 않았습니다.</div> : <article className="choice-card">
       <time dateTime={choice.activeOn}>{new Date(`${choice.activeOn}T00:00:00+09:00`).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })}</time>
       <h2>{choice.question}</h2><p>{choice.description}</p>

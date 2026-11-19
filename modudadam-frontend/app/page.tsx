@@ -6,6 +6,7 @@ import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
 import { categories, specialBoards } from "@/lib/categories";
 import { API_SERVER_URL } from "@/lib/server-config";
 import { StampedName } from "@/components/stamped-name";
+import { WeeklyReputationRankings } from "@/components/weekly-reputation-rankings";
 
 export type HomePost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
@@ -39,6 +40,8 @@ export default async function Home() {
     <section className="home-special-board-section" aria-label="공지사항과 자유게시판">
       <div className="board-card-grid">{specialBoardFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} />)}</div>
     </section>
+
+    <WeeklyReputationRankings />
 
     <section className="community-dashboard community-dashboard-stacked" aria-label="커뮤니티 주요 게시글">
       <CategoryPostCarousels hotGroups={weeklyGroups} latestGroups={latestGroups} />

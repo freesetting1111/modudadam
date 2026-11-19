@@ -21,7 +21,7 @@ const contentItems = [
   { href: "/play/missions", icon: Trophy, tone: "amber", eyebrow: "매일 새로운 생활 퀴즈", title: "다담 미션", description: "16개 주제의 세 문제를 모두 맞히고 도토리를 모아보세요." },
   { href: "/play/detective", icon: ShieldQuestion, tone: "blue", eyebrow: "오늘의 사건 파일", title: "다담 추리방", description: "열 명의 용의자와 세 단서 속에서 거짓말한 한 사람을 찾아보세요." },
   { href: "/play/time-capsule", icon: Hourglass, tone: "purple", eyebrow: "미래의 나에게", title: "다담 타임캡슐", description: "오늘의 마음을 봉인하고 정해 둔 날 다시 열어보세요." },
-  { href: "/play/choice", icon: Vote, tone: "coral", eyebrow: "매일 새로운 질문", title: "오늘의 선택", description: "둘 중 마음이 가는 쪽을 고르고 모두의 선택을 확인해 보세요." },
+  { href: "/play/choice", icon: Vote, tone: "coral", eyebrow: "오늘 단 한 번의 양자택일", title: "오늘의 극한 밸런스", description: "피할 수 없는 두 선택 중 하나를 고르고 모두의 답을 확인해 보세요." },
   { href: "/play/mailbox", icon: Mail, tone: "blue", eyebrow: "고정 익명 ID", title: "다담 우체통", description: "이름을 내려놓고 마음속 이야기와 따뜻한 답장을 나눠보세요." },
   { href: "/play/taste", icon: Sparkles, tone: "purple", eyebrow: "10문항 상세 분석", title: "취향 발견실", description: "5지선다 생활 질문으로 나도 몰랐던 취향의 결을 발견해 보세요." },
   { href: "/play/treasures", icon: MapPin, tone: "green", eyebrow: "이웃의 생활 지도", title: "동네 보물지도", description: "광고가 아닌 이웃이 직접 발견한 좋은 장소를 만나보세요." },

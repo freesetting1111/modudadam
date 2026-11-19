@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Check, ChevronRight, ShieldCheck, X } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { TermsContent } from "@/components/signup-form";
+import { AchievementDialog } from "@/components/achievement-dialog";
 
 type PendingProfile = { provider: "naver" | "kakao"; nickname: string | null };
 type NicknameState = "unchecked" | "checking" | "available" | "taken";
@@ -25,6 +26,7 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
   const [termsRead, setTermsRead] = useState(false);
   const [pending, setPending] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [signupDestination, setSignupDestination] = useState("");
   const [error, setError] = useState(ticket ? "" : "가입 인증 정보가 없습니다. 다시 로그인해 주세요.");
 
   useEffect(() => {
@@ -82,8 +84,8 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
         method: "POST",
         body: JSON.stringify({ ticket, nickname, gender, ageRange, phoneNumber, ageOver14: true, agreeTerms: true, agreePrivacy: true }),
       });
-      router.replace(result.returnTo || "/");
-      router.refresh();
+      setSignupDestination(result.returnTo || "/");
+      setPending(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "가입을 완료하지 못했습니다.");
       setPending(false);
@@ -149,6 +151,7 @@ export function OAuthAgreements({ ticket }: { ticket: string }) {
         <button type="button" onClick={() => setAlertMessage("")} autoFocus>확인</button>
       </section>
     </div>}
+    <AchievementDialog open={Boolean(signupDestination)} eyebrow="WELCOME TO MODUDADAM" title="모두다담에 오신 걸 환영해요!" description="가입이 완료됐어요. 이제 관심 있는 이야기를 만나고 마음껏 참여해 보세요." confirmLabel="모두다담 시작하기" onConfirm={() => { router.replace(signupDestination); router.refresh(); }} />
   </section>;
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { Check, ChevronRight, Eye, EyeOff, X } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { AchievementDialog } from "@/components/achievement-dialog";
 
 type Values = {
   loginId: string; password: string; passwordConfirm: string; realName: string;
@@ -30,6 +31,7 @@ export function SignupForm({ returnTo }: { returnTo: string }) {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
+  const [registeredLoginUrl, setRegisteredLoginUrl] = useState("");
 
   useEffect(() => {
     if (!termsOpen) return;
@@ -101,7 +103,7 @@ export function SignupForm({ returnTo }: { returnTo: string }) {
         }),
       });
       const loginUrl = `/login?registered=true&returnTo=${encodeURIComponent(returnTo)}`;
-      router.replace(loginUrl);
+      setRegisteredLoginUrl(loginUrl);
     } catch (caught) {
       setServerError(caught instanceof Error ? caught.message : "회원가입을 완료하지 못했습니다.");
     } finally { setPending(false); }
@@ -132,6 +134,7 @@ export function SignupForm({ returnTo }: { returnTo: string }) {
         <footer><button type="button" onClick={agreementComplete ? () => setTermsOpen(false) : acceptTerms} disabled={!termsRead}>{agreementComplete ? "닫기" : "동의하고 계속하기"}</button></footer>
       </section>
     </div>}
+    <AchievementDialog open={Boolean(registeredLoginUrl)} eyebrow="WELCOME TO MODUDADAM" title="가입을 환영해요!" description="모두다담에서 함께 나눌 준비가 끝났어요. 로그인하고 첫 이야기를 시작해 보세요." confirmLabel="로그인하러 가기" onConfirm={() => router.replace(registeredLoginUrl)} />
   </form>;
 }
 
