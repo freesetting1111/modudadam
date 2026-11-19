@@ -20,10 +20,6 @@ const geistMono = Geist_Mono({
 
 const verificationOther: Record<string, string> = {};
 
-if (process.env.NAVER_SITE_VERIFICATION) {
-  verificationOther["naver-site-verification"] = process.env.NAVER_SITE_VERIFICATION;
-}
-
 if (process.env.BING_SITE_VERIFICATION) {
   verificationOther["msvalidate.01"] = process.env.BING_SITE_VERIFICATION;
 }
@@ -47,8 +43,12 @@ export const viewport = { width: "device-width", initialScale: 1, maximumScale: 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const sessionUser = await getServerSessionUser();
   const gaId = process.env.NEXT_GA_ID?.trim();
+  const naverSiteVerification = process.env.NAVER_SITE_VERIFICATION?.trim();
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
+      <head>
+        {naverSiteVerification ? <meta name="naver-site-verification" content={naverSiteVerification} /> : null}
+      </head>
       <body className="antialiased" suppressHydrationWarning>
         <div className="app-shell">
           <AnalyticsTracker backendUrl={API_SERVER_URL} />
