@@ -5,6 +5,13 @@ import { ArrowRight, CalendarCheck2, Compass, Gift, HandCoins, Mail, MapPin, Sha
 export const metadata: Metadata = {
   title: "콘텐츠",
   description: "투표, 익명 우체통, 취향 테스트와 동네 이야기 등 모두다담의 참여형 콘텐츠를 만나보세요.",
+  alternates: { canonical: "/play" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: "콘텐츠",
+    description: "투표, 익명 우체통, 취향 테스트와 동네 이야기 등 모두다담의 참여형 콘텐츠를 만나보세요.",
+    url: "/play",
+  },
 };
 
 const contentItems = [
