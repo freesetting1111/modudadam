@@ -83,10 +83,8 @@ export async function POST(request:NextRequest) {
       const reputation=pointEntry.rows[0]
         ? await client.query<{ kindnessPoints:number }>(`UPDATE user_reputation_points SET kindness_points=LEAST(20000,kindness_points+1),updated_at=now() WHERE user_id=$1 RETURNING kindness_points AS "kindnessPoints"`,[user.id])
         : await client.query<{ kindnessPoints:number }>(`SELECT kindness_points AS "kindnessPoints" FROM user_reputation_points WHERE user_id=$1`,[user.id]);
-      const unlocked=await client.query<{ stampCode:string }>(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) SELECT $1,catalog.code,false FROM attendance_stamp_catalog catalog WHERE catalog.access_scope='reputation' AND catalog.enabled AND catalog.code LIKE 'kindness_%' AND CASE catalog.code WHEN 'kindness_100' THEN $2>=100 WHEN 'kindness_500' THEN $2>=500 WHEN 'kindness_1000' THEN $2>=1000 WHEN 'kindness_5000' THEN $2>=5000 WHEN 'kindness_10000' THEN $2>=10000 ELSE false END ON CONFLICT(user_id,stamp_code) DO NOTHING RETURNING stamp_code AS "stampCode"`,[user.id,reputation.rows[0]?.kindnessPoints || 0]);
-      const newStamps=unlocked.rows.length ? await client.query<{ name:string;emoji:string }>(`SELECT name,emoji FROM attendance_stamp_catalog WHERE code=ANY($1::text[]) ORDER BY sort_order`,[unlocked.rows.map((row) => row.stampCode)]) : { rows:[] };
       await client.query("COMMIT");
-      return jsonResponse({ sent:true,balance:senderWallet.balance-amount,recipientName:recipient.rows[0].nickname,kindnessPoints:reputation.rows[0]?.kindnessPoints || 0,newStamps:newStamps.rows },{ status:201 });
+      return jsonResponse({ sent:true,balance:senderWallet.balance-amount,recipientName:recipient.rows[0].nickname,kindnessPoints:reputation.rows[0]?.kindnessPoints || 0,newStamps:[] },{ status:201 });
     } catch(error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   } catch(error) {
     if (error instanceof Error && error.message==="UNAUTHORIZED") return errorResponse("로그인이 필요합니다.",401);

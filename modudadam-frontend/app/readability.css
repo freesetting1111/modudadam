@@ -1,0 +1,17 @@
+/* Mobile readability baseline shared by every page. */
+html {
+  text-size-adjust:100%;
+  -webkit-text-size-adjust:100%;
+}
+
+body {
+  line-height:1.6;
+}
+
+/* Keep form text readable and prevent automatic zoom on mobile browsers. */
+.app-shell input:not([type="checkbox"]):not([type="radio"]),
+.app-shell textarea,
+.app-shell select {
+  font-size:16px!important;
+}
+

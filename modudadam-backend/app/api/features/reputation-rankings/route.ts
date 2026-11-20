@@ -87,7 +87,6 @@ async function finalizePastWeeks() {
         if (!award.rows[0]) continue;
         await client.query(`INSERT INTO reputation_point_ledger(user_id,point_type,amount,source_type,source_key,description) VALUES($1,'misdeed',$2,'weekly_misdeed_vote',$3,$4) ON CONFLICT DO NOTHING`,[row.userId,points,`${item.weekStart}:${row.userId}`,`${item.weekStart} 주간 주의 랭킹 ${row.rank}위`]);
         await client.query(`INSERT INTO user_reputation_points(user_id,misdeed_points) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET misdeed_points=LEAST(20000,user_reputation_points.misdeed_points+$2),updated_at=now()`,[row.userId,points]);
-        await client.query(`SELECT grant_reputation_stamps($1)`,[row.userId]);
       }
       await client.query("COMMIT");
     } catch(error) { await client.query("ROLLBACK");throw error; } finally { client.release(); }

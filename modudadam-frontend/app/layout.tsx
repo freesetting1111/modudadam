@@ -10,6 +10,8 @@ import { API_SERVER_URL } from "@/lib/server-config";
 import "./globals.css";
 import "./community.css";
 import "./features.css";
+import "./stamp-effects.css";
+import "./readability.css";
 
 const notoSansKr = Noto_Sans_KR({ variable: "--font-noto-sans-kr", weight: "variable", preload: false, display: "swap" });
 
@@ -38,7 +40,7 @@ export const metadata: Metadata = {
     : {}),
 };
 
-export const viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
+export const viewport = { width: "device-width", initialScale: 1 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const sessionUser = await getServerSessionUser();

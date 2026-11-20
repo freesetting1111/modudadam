@@ -1,0 +1,46 @@
+/* 총관리자 전용: 황금 다람쥐와 왕관이 또렷하게 보이는 절제된 황금 오라. */
+.stamp-image-mark.stamp-operator-master {
+  animation:stamp-master-gold 3.2s ease-in-out infinite;
+}
+
+.stamp-image-mark.stamp-operator-master::before {
+  inset:-7px;
+  background:radial-gradient(circle,#fff9bf 0,#ffd43c80 36%,#e4861738 58%,transparent 75%)!important;
+  animation:stamp-master-halo 3.2s ease-in-out infinite;
+}
+
+.stamp-tier-items article.operator[data-stamp-code="operator_master"],
+.my-stamp-list article.operator[data-stamp-code="operator_master"] {
+  border:2px solid transparent;
+  background:
+    radial-gradient(circle at 10% 48%,#ffd43c30,transparent 28%) padding-box,
+    linear-gradient(135deg,#2d2109,#11101b 64%,#090b15) padding-box,
+    linear-gradient(120deg,#fff7ae,#ffc72e,#c5660b,#fff3a0) border-box;
+  box-shadow:inset 3px 0 #ffd43c,0 6px 22px #e89b273d;
+}
+
+.stamp-tier-items article.operator[data-stamp-code="operator_master"] .stamped-name-text,
+.my-stamp-list article.operator[data-stamp-code="operator_master"] .stamped-name-text {
+  color:#fff1a0;
+  text-shadow:0 0 9px #ffc5318f;
+}
+
+.stamp-tier-items article.operator[data-stamp-code="operator_master"]>div>small {
+  color:#ffd65d;
+}
+
+@keyframes stamp-master-gold {
+  0%,100% { transform:scale(1);filter:drop-shadow(0 0 4px #ffd43c99) drop-shadow(0 2px 2px #5c260b80); }
+  50% { transform:scale(1.025);filter:drop-shadow(0 0 9px #fff09fcc) drop-shadow(0 0 5px #e89222a8); }
+}
+
+@keyframes stamp-master-halo {
+  0%,100% { opacity:.5;transform:scale(.94); }
+  50% { opacity:.86;transform:scale(1.04); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .stamp-image-mark.stamp-operator-master,
+  .stamp-image-mark.stamp-operator-master::before { animation:none!important; }
+}
+
