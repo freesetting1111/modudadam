@@ -27,7 +27,7 @@ export function CategoryPostCarousels({ hotGroups, latestGroups }: { hotGroups: 
 function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant: "hot" | "latest" }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
-  const suppressClick = useRef(false);
+  const suppressClickUntil = useRef(0);
   const groupCount = groups.length;
   const group = groups[activeIndex] || groups[0];
   const category = categories.find((item) => item.code === group?.categoryCode) || categories[0];
@@ -61,26 +61,23 @@ function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant
       onPointerDown={(event) => {
         if (event.pointerType === "mouse" && event.button !== 0) return;
         dragStart.current = { x: event.clientX, y: event.clientY };
-        suppressClick.current = false;
-        event.currentTarget.setPointerCapture(event.pointerId);
       }}
       onPointerUp={(event) => {
         if (!dragStart.current) return;
         const distanceX = event.clientX - dragStart.current.x;
         const distanceY = event.clientY - dragStart.current.y;
         dragStart.current = null;
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
         if (Math.abs(distanceX) >= 45 && Math.abs(distanceX) > Math.abs(distanceY)) {
-          suppressClick.current = true;
+          suppressClickUntil.current = Date.now() + 400;
           move(distanceX < 0 ? 1 : -1);
         }
       }}
       onPointerCancel={() => { dragStart.current = null; }}
       onClickCapture={(event) => {
-        if (!suppressClick.current) return;
+        if (Date.now() > suppressClickUntil.current) return;
         event.preventDefault();
         event.stopPropagation();
-        suppressClick.current = false;
+        suppressClickUntil.current = 0;
       }}>
       {group?.posts.length ? group.posts.map((post, index) => <CarouselPost key={post.id} post={post} rank={isHot ? index + 1 : undefined} featured={index === 0} />) : <div className="weekly-hot-empty"><CategoryIcon size={20} /><strong>{category.name}</strong><span>{isHot ? "이번 주 인기 게시글이 없습니다." : "최근 등록된 게시글이 없습니다."}</span></div>}
     </div>

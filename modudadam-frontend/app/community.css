@@ -111,6 +111,10 @@
 /* Give the home board directory a stronger visual identity without losing density. */
 .board-directory{background:linear-gradient(180deg,#f5f8ff 0,#fff 210px)}.directory-heading{padding:2px 3px 5px}.directory-heading h2{display:flex;align-items:center;gap:9px;font-weight:900;letter-spacing:-.65px}.directory-heading h2::before{width:5px;height:20px;border-radius:999px;background:linear-gradient(180deg,#5479df,#8fa9ef);content:""}.directory-heading p{margin-top:6px;color:#697689}.directory-heading>span{padding:5px 9px;border-radius:999px;background:#e9efff;color:#4f73d9;font-weight:800}
 .board-preview-card{--board-accent:#7088c8;border-color:#dce4f2;border-top:3px solid var(--board-accent);box-shadow:0 7px 18px #2b3c5a0b;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.board-preview-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px #2b3c5a16}.board-preview-card>header{background:linear-gradient(90deg,color-mix(in srgb,var(--board-accent) 10%,#fff),#fff)}.board-preview-card header strong{color:#202d43;font-weight:900}.board-preview-title{color:#344157;font-weight:750}
+.board-preview-slots-3>div,.board-preview-slots-5>div{display:grid;grid-template-columns:minmax(0,1fr)}
+.board-preview-slots-3>div{height:240px;grid-template-rows:repeat(3,minmax(0,1fr))}
+.board-preview-slots-5>div{height:396px;grid-template-rows:repeat(5,minmax(0,1fr))}
+.board-preview-slots-3 .board-preview-empty,.board-preview-slots-5 .board-preview-empty{height:auto;grid-row:1/-1}
 .board-preview-card:has(.category-pets),.board-preview-card:has(.category-family),.board-preview-card:has(.category-style),.weekly-hot-carousel:has(.category-pets),.weekly-hot-carousel:has(.category-family),.weekly-hot-carousel:has(.category-style){--board-accent:#e27676}.board-preview-card:has(.category-food),.board-preview-card:has(.category-learning),.board-preview-card:has(.category-career),.weekly-hot-carousel:has(.category-food),.weekly-hot-carousel:has(.category-learning),.weekly-hot-carousel:has(.category-career){--board-accent:#df8a35}.board-preview-card:has(.category-home),.board-preview-card:has(.category-wellness),.board-preview-card:has(.category-finance),.weekly-hot-carousel:has(.category-home),.weekly-hot-carousel:has(.category-wellness),.weekly-hot-carousel:has(.category-finance){--board-accent:#3f9a79}.board-preview-card:has(.category-hobby),.board-preview-card:has(.category-culture),.board-preview-card:has(.category-ai-tech),.weekly-hot-carousel:has(.category-hobby),.weekly-hot-carousel:has(.category-culture),.weekly-hot-carousel:has(.category-ai-tech){--board-accent:#8069cf}.board-preview-card:has(.category-travel),.board-preview-card:has(.category-mobility),.board-preview-card:has(.category-local),.board-preview-card:has(.category-society),.weekly-hot-carousel:has(.category-travel),.weekly-hot-carousel:has(.category-mobility),.weekly-hot-carousel:has(.category-local),.weekly-hot-carousel:has(.category-society){--board-accent:#4f7fc9}
 
 /* Profile and policy pages use the same readable typography scale. */
@@ -315,8 +319,55 @@
 /* TOP 5와 NEW는 다섯 줄 높이를 유지하며 버튼 없이 자동 전환·드래그로 이동합니다. */
 .weekly-hot-carousel>header h1{overflow:hidden}
 .carousel-position{flex:none;min-width:38px;color:#7d8797;font-size:12px;font-weight:750;text-align:right;white-space:nowrap}
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-list{
+  width:100%;
+  height:376px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:repeat(5,minmax(0,1fr));
+  align-content:start;
+  overflow-x:hidden;
+}
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row,
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row.is-featured{
+  width:100%;
+  max-width:100%;
+  min-height:0;
+  align-items:start;
+}
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row.has-rank{
+  grid-template-columns:40px minmax(0,1fr);
+}
+.weekly-hot-carousel .portal-rank{
+  align-self:start;
+  padding-top:3px;
+}
+.weekly-hot-carousel .portal-post-copy{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  grid-template-rows:auto auto;
+  align-content:start;
+}
+.weekly-hot-carousel .portal-post-title{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+.weekly-hot-carousel .portal-post-title>span{
+  width:100%;
+  min-width:0;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.weekly-hot-carousel .portal-post-meta{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
 .weekly-hot-slide{
-  min-height:270px;
+  min-height:376px;
   touch-action:pan-y;
   cursor:grab;
   outline:none;
@@ -325,7 +376,7 @@
 .weekly-hot-slide:active{cursor:grabbing}
 .weekly-hot-slide:focus-visible{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--board-accent) 42%,transparent)}
 .weekly-hot-slide .portal-post-row{-webkit-user-drag:none}
-.weekly-hot-empty{height:270px}
+.weekly-hot-empty{height:auto;grid-row:1/-1}
 
 /* 마이페이지 활동 내역도 게시판 목록과 같은 글자 크기와 간격을 사용합니다. */
 .activity-list article{
@@ -377,7 +428,11 @@
 }
 
 @media(max-width:520px){
+  .board-preview-slots-3>div{height:282px}
+  .board-preview-slots-5>div{height:466px}
   .community-dashboard-stacked .weekly-hot-carousel>header{padding-right:10px;padding-left:9px}
+  .community-dashboard-stacked .weekly-hot-carousel .portal-post-list{height:466px}
+  .weekly-hot-slide{min-height:466px}
   .weekly-hot-carousel>header h1 .carousel-category-name{max-width:82px}
   .board-preview-meta,
   .portal-post-meta,
@@ -390,6 +445,7 @@
 
 @media(max-width:380px){
   .weekly-hot-carousel>header h1 .carousel-category-name{max-width:68px}
+  .community-dashboard-stacked .weekly-hot-carousel .portal-post-row.has-rank{grid-template-columns:34px minmax(0,1fr)}
   .board-preview-meta,
   .portal-post-meta,
   .board-row-meta{gap:2px 4px}

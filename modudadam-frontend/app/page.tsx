@@ -28,7 +28,7 @@ export default async function Home() {
   }));
   const categoryFeeds = categories.map((category) => ({
     category,
-    posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 10),
+    posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 5),
   }));
   const specialBoardFeeds = specialBoards.map((category) => ({
     category,
@@ -39,7 +39,7 @@ export default async function Home() {
     <HomeSearch />
 
     <section className="home-special-board-section" aria-label="공지사항과 자유게시판">
-      <div className="board-card-grid">{specialBoardFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} />)}</div>
+      <div className="board-card-grid">{specialBoardFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} slots={3} />)}</div>
     </section>
 
     <section className="community-dashboard community-dashboard-stacked" aria-label="커뮤니티 주요 게시글">
@@ -54,15 +54,15 @@ export default async function Home() {
 
     <section className="board-directory">
       <div className="directory-heading"><div><h2><Sparkles size={17}/>주제별 게시판</h2><p>관심 있는 게시판의 새 글을 바로 확인하세요.</p></div><span>{categories.length}개</span></div>
-      <div className="board-card-grid">{categoryFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} />)}</div>
+      <div className="board-card-grid">{categoryFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} slots={5} />)}</div>
     </section>
   </div>;
 }
 type PreviewBoard = (typeof categories)[number] | (typeof specialBoards)[number];
 
-function BoardPreview({ category, posts }: { category: PreviewBoard; posts: HomePost[] }) {
+function BoardPreview({ category, posts, slots }: { category: PreviewBoard; posts: HomePost[]; slots: 3 | 5 }) {
   const Icon = category.icon;
-  return <article className={`board-preview-card board-preview-${category.code}`}>
+  return <article className={`board-preview-card board-preview-${category.code} board-preview-slots-${slots}`}>
     <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
     <div>{posts.length > 0 ? posts.map((post) => <Link className={`board-preview-post ${post.isRead ? "is-read" : ""}`} href={`/posts/${post.id}`} key={post.id}>
       <span className="board-preview-title" title={post.title}>{displayPostTitle(post.title)}</span>
@@ -82,7 +82,7 @@ async function getWeeklyPostsByCategory(cookieHeader:string): Promise<HomePost[]
 }
 async function getCategoryPosts(cookieHeader:string): Promise<HomePost[]> {
   try {
-    const params = new URLSearchParams({ groupedByCategory: "true", perCategory: "10" });
+    const params = new URLSearchParams({ groupedByCategory: "true", perCategory: "5" });
     const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store",headers:cookieHeader ? { cookie:cookieHeader } : undefined });
     if (!response.ok) return [];
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };
