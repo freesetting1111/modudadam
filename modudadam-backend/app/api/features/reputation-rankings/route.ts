@@ -16,6 +16,7 @@ export async function GET(request:NextRequest) {
         `SELECT users.id AS "userId",users.nickname,user_stamp_emoji(users.id) AS "stampEmoji",count(*)::int AS score
          FROM acorn_gifts gifts JOIN users ON users.id=gifts.sender_id
          WHERE gifts.created_at >= (${weekStartSql}::timestamp AT TIME ZONE 'Asia/Seoul')
+           AND gifts.gift_type='user' AND gifts.status IN ('sent','viewed','claimed')
          GROUP BY users.id,users.nickname ORDER BY score DESC,max(gifts.created_at) ASC LIMIT 5`),
       currentMisdeedCandidates(),
       viewer ? query<{ candidateUserId:string }>(`SELECT candidate_user_id AS "candidateUserId" FROM weekly_misdeed_votes WHERE week_start=${weekStartSql} AND voter_id=$1`,[viewer.id]) : Promise.resolve({ rows:[] }),

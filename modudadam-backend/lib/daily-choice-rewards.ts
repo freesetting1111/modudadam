@@ -48,10 +48,10 @@ export async function settleDueChoiceRewards() {
              md5($1::text||':'||votes.user_id::text)::uuid AS request_key
            FROM daily_choice_votes votes WHERE votes.choice_id=$1::uuid
          ), inserted_gifts AS (
-           INSERT INTO acorn_gifts(sender_id,recipient_id,amount,message,request_key,gift_type,status,sender_display_name)
+           INSERT INTO acorn_gifts(sender_id,recipient_id,amount,message,request_key,gift_type,status,sender_display_name,sent_at)
            SELECT NULL,user_id,reward_amount,
              CASE outcome WHEN 'winner' THEN '극한 밸런스 다수 선택 보상! 도토리 20개를 받았어요.' WHEN 'tie' THEN '극한 밸런스 동률 참여 보상! 도토리 10개를 받았어요.' ELSE '극한 밸런스 참여 보상! 도토리 10개를 받았어요.' END,
-             request_key,'choice_reward','pending','modudadam'
+             request_key,'choice_reward','sent','modudadam',now()
            FROM reward_rows
            ON CONFLICT(recipient_id,request_key) WHERE gift_type='choice_reward'
            DO UPDATE SET message=EXCLUDED.message

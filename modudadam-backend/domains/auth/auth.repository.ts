@@ -323,11 +323,11 @@ async function ensureAcornWallet(userId: string, client: PoolClient) {
 async function ensureSignupGift(userId: string, client: PoolClient) {
   await client.query(
     `INSERT INTO acorn_gifts(
-       sender_id,recipient_id,amount,message,request_key,gift_type,status,sender_display_name
+       sender_id,recipient_id,amount,message,request_key,gift_type,status,sender_display_name,sent_at
      )
      SELECT NULL,users.id,100,
        format('modudadam님이 %s님에게 신규가입 패키지 도토리 100개를 보냈어요!',users.nickname),
-       gen_random_uuid(),'signup_package','pending','modudadam'
+       gen_random_uuid(),'signup_package','sent','modudadam',now()
      FROM users WHERE users.id=$1
      ON CONFLICT DO NOTHING`,
     [userId],

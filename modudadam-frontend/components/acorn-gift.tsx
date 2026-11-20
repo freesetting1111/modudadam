@@ -1,15 +1,17 @@
 "use client";
 
-import { ArrowDownLeft, ArrowUpRight, Check, HandCoins, Search, Send } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, CircleCheck, CircleX, HandCoins, LoaderCircle, Search, Send } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { StampedName } from "@/components/stamped-name";
 import { AchievementDialog } from "@/components/achievement-dialog";
 
-type GiftHistory = { id:string;direction:"sent"|"received";amount:number;message:string|null;partnerName:string;partnerStampEmoji:string|null;status:"pending"|"claimed";giftType:"user"|"signup_package"|"choice_reward";createdAt:string;claimedAt:string|null };
+type GiftStatus="sending"|"sent"|"viewed"|"claimed"|"failed";
+type GiftHistory = { id:string;direction:"sent"|"received";amount:number;message:string|null;partnerName:string;partnerStampEmoji:string|null;status:GiftStatus;giftType:"user"|"signup_package"|"choice_reward";createdAt:string;sentAt:string|null;viewedAt:string|null;claimedAt:string|null;failedAt:string|null;failureReason:string|null };
 type PendingGift = { id:string;amount:number;message:string|null;senderName:string;senderStampEmoji:string|null;giftType:"user"|"signup_package"|"choice_reward";createdAt:string };
-type GiftOverview = { balance:number;kindnessPoints:number;misdeedPoints:number;pendingGifts:PendingGift[];gifts:GiftHistory[] };
+type GiftPagination={ page:number;pageSize:number;totalItems:number;totalPages:number };
+type GiftOverview = { balance:number;kindnessPoints:number;misdeedPoints:number;pendingGifts:PendingGift[];gifts:GiftHistory[];pagination:GiftPagination;pendingPagination:GiftPagination };
 type Recipient = { nickname:string;stampEmoji:string|null };
 
 export function AcornGift() {
@@ -21,6 +23,9 @@ export function AcornGift() {
   const [giftAmount,setGiftAmount]=useState("10");
   const [giftConfirm,setGiftConfirm]=useState(false);
   const [pending,setPending]=useState("load");
+  const [giftPage,setGiftPage]=useState(1);
+  const [expandedGiftId,setExpandedGiftId]=useState("");
+  const [sendProgress,setSendProgress]=useState<{ status:"sending"|"sent"|"failed";message:string } | null>(null);
   const [notice,setNotice]=useState("");
   const [celebration,setCelebration]=useState<{ title:string;description:string;reward:string } | null>(null);
   const requestRef=useRef<{ payload:string;key:string } | null>(null);
@@ -35,13 +40,13 @@ export function AcornGift() {
     if (error instanceof ApiError && error.status===401) { router.replace(`/login?returnTo=${encodeURIComponent("/play/acorn-gift")}`); return; }
     setNotice(error instanceof Error ? error.message : fallback);
   },[router]);
-  const load=useCallback(() => apiRequest<GiftOverview>("/api/features/acorn-gifts",{ cache:"no-store" }).then((result) => {
+  const load=useCallback((page=1) => apiRequest<GiftOverview>(`/api/features/acorn-gifts?page=${page}`,{ cache:"no-store" }).then((result) => {
     setOverview(result);
     const allowed=Math.min(20000,Math.floor(result.balance/10)*10);
     setGiftAmount((current) => Number(current)>allowed ? (allowed>=10 ? String(allowed) : "") : current);
-    window.dispatchEvent(new CustomEvent("modudadam:gift-count-updated",{ detail:{ count:result.pendingGifts.length } }));
+    window.dispatchEvent(new CustomEvent("modudadam:gift-count-updated",{ detail:{ count:result.pendingPagination.totalItems } }));
   }).catch((error) => handleError(error,"도토리 선물함을 불러오지 못했습니다.")).finally(() => setPending("")),[handleError]);
-  useEffect(() => { void load(); },[load]);
+  useEffect(() => { void load(giftPage); },[giftPage,load]);
 
   async function findRecipient() {
     if (!nickname.trim()) { setNotice("받는 분의 닉네임을 입력해 주세요.");return; }
@@ -57,15 +62,17 @@ export function AcornGift() {
     if (!recipient || recipient.nickname.toLowerCase()!==nickname.trim().toLowerCase()) { setNotice("받는 분을 다시 확인해 주세요.");return; }
     if (!Number.isInteger(amount)||amount<10||amount>20000||amount%10!==0) { setNotice("도토리는 10개 단위로 입력해 주세요.");return; }
     if ((overview?.balance || 0)<amount) { setNotice("보유한 도토리가 부족합니다.");return; }
-    setPending("send");setNotice("");
+    setPending("send");setNotice("");setSendProgress({ status:"sending",message:`${recipient.nickname}님에게 도토리를 전송하고 있습니다.` });
     try {
       const payload=JSON.stringify({ nickname:recipient.nickname,amount,message });
       if (requestRef.current?.payload!==payload) requestRef.current={ payload,key:crypto.randomUUID() };
-      const result=await apiRequest<{ balance:number;recipientName:string;kindnessPoints:number;awardedKindnessPoints:number;newStamps:Array<{ name:string }> }>("/api/features/acorn-gifts",{ method:"POST",body:JSON.stringify({ nickname:recipient.nickname,amount,message,requestKey:requestRef.current.key }) });
+      const result=await apiRequest<{ balance:number;recipientName:string;deliveryStatus:GiftStatus;kindnessPoints:number;awardedKindnessPoints:number;newStamps:Array<{ name:string }> }>("/api/features/acorn-gifts",{ method:"POST",body:JSON.stringify({ nickname:recipient.nickname,amount,message,requestKey:requestRef.current.key }) });
       setGiftConfirm(false);setNotice(`${result.recipientName}님에게 도토리 ${amount.toLocaleString()}개를 선물했어요.`);
+      setSendProgress({ status:"sent",message:`${result.recipientName}님에게 도토리 ${amount.toLocaleString()}개 전송을 완료했습니다.` });
       setCelebration({ title:`${result.recipientName}님에게 도토리를 선물했습니다!`,description:result.newStamps.length ? `${result.newStamps.map((stamp) => stamp.name).join(", ")} 특별 스탬프도 함께 획득했어요.` : `상대방의 선물보따리에 도토리 ${amount.toLocaleString()}개를 담았어요.`,reward:`선행 포인트 +${result.awardedKindnessPoints.toLocaleString()} · 현재 ${result.kindnessPoints.toLocaleString()}점` });
-      requestRef.current=null;setNickname("");setRecipient(null);setMessage("");setGiftAmount("10");await load();
-    } catch(error) { setGiftConfirm(false);handleError(error,"도토리 선물을 보내지 못했습니다."); } finally { setPending(""); }
+      requestRef.current=null;setNickname("");setRecipient(null);setMessage("");setGiftAmount("10");
+      if(giftPage===1) await load(1); else setGiftPage(1);
+    } catch(error) { const errorMessage=error instanceof Error ? error.message : "도토리 선물을 보내지 못했습니다.";setGiftConfirm(false);setSendProgress({ status:"failed",message:errorMessage });handleError(error,"도토리 선물을 보내지 못했습니다.");await load(giftPage); } finally { setPending(""); }
   }
 
   function requestGift() { const amount=Number(giftAmount);setNotice("");if(!recipient||recipient.nickname.toLowerCase()!==nickname.trim().toLowerCase()){setNotice("받는 분을 다시 확인해 주세요.");return;}if(!Number.isInteger(amount)||amount<10||amount>20000||amount%10!==0){setNotice("도토리는 10개 단위로 입력해 주세요.");return;}if((overview?.balance||0)<amount){setNotice("보유한 도토리가 부족합니다.");return;}setGiftConfirm(true); }
@@ -95,11 +102,36 @@ export function AcornGift() {
       <label><span>함께 보낼 메시지 <small>{message.length}/80</small></span><textarea rows={3} maxLength={80} value={message} placeholder="짧은 마음을 남겨보세요. (선택)" onChange={(event) => setMessage(event.target.value)}/></label>
       <button className="gift-send-button" type="button" disabled={!recipient || pending==="send" || !isGiftAmountValid} onClick={requestGift}><Send size={18}/>{pending==="send" ? "선물 보내는 중..." : isGiftAmountValid ? `도토리 ${giftAmountNumber.toLocaleString()}개 선물하기` : "선물할 도토리를 확인해 주세요"}</button>
     </div>
+    {sendProgress&&<div className={`gift-send-progress ${sendProgress.status}`}><span>{sendProgress.status==="sending"?<LoaderCircle/>:sendProgress.status==="sent"?<CircleCheck/>:<CircleX/>}</span><div><small>상태코드 · {giftStatusMeta(sendProgress.status).code}</small><strong>{giftStatusMeta(sendProgress.status).label}</strong><p>{sendProgress.message}</p></div></div>}
     {notice && <p className="reward-notice">{notice}</p>}
-    <section className="gift-history"><header><h2>선물 내역</h2><span>최근 20건</span></header>{pending==="load" ? <div className="feature-loading">선물 내역을 불러오고 있어요.</div> : overview?.gifts.length ? <div>{overview.gifts.map((gift) => <article key={gift.id}><span className={gift.direction}>{gift.direction==="sent" ? <ArrowUpRight size={19}/> : <ArrowDownLeft size={19}/>}</span><div><strong><StampedName full name={gift.partnerName} stamp={gift.partnerStampEmoji}/></strong><p>{gift.message || (gift.direction==="sent" ? "도토리를 선물했어요." : "도토리를 선물받았어요.")}</p><time dateTime={gift.createdAt}>{formatDate(gift.createdAt)}{gift.direction==="received" && gift.status==="pending" ? " · 수령 대기" : ""}</time></div><b className={`${gift.direction} ${gift.status}`}>{gift.direction==="sent" ? "-" : gift.status==="pending" ? "대기 " : "+"}{gift.amount.toLocaleString()} 🌰</b></article>)}</div> : <div className="gift-history-empty">아직 주고받은 도토리 선물이 없습니다.</div>}</section>
+    <section className="gift-history"><header><h2>선물 내역</h2><span>총 {overview?.pagination.totalItems.toLocaleString() || 0}건 · 10개씩</span></header>{pending==="load" ? <div className="feature-loading">선물 내역을 불러오고 있어요.</div> : overview?.gifts.length ? <div>{overview.gifts.map((gift) => { const meta=giftStatusMeta(gift.status);const expanded=expandedGiftId===gift.id;return <article className={expanded?"expanded":undefined} key={gift.id}><button type="button" className="gift-history-row" aria-expanded={expanded} onClick={()=>setExpandedGiftId(expanded?"":gift.id)}><span className={gift.direction}>{gift.direction==="sent" ? <ArrowUpRight size={19}/> : <ArrowDownLeft size={19}/>}</span><div><strong><StampedName full name={gift.partnerName} stamp={gift.partnerStampEmoji}/></strong><p>{gift.message || (gift.direction==="sent" ? "도토리를 선물했어요." : "도토리를 선물받았어요.")}</p><time dateTime={gift.createdAt}>{formatDate(gift.createdAt)}</time></div><aside><b className={`${gift.direction} ${gift.status}`}>{gift.direction==="sent" ? "-" : "+"}{gift.amount.toLocaleString()} 🌰</b><em className={gift.status}>{meta.label}</em></aside><ChevronDown className="gift-history-chevron"/></button>{expanded&&<GiftDeliveryStatus gift={gift}/>}</article>;})}</div> : <div className="gift-history-empty">아직 주고받은 도토리 선물이 없습니다.</div>}{overview&&overview.pagination.totalPages>1&&<nav className="feature-pagination gift-history-pagination" aria-label="선물 내역 페이지"><button type="button" disabled={giftPage<=1} onClick={()=>{setPending("load");setExpandedGiftId("");setGiftPage((page)=>page-1);}}><ChevronLeft/></button>{giftPageNumbers(giftPage,overview.pagination.totalPages).map((page)=><button type="button" className={page===giftPage?"active":undefined} aria-current={page===giftPage?"page":undefined} key={page} onClick={()=>{setPending("load");setExpandedGiftId("");setGiftPage(page);}}>{page}</button>)}<button type="button" disabled={giftPage>=overview.pagination.totalPages} onClick={()=>{setPending("load");setExpandedGiftId("");setGiftPage((page)=>page+1);}}><ChevronRight/></button></nav>}</section>
     <AchievementDialog open={Boolean(celebration)} eyebrow="ACORN GIFT" title={celebration?.title || ""} description={celebration?.description || ""} reward={celebration?.reward} confirmLabel="확인" onConfirm={() => setCelebration(null)}/>
     <AchievementDialog open={giftConfirm} eyebrow="ACORN GIFT" title={`${recipient?.nickname || "받는 분"}님에게 선물할까요?`} description={`도토리 ${(giftAmountNumber||0).toLocaleString()}개를 상대방의 선물보따리에 보냅니다.`} reward={`선행 포인트 +${expectedKindnessPoints.toLocaleString()}점`} confirmLabel={pending==="send"?"보내는 중...":"네, 선물할게요"} cancelLabel="아니오" pending={pending==="send"} onConfirm={() => void sendGift()} onCancel={() => setGiftConfirm(false)}/>
   </section>;
 }
 
 function formatDate(value:string) { return new Intl.DateTimeFormat("ko-KR",{ month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit" }).format(new Date(value)); }
+
+function giftStatusMeta(status:GiftStatus) {
+  return {
+    sending:{ code:"SENDING",label:"전송 중" },
+    sent:{ code:"SENT",label:"전송완료" },
+    viewed:{ code:"VIEWED",label:"확인완료" },
+    claimed:{ code:"CLAIMED",label:"받기완료" },
+    failed:{ code:"FAILED",label:"전송실패" },
+  }[status];
+}
+
+function GiftDeliveryStatus({ gift }:{ gift:GiftHistory }) {
+  const steps:Array<{ status:Exclude<GiftStatus,"failed">;label:string;time:string|null }>=[
+    { status:"sending",label:"전송 중",time:gift.createdAt },
+    { status:"sent",label:"전송완료",time:gift.sentAt },
+    { status:"viewed",label:"확인완료",time:gift.viewedAt },
+    { status:"claimed",label:"받기완료",time:gift.claimedAt },
+  ];
+  if(gift.status==="failed") return <div className="gift-delivery-detail failed"><header><CircleX/><div><small>상태코드 · FAILED</small><strong>전송실패</strong></div></header><p>{gift.failureReason || "선물을 전송하지 못했습니다."}</p>{gift.failedAt&&<time dateTime={gift.failedAt}>{formatDate(gift.failedAt)}</time>}</div>;
+  const currentIndex=steps.findIndex((step)=>step.status===gift.status);
+  return <div className="gift-delivery-detail"><header><span>배송 상태</span><b>{giftStatusMeta(gift.status).code}</b></header><ol>{steps.map((step,index)=><li className={index<currentIndex?"done":index===currentIndex?"current":"waiting"} key={step.status}><i>{index<currentIndex?<Check/>:index+1}</i><div><strong>{step.label}</strong><small>{step.time?formatDate(step.time):"대기 중"}</small></div></li>)}</ol></div>;
+}
+
+function giftPageNumbers(page:number,totalPages:number) { const start=Math.max(1,Math.min(page-2,totalPages-4));return Array.from({ length:Math.min(5,totalPages) },(_,index)=>start+index); }
