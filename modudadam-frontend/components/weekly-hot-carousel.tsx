@@ -67,13 +67,13 @@ function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant
         touchStart.current = null;
         if (Math.abs(distance) >= 45) move(distance < 0 ? 1 : -1);
       }}>
-      {group?.posts.length ? group.posts.map((post, index) => <CarouselPost key={post.id} post={post} rank={isHot ? index + 1 : undefined} />) : <div className="weekly-hot-empty"><CategoryIcon size={20} /><strong>{category.name}</strong><span>{isHot ? "이번 주 인기 게시글이 없습니다." : "최근 등록된 게시글이 없습니다."}</span></div>}
+      {group?.posts.length ? group.posts.map((post, index) => <CarouselPost key={post.id} post={post} rank={isHot ? index + 1 : undefined} featured={index === 0} />) : <div className="weekly-hot-empty"><CategoryIcon size={20} /><strong>{category.name}</strong><span>{isHot ? "이번 주 인기 게시글이 없습니다." : "최근 등록된 게시글이 없습니다."}</span></div>}
     </div>
   </article>;
 }
 
-function CarouselPost({ post, rank }: { post: HomePost; rank?: number }) {
-  return <Link href={`/posts/${post.id}`} className={`portal-post-row ${rank ? "has-rank" : ""} ${post.isRead ? "is-read" : ""}`}>
+function CarouselPost({ post, rank, featured }: { post: HomePost; rank?: number; featured:boolean }) {
+  return <Link href={`/posts/${post.id}`} className={`portal-post-row ${rank ? "has-rank" : ""} ${featured ? "is-featured" : ""} ${post.isRead ? "is-read" : ""}`}>
     {rank && <strong className={`portal-rank ${rank <= 3 ? `medal-rank medal-rank-${rank}` : ""}`}>{rank <= 3 && <Crown className="rank-crown" size={14} aria-hidden="true" />}{rank}</strong>}
     <div className="portal-post-copy">
       <div className="portal-post-title"><span>{post.title}</span></div>

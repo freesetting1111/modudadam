@@ -141,6 +141,79 @@
 .reply-mention{display:inline-flex;align-items:center;gap:3px;margin-right:5px}.reply-stamp{font-size:19px;line-height:1}
 @media(max-width:420px){.site-header.has-back .brand-mark{display:none}.board-row-meta{gap:7px;overflow:hidden}.board-row-meta .board-author{max-width:118px}.portal-author{display:inline-flex!important;max-width:92px}.board-preview-meta .stamped-name{max-width:90px}}
 
+/* Home information hierarchy: discovery first, participation second. */
+.community-home{background:linear-gradient(180deg,#fff 0,#fbfcff 440px,#fff 760px)}
+.home-feature-heading{display:flex;align-items:center;gap:11px;padding:5px 3px 2px}
+.home-feature-heading>span{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:14px;background:linear-gradient(145deg,#fff1c9,#ffe3a0);color:#aa6b0c;box-shadow:0 8px 18px #bb781a1d}
+.home-feature-heading small{display:block;color:#9d681b;font-size:9px;font-weight:950;letter-spacing:.8px}
+.home-feature-heading h2{margin:2px 0 3px;color:#1f2c43;font-size:19px;line-height:1.3;letter-spacing:-.55px}
+.home-feature-heading p{margin:0;color:#788599;font-size:11px;line-height:1.45}
+.community-dashboard.community-dashboard-stacked{padding-top:15px;padding-bottom:20px;background:linear-gradient(180deg,#fffaf0,#fff 48%);border-top:1px solid #f0e6cf;border-bottom:8px solid #f2f5f9}
+.community-dashboard-stacked .weekly-hot-carousel{overflow:hidden;border:1px solid color-mix(in srgb,var(--board-accent) 27%,#dfe5ed);border-top:0;border-radius:18px;box-shadow:0 10px 25px color-mix(in srgb,var(--board-accent) 12%,transparent)}
+.community-dashboard-stacked .weekly-hot-carousel::before{position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,var(--board-accent),color-mix(in srgb,var(--board-accent) 35%,#fff));content:""}
+.community-dashboard-stacked .weekly-hot-carousel>header{height:54px;padding:5px 12px 0;background:linear-gradient(105deg,color-mix(in srgb,var(--board-accent) 15%,#fff),#fff 64%)}
+.community-dashboard-stacked .hot-panel{--board-accent:#ef685d}
+.community-dashboard-stacked .latest-panel{--board-accent:#5579df}
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-list{padding:5px 10px 8px}
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row{position:relative;min-height:43px;height:auto;padding:6px 8px;border-radius:10px}
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row+.portal-post-row{border-top:1px solid #edf0f4}
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row.is-featured{min-height:58px;margin-bottom:3px;border:1px solid color-mix(in srgb,var(--board-accent) 16%,#e5e9f0);background:linear-gradient(100deg,color-mix(in srgb,var(--board-accent) 9%,#fff),#fff);box-shadow:0 5px 14px color-mix(in srgb,var(--board-accent) 8%,transparent)}
+.weekly-hot-carousel .portal-post-row.is-featured .portal-post-title span{color:#1d2a41;font-size:14px;font-weight:900}
+.weekly-hot-carousel .portal-post-row.is-featured .portal-rank{font-size:14px}
+.weekly-hot-carousel .portal-post-row.is-featured .rank-crown{width:16px;height:16px;filter:drop-shadow(0 2px 3px #d49b2745)}
+.weekly-hot-carousel .portal-post-row.is-read .portal-post-title span{color:#98a1af;font-weight:650}
+.weekly-hot-carousel .portal-post-row:active{transform:scale(.992)}
+.board-directory{border-top:8px solid #f2f5f9}
+.directory-heading h2 svg{flex:none;color:#5a7ddd}
+@media(max-width:520px){.home-feature-heading{align-items:flex-start}.home-feature-heading>span{width:38px;height:38px;border-radius:12px}.home-feature-heading h2{font-size:17px}.home-feature-heading p{font-size:10px}.community-dashboard-stacked .weekly-hot-carousel>header{height:50px}.community-dashboard-stacked .weekly-hot-carousel .portal-post-row{padding:6px}.community-dashboard-stacked .weekly-hot-carousel .portal-post-row.is-featured{min-height:68px}}
+
+/* Weekly reputation uses achievement and caution as distinct visual signals. */
+.weekly-reputation{position:relative;overflow:hidden;margin:0;padding:22px 16px;border:0;border-bottom:8px solid #f2f5f9;border-radius:0;background:linear-gradient(145deg,#f7f9ff,#fff 52%,#fff8f1);box-shadow:none}
+.weekly-reputation::before{position:absolute;top:-85px;right:-65px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,#f2c86b26,transparent 69%);content:"";pointer-events:none}
+.weekly-reputation>header{position:relative;align-items:center;margin-bottom:14px}
+.weekly-reputation-heading{display:flex;align-items:center;gap:11px;min-width:0}
+.weekly-reputation-heading>span{width:44px;height:44px;display:grid;place-items:center;flex:none;border-radius:15px;background:linear-gradient(145deg,#273755,#17243e);color:#ffd56b;box-shadow:0 9px 20px #17243e2b}
+.weekly-reputation>header .weekly-reputation-heading small{color:#6579c8;font-size:9px;font-weight:950;letter-spacing:.85px}
+.weekly-reputation>header .weekly-reputation-heading h2{margin:2px 0 3px;color:#1c2a42;font-size:20px;letter-spacing:-.6px}
+.weekly-reputation>header .weekly-reputation-heading p{max-width:330px;color:#7b8799;font-size:11px;line-height:1.45}
+.weekly-my-score{display:flex!important;align-items:center;gap:6px;padding:8px 10px;border:1px solid #e0e5ee;border-radius:11px;background:#ffffffd9;color:#6b7585!important;font-size:10px!important;box-shadow:0 5px 14px #2536510b;white-space:nowrap}
+.weekly-my-score small{color:#6579c8!important;font-size:8px!important;font-weight:950;letter-spacing:.5px}
+.weekly-my-score b{color:#9b6619}.weekly-my-score i{width:1px;height:12px;background:#dfe4eb}
+.weekly-reputation-grid{position:relative;display:grid;grid-template-columns:1fr;gap:12px}
+.weekly-rank-panel{position:relative;overflow:hidden;border-radius:18px;background:#fff;box-shadow:0 10px 24px #26375412}
+.weekly-rank-panel.kindness{border:1px solid #ead5a5;background:linear-gradient(135deg,#fffaf0,#fff 46%)}
+.weekly-rank-panel.misdeed{border:1px solid #e5c2ca;background:linear-gradient(135deg,#fff6f7,#fff 46%)}
+.weekly-rank-panel::before{position:absolute;inset:0 0 auto;height:4px;content:""}
+.weekly-rank-panel.kindness::before{background:linear-gradient(90deg,#d7972e,#f0c761,#54a982)}
+.weekly-rank-panel.misdeed::before{background:linear-gradient(90deg,#a62f4d,#e06074,#5a385d)}
+.weekly-rank-panel>header{min-height:70px;padding:14px 14px 11px;border-bottom:1px solid #eceff3;background:transparent}
+.weekly-rank-panel>header>span{width:42px;height:42px;border-radius:14px}
+.weekly-rank-panel.kindness>header>span{background:linear-gradient(145deg,#fff0bf,#f5d788);color:#a66a10;box-shadow:0 6px 14px #bd7b1b22}
+.weekly-rank-panel.misdeed>header>span{background:linear-gradient(145deg,#ffe1e7,#f4bdc9);color:#a93450;box-shadow:0 6px 14px #b23c5720}
+.weekly-rank-panel>header small{display:block;margin-bottom:1px;font-size:8px;font-weight:950;letter-spacing:.75px}
+.weekly-rank-panel.kindness>header small{color:#a66a10}.weekly-rank-panel.misdeed>header small{color:#a93450}
+.weekly-rank-panel h3{font-size:16px;letter-spacing:-.35px}.weekly-rank-panel header p{font-size:10px}
+.weekly-rank-list{padding:5px 8px 8px}
+.weekly-rank-list>div{min-height:49px;grid-template-columns:34px minmax(0,1fr) auto auto;gap:8px;padding:7px 8px;border-bottom:1px solid #edf0f4;border-radius:10px}
+.weekly-rank-list>div.rank-1{min-height:57px;margin:2px 0 4px;border:1px solid transparent}
+.weekly-rank-panel.kindness .weekly-rank-list>div.rank-1{border-color:#eed7a5;background:linear-gradient(90deg,#fff5d9,#fff)}
+.weekly-rank-panel.misdeed .weekly-rank-list>div.rank-1{border-color:#edcbd2;background:linear-gradient(90deg,#fff0f3,#fff)}
+.weekly-rank-list>div.selected{background:#fce9ed!important;box-shadow:inset 3px 0 #bd425e}
+.rank-position{width:30px;height:30px;display:grid!important;grid-template-columns:12px 1fr;place-items:center;border-radius:10px;background:#f0f2f6;color:#667386!important;font-size:11px!important}
+.rank-position svg{color:#a6afbb}.rank-position span{line-height:1}
+.rank-1 .rank-position{background:#fff0b8;color:#93610f!important;box-shadow:0 3px 9px #c58b2729}.rank-1 .rank-position svg{color:#c18418;fill:#f4c64f}
+.rank-2 .rank-position{background:#eef1f5;color:#647187!important}.rank-2 .rank-position svg{color:#8994a3;fill:#c6ced9}
+.rank-3 .rank-position{background:#fff0e8;color:#9f5938!important}.rank-3 .rank-position svg{color:#ac6541;fill:#d99570}
+.weekly-rank-list .stamped-name{font-size:13px;font-weight:850}
+.weekly-rank-list .stamped-name-mark{font-size:19px}
+.weekly-rank-list>div>.rank-score{padding:5px 7px;border-radius:8px;background:#f2f4f7;color:#798495;font-size:9px;font-weight:700;white-space:nowrap}
+.weekly-rank-panel.kindness .rank-score strong{color:#9f6612}.weekly-rank-panel.misdeed .rank-score strong{color:#ab3652}
+.weekly-rank-list button{height:32px;padding:0 10px;border:1px solid #e9b9c4;background:#fff0f3;color:#a7334f;font-size:10px;cursor:pointer}
+.weekly-rank-list button:not(:disabled):active{transform:scale(.95)}
+.ranking-login,.ranking-error{position:relative;margin-top:12px;font-size:10px}
+@media(max-width:520px){.weekly-reputation{padding:20px 14px}.weekly-reputation>header{align-items:flex-start;flex-direction:column}.weekly-my-score{align-self:stretch;justify-content:center}.weekly-rank-list>div{grid-template-columns:32px minmax(0,1fr) auto auto;gap:6px;padding-right:5px;padding-left:5px}.weekly-rank-list .stamped-name{font-size:12px}.weekly-rank-list .stamped-name-mark{font-size:17px}.weekly-rank-list>div>.rank-score{padding-right:5px;padding-left:5px}}
+@media(max-width:380px){.weekly-rank-list>div{grid-template-columns:30px minmax(0,1fr) auto}.weekly-rank-list button{grid-column:2/-1;width:100%;height:30px}.weekly-rank-panel.misdeed .weekly-rank-list>div{min-height:70px}}
+
 /* 게시글 목록에서는 제목과 작성자 영역이 서로 밀어내지 않도록 같은 규칙을 사용합니다. */
 .board-preview-title,
 .portal-post-title>span,

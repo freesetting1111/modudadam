@@ -512,11 +512,18 @@ INSERT INTO taste_question_bank(question_key,dimension,question,options,enabled,
 INSERT INTO taste_question_bank(question_key,dimension,question,options,enabled,source_name,source_item_id,source_license,construct) VALUES('ipip-499','openness','Seldom은 그림과 그림의 정서적 측면을 발견했습니다.','[{"label": "전혀 그렇지 않다", "score": 2}, {"label": "그렇지 않은 편이다", "score": 1}, {"label": "보통이다", "score": 0}, {"label": "그런 편이다", "score": -1}, {"label": "매우 그렇다", "score": -2}]'::jsonb,true,'IPIP-HEXACO-PI','ipip-hexaco-pi_AESTHETIC_APPRECIATION_O_AESA_ALPHA_7','Public Domain','Aesthetic Appreciation (O:Aesa)') ON CONFLICT(question_key) DO UPDATE SET dimension=EXCLUDED.dimension,question=EXCLUDED.question,options=EXCLUDED.options,enabled=true,source_name=EXCLUDED.source_name,source_item_id=EXCLUDED.source_item_id,source_license=EXCLUDED.source_license,construct=EXCLUDED.construct;
 INSERT INTO taste_question_bank(question_key,dimension,question,options,enabled,source_name,source_item_id,source_license,construct) VALUES('ipip-500','openness','poetry처럼하지 마십시오.','[{"label": "전혀 그렇지 않다", "score": 2}, {"label": "그렇지 않은 편이다", "score": 1}, {"label": "보통이다", "score": 0}, {"label": "그런 편이다", "score": -1}, {"label": "매우 그렇다", "score": -2}]'::jsonb,true,'IPIP-HEXACO-PI','ipip-hexaco-pi_AESTHETIC_APPRECIATION_O_AESA_ALPHA_8','Public Domain','Aesthetic Appreciation (O:Aesa)') ON CONFLICT(question_key) DO UPDATE SET dimension=EXCLUDED.dimension,question=EXCLUDED.question,options=EXCLUDED.options,enabled=true,source_name=EXCLUDED.source_name,source_item_id=EXCLUDED.source_item_id,source_license=EXCLUDED.source_license,construct=EXCLUDED.construct;
 
+-- IPIP-HEXACO-PI 구간은 자동 직역 품질이 검수 기준을 충족하지 않아 비활성화합니다.
+-- 원본 레코드는 삭제하지 않으며, 059_reviewed_korean_taste_bank.sql이 검수된 1,000문항을 추가합니다.
+UPDATE taste_question_bank SET enabled=false WHERE source_name='IPIP-HEXACO-PI';
+
 DO $$
 DECLARE item_count integer; source_count integer; dimension_count integer;
 BEGIN
-  SELECT count(*),count(DISTINCT source_item_id),count(DISTINCT dimension) INTO item_count,source_count,dimension_count FROM taste_question_bank WHERE enabled;
-  IF item_count<>500 OR source_count<>500 OR dimension_count<>5 THEN
+  SELECT count(*),count(DISTINCT source_item_id),count(DISTINCT dimension)
+    INTO item_count,source_count,dimension_count
+    FROM taste_question_bank
+   WHERE enabled AND source_name='IPIP-NEO-300';
+  IF item_count<>300 OR source_count<>300 OR dimension_count<>5 THEN
     RAISE EXCEPTION '취향 문항 검증 실패: items %, sources %, dimensions %',item_count,source_count,dimension_count;
   END IF;
 END $$;

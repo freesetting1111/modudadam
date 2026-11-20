@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ChevronRight, Eye, MessageCircle } from "lucide-react";
+import { ChevronRight, Eye, MessageCircle, Sparkles, TrendingUp } from "lucide-react";
 import { HomeSearch } from "@/components/home-search";
 import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
 import { categories, specialBoards } from "@/lib/categories";
@@ -41,14 +41,18 @@ export default async function Home() {
       <div className="board-card-grid">{specialBoardFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} />)}</div>
     </section>
 
-    <WeeklyReputationRankings />
-
     <section className="community-dashboard community-dashboard-stacked" aria-label="커뮤니티 주요 게시글">
+      <header className="home-feature-heading">
+        <span><TrendingUp size={20}/></span>
+        <div><small>DISCOVER THIS WEEK</small><h2>지금 사람들이 모이는 이야기</h2><p>이번 주에 많이 읽힌 글과 방금 올라온 새 이야기를 만나보세요.</p></div>
+      </header>
       <CategoryPostCarousels hotGroups={weeklyGroups} latestGroups={latestGroups} />
     </section>
 
+    <WeeklyReputationRankings />
+
     <section className="board-directory">
-      <div className="directory-heading"><div><h2>주제별 게시판</h2><p>관심 있는 게시판의 새 글을 바로 확인하세요.</p></div><span>{categories.length}개</span></div>
+      <div className="directory-heading"><div><h2><Sparkles size={17}/>주제별 게시판</h2><p>관심 있는 게시판의 새 글을 바로 확인하세요.</p></div><span>{categories.length}개</span></div>
       <div className="board-card-grid">{categoryFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} />)}</div>
     </section>
   </div>;

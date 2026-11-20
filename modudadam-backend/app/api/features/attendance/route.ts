@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
 async function ensureAccount(userId:string,email:string | null) {
   await query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
   await query(`INSERT INTO user_reputation_points(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
+  await query(`SELECT grant_reputation_stamps($1)`,[userId]);
   await query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) VALUES($1,'basic',true) ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);
   await query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) VALUES($1,'sprout',false) ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);
   if (email?.trim().toLowerCase()==='freesetting@naver.com') await query(`INSERT INTO user_attendance_stamps(user_id,stamp_code,equipped) SELECT $1,code,false FROM attendance_stamp_catalog WHERE enabled AND access_scope='operator' ON CONFLICT(user_id,stamp_code) DO NOTHING`,[userId]);

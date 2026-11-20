@@ -16,6 +16,16 @@ export async function GET(request: NextRequest) {
          FROM taste_question_bank bank
          LEFT JOIN taste_question_exposures exposure ON exposure.question_id=bank.id AND exposure.user_id=$1::uuid
         WHERE bank.enabled
+          AND (
+            bank.source_name='MODUDADAM-KO-BIG5-V1'
+            OR (
+              bank.source_name='IPIP-NEO-300'
+              AND NOT EXISTS (
+                SELECT 1 FROM taste_question_bank reviewed
+                 WHERE reviewed.enabled AND reviewed.source_name='MODUDADAM-KO-BIG5-V1'
+              )
+            )
+          )
      ), ranked AS (
        SELECT id::text,dimension,question,options,
               row_number() OVER(PARTITION BY dimension ORDER BY used,random()) AS rn
@@ -47,7 +57,20 @@ export async function POST(request: NextRequest) {
     if (answers.length !== 10 || new Set(answers.map((answer) => answer.questionId)).size !== 10) return errorResponse("10개 문항에 모두 답해 주세요.");
     if (answers.some((answer) => !/^\d+$/.test(answer.questionId) || !Number.isInteger(answer.score) || answer.score < -2 || answer.score > 2)) return errorResponse("검사 답변이 올바르지 않습니다.");
     const bank = await query<QuestionRow>(
-      `SELECT id::text,dimension,question,options FROM taste_question_bank WHERE enabled AND id=ANY($1::bigint[])`,
+      `SELECT id::text,dimension,question,options
+         FROM taste_question_bank
+        WHERE enabled
+          AND (
+            source_name='MODUDADAM-KO-BIG5-V1'
+            OR (
+              source_name='IPIP-NEO-300'
+              AND NOT EXISTS (
+                SELECT 1 FROM taste_question_bank reviewed
+                 WHERE reviewed.enabled AND reviewed.source_name='MODUDADAM-KO-BIG5-V1'
+              )
+            )
+          )
+          AND id=ANY($1::bigint[])`,
       [answers.map((answer) => answer.questionId)],
     );
     if (bank.rows.length !== 10) return errorResponse("검사 문항을 다시 불러와 주세요.");

@@ -56,7 +56,7 @@ export async function POST(request:NextRequest) {
       const lives=correct ? attempt.livesRemaining : attempt.livesRemaining-1;
       const status=correct ? "solved" : lives===0 ? "failed" : "active";
       const hints=attempt.hintsRevealed;
-      const promisedReward=correct ? (attempt.livesRemaining===3 ? 5 : attempt.livesRemaining===2 ? 3 : 2) : status==="failed" ? 1 : 0;
+      const promisedReward=correct ? detectiveReward(attempt.livesRemaining) : status==="failed" ? 1 : 0;
       let reward=0;
       let walletFull=false;
       if (promisedReward>0) {
@@ -85,7 +85,8 @@ export async function POST(request:NextRequest) {
       await client.query("COMMIT");
       return jsonResponse({
         correct,status,livesRemaining:lives,hintsRevealed:hints,
-        reward,walletFull,explanation:reveal?.rows[0]?.explanation || null,correctName:reveal?.rows[0]?.correctName || null,
+        reward,rewardPreview:status==="active" ? detectiveReward(lives) : reward,walletFull,
+        explanation:reveal?.rows[0]?.explanation || null,correctName:reveal?.rows[0]?.correctName || null,
       });
     } catch(error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   } catch(error) {
@@ -118,7 +119,7 @@ async function revealHint(userId:string) {
     if (!hint.rows[0]) { await client.query("ROLLBACK");return errorResponse("확인할 단서가 준비되지 않았어요.",404); }
     await client.query(`UPDATE detective_daily_attempts SET hints_revealed=$2,updated_at=now() WHERE id=$1`,[attempt.id,nextOrder]);
     await client.query("COMMIT");
-    return jsonResponse({ order:nextOrder,content:hint.rows[0].content });
+    return jsonResponse({ order:nextOrder,content:hint.rows[0].content,hintsRemaining:3-nextOrder });
   } catch(error) { await client.query("ROLLBACK");throw error; } finally { client.release(); }
 }
 
@@ -167,13 +168,19 @@ async function loadGame(userId:string,today:string) {
   return {
     case:{ title:hideCaseSequence(current.title),briefing:current.briefing,question:current.question,difficulty:current.difficulty },
     suspects:suspects.rows,hints:hints.rows,playOn:attempt.playOn,livesRemaining:attempt.livesRemaining,
-    hintsRevealed:attempt.hintsRevealed,status:attempt.status,reward:attempt.rewardAcorns,walletBalance:wallet.rows[0]?.balance || 0,
+    hintsRevealed:attempt.hintsRevealed,hintsRemaining:Math.max(0,3-attempt.hintsRevealed),status:attempt.status,
+    reward:attempt.rewardAcorns,rewardPreview:attempt.status==="active" ? detectiveReward(attempt.livesRemaining) : attempt.rewardAcorns,
+    walletBalance:wallet.rows[0]?.balance || 0,
     explanation:terminal ? current.explanation : null,correctName:terminal ? current.correctName : null,
   };
 }
 
 function hideCaseSequence(title:string) {
   return title.replace(/^(?:(?:논리\s*)?사건|case)\s*\d+\s*[·:._-]?\s*/i,"").trim() || "오늘의 미스터리";
+}
+
+function detectiveReward(livesRemaining:number) {
+  return livesRemaining>=3 ? 5 : livesRemaining===2 ? 3 : livesRemaining===1 ? 2 : 1;
 }
 
 export function OPTIONS() { return corsPreflightResponse(); }
