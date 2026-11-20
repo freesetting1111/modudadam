@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, Award, CalendarCheck2, Check, ChevronLeft, ChevronRight, Coins, Gift, HeartHandshake, LockKeyhole, ShieldAlert, Trophy } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { categories as categoryCatalog } from "@/lib/categories";
@@ -73,6 +73,8 @@ export function DadamMissions() {
 export function MyStampManager() {
   const router=useRouter();const redirectLogin = useLoginRedirect(); const [data,setData] = useState<AttendanceData | null>(null); const [nickname,setNickname]=useState("내 닉네임"); const [activeView,setActiveView]=useState<StampView>("uncommon"); const [pending,setPending] = useState(""); const [notice,setNotice] = useState("");
   const previewRef=useRef<HTMLElement | null>(null);
+  const tierTabsRef=useRef<HTMLElement | null>(null);
+  const tierTabsDragRef=useRef({ pointerId:-1,startX:0,scrollLeft:0,moved:false,suppressClick:false });
   const load = useCallback(() => Promise.all([apiRequest<AttendanceData>("/api/features/attendance"),apiRequest<{ profile:{ nickname:string } }>("/api/users/me/profile")]).then(([attendance,profileResult]) => { setData(attendance);setNickname(profileResult.profile.nickname); }).catch((error) => { if (!redirectLogin(error)) setNotice(error instanceof Error ? error.message : "스탬프를 불러오지 못했습니다."); }),[redirectLogin]);
   useEffect(() => { void load(); },[load]);
   async function equip(stampCode:string) { const selected=data?.stamps.find((stamp) => stamp.code===stampCode);setPending(stampCode); setNotice(""); try { await apiRequest("/api/features/attendance",{ method:"POST",body:JSON.stringify({ action:"equip",stampCode }) });setData((current) => current ? { ...current,stamps:current.stamps.map((stamp) => ({ ...stamp,equipped:stamp.code===stampCode })) } : current);window.dispatchEvent(new CustomEvent("modudadam:profile-updated",{ detail:{ stampEmoji:selected?.emoji || null } }));router.refresh();setNotice("대표 스탬프를 변경했어요. 기존 게시글과 댓글에도 바로 표시됩니다.");requestAnimationFrame(() => previewRef.current?.scrollIntoView({ behavior:"smooth",block:"start" }));await load(); } catch(error) { setNotice(error instanceof Error ? error.message : "스탬프를 변경하지 못했습니다."); } finally { setPending(""); } }
@@ -91,10 +93,31 @@ export function MyStampManager() {
     ...(misdeedStamps.length ? [{ code:"misdeed" as StampView,label:"주의의 기록",count:misdeedStamps.length }] : []),
   ];
   const equippedStamp=owned.find((stamp) => stamp.equipped);
+  function startTierTabsDrag(event:ReactPointerEvent<HTMLElement>) {
+    if(event.pointerType!=="mouse"||event.button!==0) return;
+    const tabs=event.currentTarget;const drag=tierTabsDragRef.current;
+    drag.pointerId=event.pointerId;drag.startX=event.clientX;drag.scrollLeft=tabs.scrollLeft;drag.moved=false;drag.suppressClick=false;
+    tabs.setPointerCapture(event.pointerId);tabs.classList.add("dragging");
+  }
+  function moveTierTabsDrag(event:ReactPointerEvent<HTMLElement>) {
+    const drag=tierTabsDragRef.current;if(drag.pointerId!==event.pointerId) return;
+    const distance=event.clientX-drag.startX;
+    if(Math.abs(distance)>4) { drag.moved=true;drag.suppressClick=true;event.preventDefault(); }
+    if(drag.moved) event.currentTarget.scrollLeft=drag.scrollLeft-distance;
+  }
+  function finishTierTabsDrag(event:ReactPointerEvent<HTMLElement>) {
+    const drag=tierTabsDragRef.current;if(drag.pointerId!==event.pointerId) return;
+    if(event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    event.currentTarget.classList.remove("dragging");drag.pointerId=-1;
+  }
+  function blockTierTabClickAfterDrag(event:ReactMouseEvent<HTMLElement>) {
+    const drag=tierTabsDragRef.current;if(!drag.suppressClick) return;
+    event.preventDefault();event.stopPropagation();drag.suppressClick=false;
+  }
   return <section className="my-stamp-page">
     {!data ? <div className="profile-state">내 스탬프를 불러오는 중입니다.</div> : <>
       <article ref={previewRef} className={`stamp-profile-preview ${equippedStamp?.rarity || ""}`}><small>현재 적용 미리보기</small><div className="stamp-preview-post"><span>게시글 작성자</span><StampedName full name={nickname} stamp={equippedStamp?.emoji}/></div><p>{equippedStamp ? `${equippedStamp.name} 스탬프가 닉네임 앞에 표시됩니다.` : "적용할 스탬프를 선택해 주세요."}</p></article>
-      <nav className="my-stamp-tier-tabs" aria-label="스탬프 종류 선택">{stampViews.map((view) => <button type="button" data-view={view.code} key={view.code} className={activeView===view.code ? "active" : ""} aria-pressed={activeView===view.code} onClick={() => setActiveView(view.code)}><span>{view.label}</span><small>{view.count}</small></button>)}</nav>
+      <nav ref={tierTabsRef} className="my-stamp-tier-tabs" aria-label="스탬프 종류 선택" onPointerDown={startTierTabsDrag} onPointerMove={moveTierTabsDrag} onPointerUp={finishTierTabsDrag} onPointerCancel={finishTierTabsDrag} onClickCapture={blockTierTabClickAfterDrag}>{stampViews.map((view) => <button type="button" data-view={view.code} key={view.code} className={activeView===view.code ? "active" : ""} aria-pressed={activeView===view.code} onClick={() => setActiveView(view.code)}><span>{view.label}</span><small>{view.count}</small></button>)}</nav>
       {availableRarities.includes(activeView as AttendanceData["stamps"][number]["rarity"])&&<div className="my-stamp-list">{visibleStamps.map((stamp) => <article className={`${stamp.rarity} ${stamp.equipped ? "selected" : ""}`} data-stamp-code={stamp.code} key={stamp.code}><StampedName name={stamp.name} stamp={stamp.emoji}/>{stamp.equipped ? <b><Check size={13}/>적용 중</b> : <button type="button" disabled={Boolean(pending)} onClick={() => void equip(stamp.code)}>{pending===stamp.code ? "적용 중..." : "적용하기"}</button>}</article>)}</div>}
       {activeView==="achievement"&&<section className="my-achievement-stamps is-tab-panel"><header><span><Award size={20}/></span><div><h2>등급 완성 특별 칭호</h2><p>등급별 스탬프를 모두 모으면 획득할 수 있어요.</p></div></header><div className="my-stamp-list">{data.titles.map((title) => { const stamp=achievementStamps.find((item) => item.code===title.rewardStampCode);return <article className={`${title.requiredRarity} ${stamp?.equipped ? "selected" : ""} ${stamp ? "earned" : "locked"}`} key={title.code}><span className="achievement-stamp-name">{stamp ? <StampedName name={title.name} stamp={stamp.emoji}/> : <><i><LockKeyhole size={16}/></i><span><strong>{title.name}</strong><small>{title.collected} / {title.total} 수집</small></span></>}</span>{stamp ? stamp.equipped ? <b><Check size={13}/>사용 중</b> : <button type="button" disabled={Boolean(pending)} onClick={() => void equip(stamp.code)}>{pending===stamp.code ? "적용 중..." : "사용하기"}</button> : <b className="locked-label"><LockKeyhole size={12}/>잠김</b>}</article>; })}</div></section>}
       {activeView==="kindness"&&<section className="my-achievement-stamps my-reputation-stamps is-tab-panel"><ReputationStampTrack kind="kindness" title="선행의 길" description="도토리 10개를 선물할 때마다 선행 포인트 1점" points={data.reputation.kindnessPoints} stamps={kindnessStamps} pending={pending} equip={equip}/></section>}
