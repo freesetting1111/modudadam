@@ -1,11 +1,12 @@
 import type { NextRequest } from "next/server";
-import { requireSessionUser } from "@/domains/auth/session";
+import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { query } from "@/lib/db";
 
 const TYPES = new Set(["walk", "food", "pet", "rest", "photo", "helpful"]);
 
 export async function GET(request: NextRequest) {
+  const viewer = await getSessionUser(request);
   const type = request.nextUrl.searchParams.get("type");
   const requestedPage = Number(request.nextUrl.searchParams.get("page") || "1");
   const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -21,12 +22,14 @@ export async function GET(request: NextRequest) {
   const currentPage = Math.min(page, totalPages);
   const result = await query(
     `SELECT treasures.id,treasures.title,treasures.treasure_type AS "treasureType",treasures.description,
-       treasures.address,treasures.latitude::float8 AS latitude,treasures.longitude::float8 AS longitude,
-       treasures.created_at AS "createdAt",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji"
+       treasures.address,treasures.road_address AS "roadAddress",treasures.kakao_place_id AS "kakaoPlaceId",
+       treasures.place_url AS "placeUrl",treasures.latitude::float8 AS latitude,treasures.longitude::float8 AS longitude,
+       (treasures.author_id=$4::uuid) AS "isMine",treasures.created_at AS "createdAt",
+       users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji"
      FROM local_treasures treasures JOIN users ON users.id=treasures.author_id
      WHERE treasures.status='published' AND ($1::text IS NULL OR treasures.treasure_type=$1)
      ORDER BY treasures.created_at DESC LIMIT $2 OFFSET $3`,
-    [validType, pageSize, (currentPage - 1) * pageSize],
+    [validType, pageSize, (currentPage - 1) * pageSize, viewer?.id || null],
   );
   return jsonResponse({ treasures: result.rows, page: currentPage, pageSize, totalItems, totalPages });
 }
@@ -39,24 +42,65 @@ export async function POST(request: NextRequest) {
     const treasureType = String(body.treasureType || "");
     const description = String(body.description || "").trim();
     const address = String(body.address || "").trim();
+    const roadAddress = String(body.roadAddress || "").trim();
+    const kakaoPlaceId = String(body.kakaoPlaceId || "").trim();
+    const placeUrl = String(body.placeUrl || "").trim();
     const latitude = optionalCoordinate(body.latitude, -90, 90);
     const longitude = optionalCoordinate(body.longitude, -180, 180);
     if (!title || title.length > 100) return errorResponse("장소 이름은 1자 이상 100자 이하로 입력해 주세요.");
     if (!TYPES.has(treasureType)) return errorResponse("장소 유형을 선택해 주세요.");
     if (!description || description.length > 1000) return errorResponse("소개는 1자 이상 1,000자 이하로 입력해 주세요.");
     if (!address || address.length > 300) return errorResponse("주소를 입력해 주세요.");
-    if (latitude === undefined || longitude === undefined || (latitude === null) !== (longitude === null)) return errorResponse("위치 정보가 올바르지 않습니다.");
+    if (!kakaoPlaceId || kakaoPlaceId.length > 30) return errorResponse("카카오맵 검색 결과에서 장소를 선택해 주세요.");
+    if (roadAddress.length > 300 || placeUrl.length > 500) return errorResponse("장소 정보가 올바르지 않습니다.");
+    if (latitude == null || longitude == null || latitude === undefined || longitude === undefined) return errorResponse("위치 정보가 올바르지 않습니다.");
     const saved = await query(
-      `INSERT INTO local_treasures(author_id,title,treasure_type,description,address,latitude,longitude)
-       VALUES($1,$2,$3,$4,$5,$6,$7)
+      `INSERT INTO local_treasures(author_id,title,treasure_type,description,address,road_address,kakao_place_id,place_url,latitude,longitude)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING id,title,treasure_type AS "treasureType",description,address,
+         road_address AS "roadAddress",kakao_place_id AS "kakaoPlaceId",place_url AS "placeUrl",
          latitude::float8 AS latitude,longitude::float8 AS longitude,created_at AS "createdAt"`,
-      [user.id, title, treasureType, description, address, latitude, longitude],
+      [user.id, title, treasureType, description, address, roadAddress || null, kakaoPlaceId, placeUrl || null, latitude, longitude],
     );
     return jsonResponse({ ...saved.rows[0], authorName: user.nickname, authorStampEmoji: user.stampEmoji }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.", 401);
     return errorResponse("동네 보물을 등록하지 못했습니다.", 500);
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await requireSessionUser(request);
+    const body = await request.json();
+    const id = String(body.id || "");
+    const title = String(body.title || "").trim();
+    const treasureType = String(body.treasureType || "");
+    const description = String(body.description || "").trim();
+    const address = String(body.address || "").trim();
+    const roadAddress = String(body.roadAddress || "").trim();
+    const kakaoPlaceId = String(body.kakaoPlaceId || "").trim();
+    const placeUrl = String(body.placeUrl || "").trim();
+    const latitude = optionalCoordinate(body.latitude, -90, 90);
+    const longitude = optionalCoordinate(body.longitude, -180, 180);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return errorResponse("수정할 장소를 확인해 주세요.");
+    if (!title || title.length > 100) return errorResponse("장소 이름은 1자 이상 100자 이하로 입력해 주세요.");
+    if (!TYPES.has(treasureType)) return errorResponse("장소 유형을 선택해 주세요.");
+    if (!description || description.length > 1000) return errorResponse("소개는 1자 이상 1,000자 이하로 입력해 주세요.");
+    if (!address || address.length > 300 || roadAddress.length > 300 || placeUrl.length > 500) return errorResponse("장소 정보가 올바르지 않습니다.");
+    if (!kakaoPlaceId || kakaoPlaceId.length > 30 || latitude == null || longitude == null || latitude === undefined || longitude === undefined) return errorResponse("카카오맵 검색 결과에서 장소를 선택해 주세요.");
+    const saved = await query(
+      `UPDATE local_treasures SET title=$3,treasure_type=$4,description=$5,address=$6,road_address=$7,
+         kakao_place_id=$8,place_url=$9,latitude=$10,longitude=$11,updated_at=now()
+       WHERE id=$1::uuid AND author_id=$2::uuid AND status='published'
+       RETURNING id`,
+      [id,user.id,title,treasureType,description,address,roadAddress || null,kakaoPlaceId,placeUrl || null,latitude,longitude],
+    );
+    if (!saved.rowCount) return errorResponse("본인이 등록한 장소만 수정할 수 있습니다.",403);
+    return jsonResponse({ updated:true });
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.",401);
+    return errorResponse("동네 보물을 수정하지 못했습니다.",500);
   }
 }
 

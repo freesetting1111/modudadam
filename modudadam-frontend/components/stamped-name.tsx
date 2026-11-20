@@ -14,6 +14,10 @@ export function StampMark({ stamp, className="" }: { stamp:string;className?:str
 }
 
 function stampEffect(stamp: string) {
+  if (stamp.includes("/operator-")) return "stamp-effect-operator";
+  if (stamp.includes("/mythic-")) return "stamp-effect-mythic";
+  if (stamp.includes("/legendary-")) return "stamp-effect-legendary";
+  if (stamp.includes("/epic-")) return "stamp-effect-epic";
   if (stamp.includes("tier-operator")) return "stamp-effect-operator";
   if (stamp.includes("reputation-warning")) return "stamp-effect-warning";
   if (stamp.includes("reputation-kind") || stamp.includes("tier-mythic")) return "stamp-effect-mythic";

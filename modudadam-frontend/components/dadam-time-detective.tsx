@@ -73,7 +73,7 @@ export function DadamTimeCapsule() {
 }
 
 type DetectiveGame = {
-  case:{ caseNo:number;title:string;briefing:string;question:string;difficulty:number };
+  case:{ title:string;briefing:string;question:string;difficulty:number };
   suspects:Array<{ id:string;name:string;statement:string;selected:boolean }>;
   hints:Array<{ order:number;content:string }>;
   livesRemaining:number;hintsRevealed:number;status:"active"|"solved"|"failed";reward:number;walletBalance:number;
@@ -84,6 +84,7 @@ export function DadamDetectiveRoom() {
   const [game,setGame]=useState<DetectiveGame | null>(null); const [selected,setSelected]=useState<string | null>(null);
   const [loading,setLoading]=useState(true);const [pending,setPending]=useState(false);const [error,setError]=useState("");const [feedback,setFeedback]=useState("");
   const [detectiveCelebration,setDetectiveCelebration]=useState<{ title:string;description:string;reward:string } | null>(null);
+  const [hintPopup,setHintPopup]=useState<{ order:number;content:string } | null>(null);
   const load=useCallback(async() => { setLoading(true);setError("");try { setGame(await apiRequest<DetectiveGame>("/api/features/detective")); } catch(caught) { setError(caught instanceof Error ? caught.message : "오늘의 사건을 불러오지 못했습니다."); } finally { setLoading(false); } },[]);
   useEffect(() => {
     let active=true;
@@ -97,26 +98,40 @@ export function DadamDetectiveRoom() {
   async function accuse() {
     if (!selected || pending || !game || game.status!=="active") return;setPending(true);setError("");
     try {
-      const result=await apiRequest<{ correct:boolean;status:string;livesRemaining:number;newHint:string|null;reward:number }>("/api/features/detective",{ method:"POST",body:JSON.stringify({ suspectId:selected }) });
-      setFeedback(result.correct ? `정답입니다! 도토리 ${result.reward}개를 받았어요.` : result.status==="failed" ? `오늘의 수사가 종료됐어요. 도전 보상으로 도토리 ${result.reward}개를 받았어요.` : `알리바이가 성립합니다. 새로운 단서가 열렸어요.`);
+      const result=await apiRequest<{ correct:boolean;status:string;livesRemaining:number;reward:number }>("/api/features/detective",{ method:"POST",body:JSON.stringify({ suspectId:selected }) });
+      setFeedback(result.correct ? `정답입니다! 도토리 ${result.reward}개를 받았어요.` : result.status==="failed" ? `오늘의 수사가 종료됐어요. 도전 보상으로 도토리 ${result.reward}개를 받았어요.` : `알리바이가 성립합니다. 다른 기록과 단서를 다시 살펴보세요.`);
       if (result.correct || result.status==="failed") setDetectiveCelebration({ title:result.correct ? "사건 해결!" : "오늘의 수사 종료",description:result.correct ? result.livesRemaining===3 ? "단 한 번에 진실을 찾아냈어요. 완벽한 추리였어요!" : `남은 목숨 ${result.livesRemaining}개로 사건의 진실을 밝혀냈어요.` : "아쉽지만 오늘의 단서를 끝까지 추적했어요. 내일 새로운 사건에서 다시 만나요.",reward:`🌰 도토리 ${result.reward.toLocaleString()}개 획득` });
       setSelected(null);await load();
     } catch(caught) { setError(caught instanceof Error ? caught.message : "수사 결론을 확인하지 못했습니다."); }
+    finally { setPending(false); }
+  }
+  async function revealHint() {
+    if (pending || !game || game.status!=="active" || game.hintsRevealed>=3) return;
+    setPending(true);setError("");
+    try { const hint=await apiRequest<{ order:number;content:string }>("/api/features/detective",{ method:"POST",body:JSON.stringify({ action:"reveal_hint" }) });setHintPopup(hint);await load(); }
+    catch(caught) { setError(caught instanceof Error ? caught.message : "단서를 확인하지 못했습니다."); }
     finally { setPending(false); }
   }
   return <section className="dadam-feature-page detective-page">
     <header className="dadam-feature-hero"><span><ShieldQuestion size={25}/></span><div><small>DADAM DETECTIVE ROOM</small><h1>다담 추리방</h1><p>기록을 교차해 거짓말한 한 사람을 찾아보세요.</p></div></header>
     {loading && !game ? <div className="feature-loading">오늘의 사건 파일을 정리하고 있어요.</div> : error && !game ? <div className="feature-empty">{error}<button type="button" onClick={() => void load()}>다시 불러오기</button></div> : game && <>
       <div className="detective-resource"><span><small>남은 목숨</small><strong aria-label={`목숨 ${game.livesRemaining}개`}>{[0,1,2].map((index) => <Heart key={index} className={index<game.livesRemaining ? "alive" : "lost"}/>)}</strong></span><span><small>열린 단서</small><strong>{game.hintsRevealed} / 3 🌰</strong></span><span><small>보유 도토리</small><strong>{game.walletBalance.toLocaleString()}개</strong></span></div>
-      <article className="detective-case"><header><span>CASE {String(game.case.caseNo).padStart(3,"0")}</span><b>{"★".repeat(game.case.difficulty)}</b></header><h2>{game.case.title}</h2><p>{game.case.briefing}</p><strong><Search size={18}/>{game.case.question}</strong></article>
-      {game.hints.length>0 && <section className="detective-hints"><h2>수사 단서</h2>{game.hints.map((hint) => <p key={hint.order}><span>🌰 단서 {hint.order}</span>{hint.content}</p>)}</section>}
+      <article className="detective-case"><header><span>오늘의 사건</span><b>{"★".repeat(game.case.difficulty)}</b></header><h2>{game.case.title}</h2><DetectiveBriefing text={game.case.briefing}/><strong><Search size={18}/>{game.case.question}</strong></article>
+      <section className="detective-hints"><header><div><h2>수사 단서</h2><p>단서는 한 번에 하나씩 확인할 수 있어요.</p></div>{game.status==="active" && game.hintsRevealed<3 && <button type="button" disabled={pending} onClick={() => void revealHint()}>🌰 단서 {game.hintsRevealed+1} 확인하기</button>}</header>{game.hints.length ? game.hints.map((hint) => <p key={hint.order}><span>단서 {hint.order}</span>{hint.content}</p>) : <div className="detective-hint-empty">아직 확인한 단서가 없어요.</div>}</section>
       {feedback && <p className="feature-notice">{feedback}</p>}{error && <p className="feature-error">{error}</p>}
       {game.status!=="active" && <article className={`detective-result ${game.status}`}><Sparkles/><small>{game.status==="solved" ? "사건 해결" : "오늘의 수사 종료"}</small><h2>정답 · {game.correctName}</h2><p>{game.explanation}</p><strong>오늘 받은 도토리 {game.reward}개</strong><span>내일 새로운 사건이 열려요.</span></article>}
       <section className="detective-suspects"><h2>수사 결론 10개</h2><p>사건의 모든 단서를 만족하는 기록은 하나뿐이에요. 한 번 선택하면 되돌릴 수 없습니다.</p><div>{game.suspects.map((suspect,index) => <button type="button" key={suspect.id} disabled={suspect.selected || game.status!=="active" || pending} className={`${selected===suspect.id ? "selected" : ""} ${suspect.selected ? "eliminated" : ""}`} onClick={() => setSelected(suspect.id)}><span>{index+1}</span><div><strong>{suspect.name}</strong><p>{suspect.statement}</p></div>{suspect.selected && <em>확인 완료</em>}</button>)}</div></section>
       {game.status==="active" && <div className="detective-accuse"><span>{selectedSuspect ? `${selectedSuspect.name}을(를) 선택할까요?` : "수사 결론 하나를 선택해 주세요."}</span><button type="button" disabled={!selectedSuspect || pending} onClick={() => void accuse()}>{pending ? "기록 확인 중..." : "이 결론 선택하기"}</button></div>}
       <AchievementDialog open={Boolean(detectiveCelebration)} eyebrow="CASE CLOSED" title={detectiveCelebration?.title || ""} description={detectiveCelebration?.description || ""} reward={detectiveCelebration?.reward} confirmLabel="사건 기록 확인하기" onConfirm={() => setDetectiveCelebration(null)} />
+      <AchievementDialog open={Boolean(hintPopup)} eyebrow={`CLUE ${hintPopup?.order || ""}`} title={`단서 ${hintPopup?.order || ""}을 발견했어요`} description={hintPopup?.content || ""} confirmLabel="수사 기록에 추가하기" onConfirm={() => setHintPopup(null)} />
     </>}
   </section>;
+}
+
+function DetectiveBriefing({ text }:{ text:string }) {
+  const parts=text.split(/\s+(?=\d+\.\s*)/).map((part)=>part.trim()).filter(Boolean);
+  const intro=parts[0] && !/^\d+\./.test(parts[0]) ? parts.shift() : null;
+  return <div className="detective-briefing">{intro && <p>{intro}</p>}{parts.length>0 && <ol>{parts.map((part,index)=><li key={index}>{part.replace(/^\d+\.\s*/,"")}</li>)}</ol>}</div>;
 }
 
 function Pagination({ page,totalPages,onChange }:{ page:number;totalPages:number;onChange:(page:number)=>void }) {
