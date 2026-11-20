@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Flag, Gift, HandCoins, Home, Hourglass, LogOut, Mail, MapPin, Menu, Search, ShieldQuestion, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Flag, Gift, HandCoins, Home, Hourglass, LogOut, Mail, MapPin, Menu, PackageOpen, Search, ShieldQuestion, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { specialBoards } from "@/lib/categories";
 import { apiRequest } from "@/lib/api";
@@ -18,7 +18,9 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
   const [user, setUser] = useState(initialUser);
   const [loggingOut, setLoggingOut] = useState(false);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [pendingGiftCount,setPendingGiftCount]=useState(0);
   const canViewVisitors = user?.email?.trim().toLowerCase() === "freesetting@naver.com";
+  const userId=user?.id;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +41,23 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
     window.addEventListener("modudadam:profile-updated", updateNickname);
     return () => window.removeEventListener("modudadam:profile-updated", updateNickname);
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    const controller=new AbortController();
+    apiRequest<{ pendingGiftCount:number }>("/api/features/acorn-gifts?summary=1",{ cache:"no-store",signal:controller.signal })
+      .then((data)=>setPendingGiftCount(data.pendingGiftCount)).catch((error)=>{ if(error instanceof Error&&error.name!=="AbortError") setPendingGiftCount(0); });
+    return () => controller.abort();
+  },[userId,pathname]);
+
+  useEffect(() => {
+    const updateGiftCount=(event:Event) => {
+      const count=(event as CustomEvent<{ count?:number }>).detail?.count;
+      if(typeof count==="number") setPendingGiftCount(count);
+    };
+    window.addEventListener("modudadam:gift-count-updated",updateGiftCount);
+    return () => window.removeEventListener("modudadam:gift-count-updated",updateGiftCount);
+  },[]);
 
   useEffect(() => {
     const updateCount = (event: Event) => {
@@ -81,6 +100,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
     try {
       await apiRequest("/api/auth/logout", { method: "POST" });
       setUser(null);
+      setPendingGiftCount(0);
       closeMenu();
       router.replace("/");
       router.refresh();
@@ -97,6 +117,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
     <header className={`site-header ${pathname !== "/" ? "has-back" : ""}`}>
       {pathname !== "/" && <button type="button" className="global-back-button" onClick={goBack} aria-label="이전 화면으로 돌아가기"><ArrowLeft size={23} strokeWidth={2.1} /></button>}
       {pathname !== "/" && <Link href="/" className="header-home-button" aria-label="홈으로 이동"><Home size={22} strokeWidth={1.9} /></Link>}
+      {user&&<Link href="/my/gifts" className="header-gift-button" aria-label={`선물함${pendingGiftCount ? `, 새 선물 ${pendingGiftCount}개` : ""}`} title="내 선물함"><PackageOpen size={23} strokeWidth={1.9}/>{pendingGiftCount>0&&<b>{pendingGiftCount>99?"99+":pendingGiftCount}</b>}</Link>}
       <div className="menu-drawer">
         <button
           type="button"

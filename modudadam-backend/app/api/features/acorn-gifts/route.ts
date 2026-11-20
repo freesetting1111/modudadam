@@ -35,6 +35,10 @@ export async function GET(request:NextRequest) {
       if (recipient.rows[0].id===user.id) return errorResponse("본인에게는 도토리를 선물할 수 없습니다.",409);
       return jsonResponse({ recipient:{ nickname:recipient.rows[0].nickname,stampEmoji:recipient.rows[0].stampEmoji } });
     }
+    if (request.nextUrl.searchParams.get("summary")==="1") {
+      const pending=await query<{ count:number }>(`SELECT count(*)::int AS count FROM acorn_gifts WHERE recipient_id=$1 AND status='pending'`,[user.id]);
+      return jsonResponse({ pendingGiftCount:pending.rows[0]?.count || 0 });
+    }
 
     await query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[user.id]);
     await query(`INSERT INTO user_reputation_points(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[user.id]);
