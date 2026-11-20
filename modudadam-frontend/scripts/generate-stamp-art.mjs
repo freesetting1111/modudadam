@@ -20,14 +20,19 @@ const rarities = {
   mythic:["aurora_crown","modudadam_master","reward_dadam_grandmaster","kindness_10000","misdeed_10000"],
   operator:["operator_guardian","operator_starseed","operator_master"],
 };
-const colors={ uncommon:["#37a476","#b8f1d3"],common:["#4b75da","#c9dcff"],rare:["#7654d8","#d9caff"],epic:["#b544cb","#f2baff"],legendary:["#e58520","#ffe09a"],mythic:["#e3417d","#70d8ff"],operator:["#172747","#f5c85b"] };
-const directory=join(process.cwd(),"public","brand","stamps","catalog");
+const baseHues={ uncommon:148,common:216,rare:265,epic:310,legendary:32,mythic:335,operator:220 };
+const directory=join(process.cwd(),"public","brand","stamps","catalog","v2");
 await mkdir(directory,{ recursive:true });
 for (const [rarity,codes] of Object.entries(rarities)) {
   for (const code of codes) {
-    const [dark,light]=colors[rarity];const Icon=Icons[catalog[code]] || Icons.Badge;const id=`g-${code.replaceAll("_","-")}`;
-    const icon=renderToStaticMarkup(createElement(Icon,{ size:30,strokeWidth:2.4,color:"#17233b" })).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"");
-    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${code}"><defs><linearGradient id="${id}" x1="8" y1="6" x2="56" y2="60"><stop stop-color="${light}"/><stop offset="1" stop-color="${dark}"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="${dark}" flood-opacity=".38"/></filter></defs><path d="M32 3 55 15v26L32 61 9 49V15Z" fill="url(#${id})" stroke="${dark}" stroke-width="2" filter="url(#s)"/><path d="M32 8 50 18v20L32 54 14 45V18Z" fill="#fff" fill-opacity=".24"/><circle cx="49" cy="14" r="3" fill="#fff" opacity=".9"/><path d="m12 23 4 2 2 4-2 4-4 2-2-2 2-4-2-4Z" fill="#fff" opacity=".65"/><g transform="translate(17 17)">${icon}</g></svg>`;
+    const hue=(baseHues[rarity]+hash(code)%33-16+360)%360;
+    const dark=`hsl(${hue} 78% 28%)`;const middle=`hsl(${hue} 82% 48%)`;const light=`hsl(${(hue+18)%360} 92% 78%)`;const glow=`hsl(${(hue+35)%360} 100% 72%)`;
+    const iconColor=["legendary","mythic","operator"].includes(rarity)?"#fff3a3":"#ffffff";
+    const Icon=Icons[catalog[code]] || Icons.Badge;const id=`g-${code.replaceAll("_","-")}`;
+    const icon=renderToStaticMarkup(createElement(Icon,{ strokeWidth:2.15,color:iconColor })).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"");
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${code}"><defs><linearGradient id="${id}" x1="7" y1="5" x2="57" y2="59"><stop stop-color="${light}"/><stop offset=".48" stop-color="${middle}"/><stop offset="1" stop-color="${dark}"/></linearGradient><radialGradient id="${id}-core"><stop stop-color="${middle}"/><stop offset="1" stop-color="${dark}"/></radialGradient><filter id="${id}-shadow"><feDropShadow dx="0" dy="2" stdDeviation="2.6" flood-color="${middle}" flood-opacity=".65"/></filter><filter id="${id}-glow"><feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="${iconColor}" flood-opacity=".95"/></filter></defs><path d="M32 2 56 14v28L32 62 8 50V14Z" fill="url(#${id})" stroke="${glow}" stroke-width="2.4" filter="url(#${id}-shadow)"/><path d="M32 7 51 17v22L32 55 13 46V17Z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-opacity=".5"/><circle cx="32" cy="32" r="18" fill="url(#${id}-core)" stroke="#fff" stroke-opacity=".78" stroke-width="1.5"/><circle cx="50" cy="13" r="3.3" fill="#fff"/><path d="m13 20 2.2 4.4 4.4 2.2-4.4 2.2-2.2 4.4-2.2-4.4-4.4-2.2 4.4-2.2Z" fill="${iconColor}" opacity=".95"/><g transform="translate(14 14) scale(1.5)" fill="none" stroke="${iconColor}" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" filter="url(#${id}-glow)">${icon}</g></svg>`;
     await writeFile(join(directory,`${rarity}-${code}.svg`),svg,"utf8");
   }
 }
+
+function hash(value) { return [...value].reduce((total,character)=>((total*31)+character.charCodeAt(0))>>>0,0); }
