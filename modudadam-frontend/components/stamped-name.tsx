@@ -14,6 +14,9 @@ export function StampMark({ stamp, className="" }: { stamp:string;className?:str
 }
 
 function stampEffect(stamp: string) {
+  if (stamp.includes("operator_guardian")) return "stamp-effect-operator stamp-operator-guardian";
+  if (stamp.includes("operator_starseed")) return "stamp-effect-operator stamp-operator-starseed";
+  if (stamp.includes("operator_master")) return "stamp-effect-operator stamp-operator-master";
   if (stamp.includes("/operator-")) return "stamp-effect-operator";
   if (stamp.includes("/mythic-")) return "stamp-effect-mythic";
   if (stamp.includes("/legendary-")) return "stamp-effect-legendary";

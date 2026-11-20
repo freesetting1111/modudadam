@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="모두다담 총관리자">
+  <defs>
+    <linearGradient id="master-gold" x1="8" y1="7" x2="54" y2="58"><stop stop-color="#fff4a6"/><stop offset=".3" stop-color="#ffc531"/><stop offset=".68" stop-color="#d67916"/><stop offset="1" stop-color="#6e270c"/></linearGradient>
+    <linearGradient id="master-royal" x1="15" y1="13" x2="49" y2="54"><stop stop-color="#6b173c"/><stop offset=".48" stop-color="#17142e"/><stop offset="1" stop-color="#050713"/></linearGradient>
+    <filter id="master-glow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="2.3" flood-color="#ffca3a" flood-opacity=".9"/><feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#03040b" flood-opacity=".95"/></filter>
+  </defs>
+  <path d="M4 24 15 17l4 5 5-13 8 8 8-8 5 13 4-5 11 7-8 13v16L32 62 12 53V37Z" fill="url(#master-royal)" stroke="url(#master-gold)" stroke-width="2.4" filter="url(#master-glow)" stroke-linejoin="round"/>
+  <path d="m11 21 7-15 7 10 7-13 7 13L46 6l7 15-8-3-5 8H24l-5-8Z" fill="url(#master-gold)" stroke="#fff0a1" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M18 29h28v19L32 57 18 48Z" fill="#070a16" stroke="#f5b92e" stroke-width="1.5"/>
+  <path d="M21 33c3-6 8-8 11-3 3-5 8-3 11 3-1 8-5 13-11 17-6-4-10-9-11-17Z" fill="url(#master-gold)"/>
+  <path d="M24 34c2-3 5-3 8 0 3-3 6-3 8 0l-3 6-5-2-5 2Z" fill="#17142e"/>
+  <circle cx="27.5" cy="34.5" r="1.7" fill="#7cf3ff"/><circle cx="36.5" cy="34.5" r="1.7" fill="#7cf3ff"/>
+  <path d="m32 37 2.2 3.2L32 42l-2.2-1.8Z" fill="#fff0a1"/>
+  <path d="M8 39 2 35l7-2M56 39l6-4-7-2" fill="none" stroke="#ffc531" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="18" cy="8" r="2" fill="#e74d72"/><circle cx="32" cy="5" r="2.3" fill="#7cf3ff"/><circle cx="46" cy="8" r="2" fill="#e74d72"/>
+</svg>

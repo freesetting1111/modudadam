@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock3, LogIn, MapPin, MonitorSmartphone, Network, Search, UsersRound } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock3, LogIn, MapPin, MonitorSmartphone, Network, Search, UsersRound } from "lucide-react";
 import { getServerSessionUser } from "@/lib/auth";
 import { API_SERVER_URL } from "@/lib/server-config";
 import { AdminDatePicker } from "@/components/admin-date-picker";
@@ -78,12 +78,18 @@ export default async function VisitorAdminPage({ searchParams }: PageProps) {
 function LogPagination({ page, totalPages, startDate, endDate, keyword }: { page: number; totalPages: number; startDate: string; endDate: string; keyword: string }) {
   const pages = pageNumbers(page, totalPages);
   return <nav className="visitor-pagination" aria-label="접속 로그 페이지">
-    {page > 1 ? <Link href={pageHref(page - 1, startDate, endDate, keyword)} aria-label="이전 페이지"><ChevronLeft size={18}/></Link> : <span aria-hidden="true"><ChevronLeft size={18}/></span>}
-    {pages.map((number) => <Link key={number} href={pageHref(number, startDate, endDate, keyword)} className={number === page ? "active" : undefined} aria-current={number === page ? "page" : undefined}>{number}</Link>)}
-    {page < totalPages ? <Link href={pageHref(page + 1, startDate, endDate, keyword)} aria-label="다음 페이지"><ChevronRight size={18}/></Link> : <span aria-hidden="true"><ChevronRight size={18}/></span>}
+    <span className="visitor-pagination-edge">
+      {page > 1 ? <Link href={pageHref(1, startDate, endDate, keyword)} aria-label="가장 최신 접속 로그로 이동" title="가장 최신"><ChevronsLeft size={18}/></Link> : <span aria-hidden="true"><ChevronsLeft size={18}/></span>}
+      {page > 1 ? <Link href={pageHref(page - 1, startDate, endDate, keyword)} aria-label="이전 페이지"><ChevronLeft size={18}/></Link> : <span aria-hidden="true"><ChevronLeft size={18}/></span>}
+    </span>
+    <span className="visitor-page-numbers">{pages.map((number) => <Link key={number} href={pageHref(number, startDate, endDate, keyword)} className={number === page ? "active" : undefined} aria-current={number === page ? "page" : undefined}>{number}</Link>)}</span>
+    <span className="visitor-pagination-edge">
+      {page < totalPages ? <Link href={pageHref(page + 1, startDate, endDate, keyword)} aria-label="다음 페이지"><ChevronRight size={18}/></Link> : <span aria-hidden="true"><ChevronRight size={18}/></span>}
+      {page < totalPages ? <Link href={pageHref(totalPages, startDate, endDate, keyword)} aria-label="가장 이전 접속 로그로 이동" title="가장 이전"><ChevronsRight size={18}/></Link> : <span aria-hidden="true"><ChevronsRight size={18}/></span>}
+    </span>
   </nav>;
 }
-function pageNumbers(page: number, totalPages: number) { const start = Math.max(1, Math.min(page - 2, totalPages - 4)); const end = Math.min(totalPages, start + 4); return Array.from({ length: end - start + 1 }, (_, index) => start + index); }
+function pageNumbers(page: number, totalPages: number) { const count=Math.min(10,totalPages);if(count<=0) return [];const start=Math.max(1,Math.min(page-Math.floor(count/2),totalPages-count+1));return Array.from({ length:count },(_,index)=>start+index); }
 function pageHref(page: number, startDate: string, endDate: string, keyword: string) { const params = new URLSearchParams({ startDate, endDate, page: String(page) }); if (keyword) params.set("q", keyword); return `/admin/visitors?${params}`; }
 function singleValue(value: string | string[] | undefined) { return Array.isArray(value) ? value[0] || "" : value || ""; }
 function shortId(value: string | null) { return value ? value.replaceAll("-", "").slice(0, 6).toUpperCase() : "UNKNOWN"; }
