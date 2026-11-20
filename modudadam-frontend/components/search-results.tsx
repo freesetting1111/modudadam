@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, MessageCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { getAnonymousId } from "@/lib/anonymous-id";
 import { categories } from "@/lib/categories";
-import { StampedName } from "@/components/stamped-name";
+import { PostListMeta } from "@/components/post-list-meta";
+import { displayPostTitle } from "@/lib/post-display";
 
 type SearchPost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
@@ -73,8 +74,8 @@ export function SearchResults({ initialQuery, hideForm = false }: { initialQuery
       {error && <div className="board-message error">{error}</div>}
       {!loading && !error && posts.length === 0 && <div className="board-message">일치하는 게시글이 없습니다.</div>}
       {posts.length > 0 && <div className="board-list search-result-list">{posts.map((post) => <Link href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.isRead ? "is-read" : ""}`} key={post.id}>
-        <div className="board-row-main"><small>{post.categoryName}</small><div className="board-row-title">{post.title}</div></div>
-        <div className="board-row-meta"><StampedName full className="board-author" name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time><span><Eye size={13}/>{post.viewCount}</span><span><MessageCircle size={13}/>{post.commentCount}</span></div>
+        <div className="board-row-main"><small>{post.categoryName}</small><div className="board-row-title" title={post.title}>{displayPostTitle(post.title)}</div></div>
+        <PostListMeta className="board-row-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
       </Link>)}</div>}
       {!loading && !error && pagination.totalPages > 1 && <nav className="search-pagination" aria-label="검색 결과 페이지">
         <button type="button" onClick={() => movePage(page - 1)} disabled={page <= 1} aria-label="이전 페이지"><ChevronLeft size={15}/></button>
@@ -84,15 +85,7 @@ export function SearchResults({ initialQuery, hideForm = false }: { initialQuery
     </section>}
   </>;
 }
-
 function pageNumbers(page: number, totalPages: number) {
   const start = Math.max(1, Math.min(page - 2, totalPages - 4));
   return Array.from({ length: Math.min(5, totalPages) }, (_, index) => start + index);
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  const now = new Date();
-  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
-  return `${date.getMonth() + 1}.${date.getDate()}`;
 }

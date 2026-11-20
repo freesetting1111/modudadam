@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, MessageCircle, PenLine } from "lucide-react";
+import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api";
-import { StampedName } from "@/components/stamped-name";
+import { PostListMeta } from "@/components/post-list-meta";
+import { displayPostTitle } from "@/lib/post-display";
 
 export type BoardPost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null; viewCount: number;
@@ -69,14 +70,9 @@ export function BoardList({ categoryCode, categoryName, canWrite, initialPage }:
       <div className="board-list" aria-busy={loading}>{posts.map((post) =>
         <Link href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.isRead ? "is-read" : ""}`} key={post.id}>
           <div className="board-row-main">
-            <div className="board-row-title">{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.title}</div>
+            <div className="board-row-title" title={post.title}>{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{displayPostTitle(post.title)}</div>
           </div>
-          <div className="board-row-meta">
-            <StampedName full className="board-author" name={post.authorName} stamp={post.authorStampEmoji} />
-            <time dateTime={post.createdAt}>{formatBoardDate(post.createdAt)}</time>
-            <span aria-label={`조회 ${post.viewCount}`}><Eye size={13} /> {post.viewCount}</span>
-            <span aria-label={`댓글 ${post.commentCount}`}><MessageCircle size={13} /> {post.commentCount}</span>
-          </div>
+          <PostListMeta className="board-row-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
         </Link>)}</div>
       <nav className="board-pagination" aria-label="게시글 페이지">
         <button type="button" aria-label="이전 페이지" disabled={pageIndex === 0 || loading} onClick={() => void moveToPage(pageIndex - 1)}><ChevronLeft size={17} /></button>
@@ -86,18 +82,8 @@ export function BoardList({ categoryCode, categoryName, canWrite, initialPage }:
     </>}
   </>;
 }
-
 function feedUrl(categoryCode: string, cursor?: string) {
   const params = new URLSearchParams({ category: categoryCode, sort: "latest", limit: String(PAGE_SIZE) });
   if (cursor) params.set("cursor", cursor);
   return `/api/posts?${params}`;
-}
-
-function formatBoardDate(value: string) {
-  const date = new Date(value);
-  const today = new Date();
-  if (date.toDateString() === today.toDateString()) {
-    return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
-  }
-  return date.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }).replace(/\s/g, "");
 }

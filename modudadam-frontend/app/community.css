@@ -211,221 +211,186 @@
 @media(max-width:520px){.weekly-reputation{padding:20px 14px}.weekly-reputation>header{align-items:flex-start;flex-direction:column}.weekly-my-score{align-self:stretch;justify-content:center}.weekly-rank-list>div{grid-template-columns:32px minmax(0,1fr) auto auto;gap:6px;padding-right:5px;padding-left:5px}.weekly-rank-list .stamped-name{font-size:14px}.weekly-rank-list .stamped-name-mark{font-size:17px}.weekly-rank-list>div>.rank-score{padding-right:5px;padding-left:5px}}
 @media(max-width:380px){.weekly-rank-list>div{grid-template-columns:30px minmax(0,1fr) auto}.weekly-rank-list button{grid-column:2/-1;width:100%;height:30px}.weekly-rank-panel.misdeed .weekly-rank-list>div{min-height:70px}}
 
-/* 게시글 목록에서는 제목과 작성자 영역이 서로 밀어내지 않도록 같은 규칙을 사용합니다. */
-.board-preview-title,
-.portal-post-title>span,
-.board-row-dense .board-row-title{
-  font-size:15px;
-  line-height:1.4;
+/* 모든 게시글 목록은 최대 두 줄 제목 + 작성자/시간 메타 줄의 동일한 리듬을 사용합니다. */
+.board-preview-post,
+.portal-post-copy,
+.board-row-dense{
+  grid-template-columns:minmax(0,1fr);
+  align-items:stretch;
+  gap:3px;
 }
 
+.home-special-board-section .board-preview-post,
+.board-directory .board-preview-post{
+  height:auto;
+  min-height:56px;
+  align-content:center;
+  padding:6px 2px;
+}
+
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row,
+.community-dashboard-stacked .weekly-hot-carousel .portal-post-row.is-featured{
+  height:auto;
+  min-height:54px;
+  padding:5px 6px;
+}
+
+.board-list .board-row-dense,
+.detail-board-section .board-row-dense,
+.search-result-list .board-row-dense{
+  min-height:56px;
+  padding:8px 4px;
+}
+
+.board-preview-title,
+.portal-post-title>span,
+.board-row-dense .board-row-title,
+.activity-list article>a strong{
+  display:-webkit-box;
+  max-width:100%;
+  overflow:hidden;
+  font-size:15px;
+  font-weight:750;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+  white-space:normal;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+
+.post-list-meta,
 .board-preview-meta,
 .portal-post-meta,
 .board-row-meta{
   min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:2px 6px;
+  overflow:visible;
+  color:#7f8998;
+  font-size:13px;
+  line-height:1.35;
+  white-space:normal;
 }
 
-.board-preview-meta .stamped-name,
-.board-preview-meta>span.stamped-name:first-child,
-.portal-post-meta .stamped-name,
-.board-row-meta .board-author{
+.post-list-meta>.post-list-author.stamped-name-full:first-child{
   width:auto;
-  max-width:none;
+  max-width:100%;
   overflow:visible;
-  flex:none;
+  flex:0 1 auto;
+  align-items:center;
+  color:#59677b;
+  font-size:13px;
+  font-weight:750;
+  line-height:1.35;
+  white-space:normal;
 }
 
-.board-preview-meta .stamped-name-text,
-.portal-post-meta .stamped-name-text,
-.board-row-meta .board-author .stamped-name-text{
+.post-list-meta .stamped-name-text{
+  max-width:100%;
   overflow:visible;
+  overflow-wrap:anywhere;
   text-overflow:clip;
+  white-space:normal;
+}
+
+.post-list-meta .stamped-name-mark{
+  font-size:15px;
+}
+
+.post-list-meta time{
+  margin-left:auto;
+  white-space:nowrap;
+}
+
+.post-list-meta>span:not(.stamped-name){
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  white-space:nowrap;
+}
+
+/* TOP 5와 NEW는 다섯 줄 높이를 유지하며 버튼 없이 자동 전환·드래그로 이동합니다. */
+.weekly-hot-carousel>header h1{overflow:hidden}
+.carousel-position{flex:none;min-width:38px;color:#7d8797;font-size:12px;font-weight:750;text-align:right;white-space:nowrap}
+.weekly-hot-slide{
+  min-height:270px;
+  touch-action:pan-y;
+  cursor:grab;
+  outline:none;
+  user-select:none;
+}
+.weekly-hot-slide:active{cursor:grabbing}
+.weekly-hot-slide:focus-visible{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--board-accent) 42%,transparent)}
+.weekly-hot-slide .portal-post-row{-webkit-user-drag:none}
+.weekly-hot-empty{height:270px}
+
+/* 마이페이지 활동 내역도 게시판 목록과 같은 글자 크기와 간격을 사용합니다. */
+.activity-list article{
+  gap:10px;
+  padding:13px 14px;
+}
+.activity-list article>a{min-width:0;gap:4px}
+.activity-list article>a small{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:3px;
+  overflow:visible;
+  font-size:13px;
+  line-height:1.35;
+  white-space:normal;
+}
+.activity-list article>a span{font-size:13px;line-height:1.35}
+.activity-list .activity-post-meta{font-size:13px;line-height:1.35}
+.activity-list article>a small .stamped-name-full{
+  max-width:100%;
+  flex:0 1 auto;
+  font-size:13px;
+  white-space:normal;
+}
+.activity-list article>a small .stamped-name-text{
+  overflow:visible;
+  overflow-wrap:anywhere;
+  text-overflow:clip;
+  white-space:normal;
+}
+.activity-list article>a small .stamped-name-mark{font-size:15px}
+.activity-comment-preview{
+  display:-webkit-box;
+  overflow:hidden;
+  margin:0;
+  color:#7f8998;
+  font-size:13px;
+  line-height:1.4;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+.activity-list article>div a,
+.activity-list article>div button{
+  min-height:34px;
+  padding:7px 9px;
+  font-size:13px;
 }
 
 @media(max-width:520px){
-  .community-dashboard-stacked .portal-post-row{
-    height:auto;
-    min-height:52px;
-    padding-top:5px;
-    padding-bottom:5px;
-  }
-
-  .portal-post-copy,
-  .board-preview-post,
-  .board-row-dense{
-    grid-template-columns:minmax(0,1fr);
-    align-items:stretch;
-    gap:3px;
-  }
-
-  .board-preview-post{
-    height:auto;
-    min-height:50px;
-    padding-top:5px;
-    padding-bottom:5px;
-  }
-
+  .community-dashboard-stacked .weekly-hot-carousel>header{padding-right:10px;padding-left:9px}
+  .weekly-hot-carousel>header h1 .carousel-category-name{max-width:82px}
   .board-preview-meta,
   .portal-post-meta,
-  .board-row-meta{
-    justify-content:flex-end;
-    gap:6px;
-    overflow:visible;
-  }
-
-  .board-preview-meta>span:first-child,
-  .board-preview-meta .stamped-name,
-  .portal-author,
-  .portal-post-meta .stamped-name,
-  .board-row-meta .board-author{
-    max-width:none;
-  }
+  .board-row-meta{gap:2px 5px}
+  .board-list .board-row-dense,
+  .detail-board-section .board-row-dense,
+  .search-result-list .board-row-dense{padding-right:3px;padding-left:3px}
+  .activity-list article{gap:9px;padding:13px 14px}
 }
 
 @media(max-width:380px){
+  .weekly-hot-carousel>header h1 .carousel-category-name{max-width:68px}
   .board-preview-meta,
   .portal-post-meta,
-  .board-row-meta{
-    gap:4px;
-  }
-
-  .board-preview-meta .stamped-name,
-  .portal-post-meta .stamped-name,
-  .board-row-meta .board-author{
-    max-width:none;
-  }
-}
-
-/* 모바일 홈: 제목과 작성자 메타가 고정 높이 안에서 겹치지 않도록 자연스럽게 확장합니다. */
-@media(max-width:520px){
-  .home-special-board-section .board-preview-post,
-  .board-directory .board-preview-post{
-    height:auto;
-    min-height:56px;
-    grid-template-columns:minmax(0,1fr);
-    align-content:center;
-    gap:3px;
-    padding:6px 2px;
-  }
-
-  .community-dashboard-stacked .weekly-hot-carousel .portal-post-row,
-  .community-dashboard-stacked .weekly-hot-carousel .portal-post-row.is-featured{
-    height:auto;
-    min-height:56px;
-    padding-top:6px;
-    padding-bottom:6px;
-  }
-
-  .portal-post-copy{
-    grid-template-columns:minmax(0,1fr);
-    align-items:start;
-    gap:3px;
-  }
-
-  .board-preview-title,
-  .portal-post-title>span{
-    display:block;
-    max-width:100%;
-    overflow:hidden;
-    font-size:14px;
-    line-height:1.35;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  .board-preview-meta,
-  .portal-post-meta{
-    min-width:0;
-    display:flex;
-    justify-content:flex-end;
-    flex-wrap:wrap;
-    gap:2px 5px;
-    overflow:visible;
-    font-size:12px;
-    line-height:1.3;
-  }
-
-  .board-preview-meta .stamped-name,
-  .portal-post-meta .stamped-name{
-    width:100%;
-    max-width:100%;
-    align-items:flex-start;
-    font-size:13px;
-    line-height:1.3;
-    white-space:normal;
-  }
-
-  .board-preview-meta .stamped-name-text,
-  .portal-post-meta .stamped-name-text{
-    max-width:100%;
-    overflow-wrap:anywhere;
-  }
-
-  .board-preview-meta .stamped-name-mark,
-  .portal-post-meta .stamped-name-mark{
-    font-size:14px;
-  }
-
-  .weekly-hot-slide{
-    min-height:0;
-  }
-
-  .board-list .board-row-dense,
-  .detail-board-section .board-row-dense,
-  .search-result-list .board-row-dense{
-    grid-template-columns:minmax(0,1fr);
-    align-items:stretch;
-    gap:4px;
-    padding-top:9px;
-    padding-bottom:9px;
-  }
-
-  .board-row-dense .board-row-title{
-    max-width:100%;
-    overflow:hidden;
-    font-size:14px;
-    line-height:1.4;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  .board-list .board-row-meta,
-  .detail-board-section .board-row-meta,
-  .search-result-list .board-row-meta{
-    min-width:0;
-    display:flex;
-    justify-content:flex-end;
-    flex-wrap:wrap;
-    gap:2px 6px;
-    overflow:visible;
-    font-size:12px;
-    line-height:1.3;
-    white-space:normal;
-  }
-
-  .board-row-meta .board-author{
-    width:100%;
-    max-width:100%;
-    align-items:flex-start;
-    color:#657184;
-    font-size:13px;
-    line-height:1.3;
-    white-space:normal;
-  }
-
-  .board-row-meta .board-author .stamped-name-text{
-    max-width:100%;
-    overflow-wrap:anywhere;
-  }
-
-  .board-row-meta .stamped-name-mark{
-    font-size:14px;
-  }
-
-  .board-row-meta time,
-  .board-row-meta>span{
-    display:inline-flex;
-    align-items:center;
-    white-space:nowrap;
-  }
+  .board-row-meta{gap:2px 4px}
 }

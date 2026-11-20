@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, MessageCircle, PenLine } from "lucide-react";
+import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { findBoard } from "@/lib/categories";
-import { StampedName } from "@/components/stamped-name";
+import { PostListMeta } from "@/components/post-list-meta";
+import { displayPostTitle } from "@/lib/post-display";
 
 type Post = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null; viewCount: number; commentCount: number;
@@ -61,8 +62,8 @@ export function DetailBoardList({ categoryCode, currentPostId, canWrite }: { cat
     {loading && !data && <div className="board-message">게시글을 불러오고 있어요.</div>}
     {error && <div className="board-message error">{error}</div>}
     {data && <div className="board-list" aria-busy={loading}>{data.posts.map((post) => <Link key={post.id} href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.isRead || post.id === currentPostId ? "is-read" : ""} ${post.id === currentPostId ? "board-row-current" : ""}`} aria-current={post.id === currentPostId ? "page" : undefined}>
-      <div className="board-row-main"><div className="board-row-title">{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.title}</div></div>
-      <div className="board-row-meta"><StampedName full className="board-author" name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatBoardDate(post.createdAt)}</time><span aria-label={`조회 ${post.viewCount}`}><Eye size={13} /> {post.viewCount}</span><span aria-label={`댓글 ${post.commentCount}`}><MessageCircle size={13} /> {post.commentCount}</span></div>
+      <div className="board-row-main"><div className="board-row-title" title={post.title}>{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{displayPostTitle(post.title)}</div></div>
+      <PostListMeta className="board-row-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
     </Link>)}</div>}
     {data && <nav className="board-pagination" aria-label="상세 게시판 페이지">
       <button type="button" disabled={page === 1 || loading} onClick={() => void load(page - 1)} aria-label="이전 게시글 페이지"><ChevronLeft size={17} /></button>
@@ -70,11 +71,4 @@ export function DetailBoardList({ categoryCode, currentPostId, canWrite }: { cat
       <button type="button" disabled={page === totalPages || loading} onClick={() => void load(page + 1)} aria-label="다음 게시글 페이지"><ChevronRight size={17} /></button>
     </nav>}
   </section>;
-}
-
-function formatBoardDate(value: string) {
-  const date = new Date(value);
-  const today = new Date();
-  if (date.toDateString() === today.toDateString()) return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
-  return date.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }).replace(/\s/g, "");
 }

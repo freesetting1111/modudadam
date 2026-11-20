@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ChevronRight, Eye, MessageCircle, Sparkles, TrendingUp } from "lucide-react";
+import { ChevronRight, Sparkles, TrendingUp } from "lucide-react";
 import { HomeSearch } from "@/components/home-search";
 import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
 import { categories, specialBoards } from "@/lib/categories";
 import { API_SERVER_URL } from "@/lib/server-config";
-import { StampedName } from "@/components/stamped-name";
+import { PostListMeta } from "@/components/post-list-meta";
 import { WeeklyReputationRankings } from "@/components/weekly-reputation-rankings";
+import { displayPostTitle } from "@/lib/post-display";
 
 export type HomePost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
@@ -57,7 +58,6 @@ export default async function Home() {
     </section>
   </div>;
 }
-
 type PreviewBoard = (typeof categories)[number] | (typeof specialBoards)[number];
 
 function BoardPreview({ category, posts }: { category: PreviewBoard; posts: HomePost[] }) {
@@ -65,8 +65,8 @@ function BoardPreview({ category, posts }: { category: PreviewBoard; posts: Home
   return <article className={`board-preview-card board-preview-${category.code}`}>
     <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
     <div>{posts.length > 0 ? posts.map((post) => <Link className={`board-preview-post ${post.isRead ? "is-read" : ""}`} href={`/posts/${post.id}`} key={post.id}>
-      <span className="board-preview-title">{post.title}</span>
-      <span className="board-preview-meta"><StampedName full name={post.authorName} stamp={post.authorStampEmoji} /><time dateTime={post.createdAt}>{formatCompactDate(post.createdAt)}</time><span><Eye size={10}/>{post.viewCount}</span><span><MessageCircle size={10}/>{post.commentCount}</span></span>
+      <span className="board-preview-title" title={post.title}>{displayPostTitle(post.title)}</span>
+      <PostListMeta className="board-preview-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
     </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}`}>등록된 게시글이 없습니다.</Link>}</div>
   </article>;
 }
@@ -80,7 +80,6 @@ async function getWeeklyPostsByCategory(cookieHeader:string): Promise<HomePost[]
     return body.success && Array.isArray(body.data?.posts) ? body.data.posts : [];
   } catch { return []; }
 }
-
 async function getCategoryPosts(cookieHeader:string): Promise<HomePost[]> {
   try {
     const params = new URLSearchParams({ groupedByCategory: "true", perCategory: "10" });
@@ -89,11 +88,4 @@ async function getCategoryPosts(cookieHeader:string): Promise<HomePost[]> {
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };
     return body.success && Array.isArray(body.data?.posts) ? body.data.posts : [];
   } catch { return []; }
-}
-
-function formatCompactDate(value: string) {
-  const date = new Date(value);
-  const today = new Date();
-  if (date.toDateString() === today.toDateString()) return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
-  return `${date.getMonth() + 1}.${date.getDate()}`;
 }

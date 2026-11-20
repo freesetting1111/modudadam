@@ -1,9 +1,9 @@
 import Image from "next/image";
 
 export function StampedName({ name, stamp, className = "", full = false }: { name: string; stamp?: string | null; className?: string; full?: boolean }) {
-  return <span className={`stamped-name ${className}`.trim()} style={full ? { maxWidth:"none",overflow:"visible",flexShrink:0 } : undefined}>
+  return <span className={`stamped-name ${full ? "stamped-name-full" : ""} ${className}`.trim()}>
     {stamp && <StampMark stamp={stamp}/>}
-    <span className="stamped-name-text" style={full ? { overflow:"visible",textOverflow:"clip" } : undefined}>{name}</span>
+    <span className="stamped-name-text">{name}</span>
   </span>;
 }
 export function StampMark({ stamp, className="" }: { stamp:string;className?:string }) {

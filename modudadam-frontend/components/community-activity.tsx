@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { Bookmark, ChevronLeft, ChevronRight, FileText, LoaderCircle, MessageCircle, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { CategoryGrid } from "@/components/category-grid";
-import { StampedName } from "@/components/stamped-name";
+import { PostListMeta } from "@/components/post-list-meta";
+import { displayPostTitle } from "@/lib/post-display";
 
-type ActivityPost = { id: string; title: string; createdAt: string; viewCount: number; commentCount: number; categoryName: string; authorName?: string; authorStampEmoji?: string | null };
+type ActivityPost = { id: string; title: string; createdAt: string; viewCount: number; commentCount: number; categoryName: string; authorName: string; authorStampEmoji?: string | null };
 type ActivityComment = { id: string; postId: string; content: string; createdAt: string; postTitle: string; categoryName: string };
 type Tab = "posts" | "comments" | "scraps";
 type Activity = {
@@ -105,9 +106,9 @@ export function CommunityActivity() {
       {error && <div className="form-error">{error}</div>}
       {!activity && !error && <div className="activity-loading"><LoaderCircle className="spin" size={22}/> 활동을 불러오는 중입니다.</div>}
       {activity && <div className="activity-list">
-        {tab === "posts" && <>{activity.posts.map((post) => <article key={post.id}><Link href={`/posts/${post.id}`}><small>{post.categoryName}</small><strong>{post.title}</strong><span>{formatDate(post.createdAt)} · 조회 {post.viewCount} · 댓글 {post.commentCount}</span></Link><div><Link href={`/posts/${post.id}/edit`}>수정</Link><button type="button" onClick={() => void deletePost(post.id)}><Trash2 size={13}/> 삭제</button></div></article>)}{activity.posts.length === 0 && <EmptyActivity>이 게시판에 작성한 글이 없습니다.</EmptyActivity>}</>}
-        {tab === "comments" && <>{activity.comments.map((comment) => <article key={comment.id}><Link href={`/posts/${comment.postId}`}><small>{comment.categoryName} · {comment.postTitle}</small><strong>{comment.content}</strong><span>{formatDate(comment.createdAt)}</span></Link><div><button type="button" onClick={() => void deleteComment(comment.id)}><Trash2 size={13}/> 삭제</button></div></article>)}{activity.comments.length === 0 && <EmptyActivity>이 게시판에 작성한 댓글이 없습니다.</EmptyActivity>}</>}
-        {tab === "scraps" && <>{activity.scraps.map((post) => <article key={post.id}><Link href={`/posts/${post.id}`}><small>{post.categoryName} · {post.authorName && <StampedName full name={post.authorName} stamp={post.authorStampEmoji} />}</small><strong>{post.title}</strong><span>{formatDate(post.createdAt)} · 댓글 {post.commentCount}</span></Link><div><button type="button" onClick={() => void removeScrap(post.id)}><Bookmark size={13}/> 해제</button></div></article>)}{activity.scraps.length === 0 && <EmptyActivity>이 게시판에 스크랩한 글이 없습니다.</EmptyActivity>}</>}
+        {tab === "posts" && <>{activity.posts.map((post) => <article key={post.id}><Link href={`/posts/${post.id}`}><small>{post.categoryName}</small><strong title={post.title}>{displayPostTitle(post.title)}</strong><PostListMeta className="activity-post-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/></Link><div><Link href={`/posts/${post.id}/edit`}>수정</Link><button type="button" onClick={() => void deletePost(post.id)}><Trash2 size={13}/> 삭제</button></div></article>)}{activity.posts.length === 0 && <EmptyActivity>이 게시판에 작성한 글이 없습니다.</EmptyActivity>}</>}
+        {tab === "comments" && <>{activity.comments.map((comment) => <article key={comment.id}><Link href={`/posts/${comment.postId}`}><small>{comment.categoryName}</small><strong title={comment.postTitle}>{displayPostTitle(comment.postTitle)}</strong><p className="activity-comment-preview">{comment.content}</p><span>{formatDate(comment.createdAt)}</span></Link><div><button type="button" onClick={() => void deleteComment(comment.id)}><Trash2 size={13}/> 삭제</button></div></article>)}{activity.comments.length === 0 && <EmptyActivity>이 게시판에 작성한 댓글이 없습니다.</EmptyActivity>}</>}
+        {tab === "scraps" && <>{activity.scraps.map((post) => <article key={post.id}><Link href={`/posts/${post.id}`}><small>{post.categoryName}</small><strong title={post.title}>{displayPostTitle(post.title)}</strong><PostListMeta className="activity-post-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/></Link><div><button type="button" onClick={() => void removeScrap(post.id)}><Bookmark size={13}/> 해제</button></div></article>)}{activity.scraps.length === 0 && <EmptyActivity>이 게시판에 스크랩한 글이 없습니다.</EmptyActivity>}</>}
       </div>}
       {activity && <nav className="activity-pagination" aria-label="내 활동 페이지">
         <button type="button" onClick={() => movePage(page - 1)} disabled={page <= 1} aria-label="이전 페이지"><ChevronLeft size={15}/></button>
