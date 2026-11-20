@@ -111,8 +111,9 @@ export async function completeOAuthLoginTicket(
     }
 
     const profile = row.profile;
-    const userId = await upsertOAuthUser(profile, client, agreements, requestedNickname);
+    const { userId,created } = await upsertOAuthUser(profile, client, agreements, requestedNickname);
     await ensureAcornWallet(userId, client);
+    if (created) await ensureSignupGift(userId, client);
     if (agreements) {
       for (const consentKey of ["age_over_14", "service_terms", "privacy_collection"]) {
         await client.query(
@@ -192,6 +193,7 @@ async function upsertOAuthUser(
       ? await getAvailableOAuthEmail(verifiedEmail, userId, client)
       : null;
 
+    let created = false;
     if (!userId) {
       const nickname = requestedNickname || await createAvailableNickname(profile.nickname, client);
       const user = await client.query<{ id: string }>(
@@ -204,6 +206,7 @@ async function upsertOAuthUser(
           agreements?.phoneNumber || null, agreements?.gender || null, agreements?.ageRange || null, Boolean(agreements)],
       );
       userId = user.rows[0].id;
+      created = true;
     } else {
       await client.query(
         `UPDATE users SET nickname=COALESCE($2,nickname),avatar_url=COALESCE(avatar_url,$3),
@@ -235,7 +238,7 @@ async function upsertOAuthUser(
       [userId, profile.provider, profile.providerUserId, profile.email || null, profile.nickname || null,
         null, null, null, JSON.stringify(profile.raw)],
     );
-    return userId;
+    return { userId,created };
 }
 
 function getVerifiedOAuthEmail(profile: OAuthProfile) {
@@ -294,6 +297,7 @@ export async function registerLocalUser(input: RegisterInput) {
     );
     const userId = user.rows[0].id;
     await ensureAcornWallet(userId, client);
+    await ensureSignupGift(userId, client);
     await client.query(
       `INSERT INTO user_local_accounts(user_id,login_id,password_hash) VALUES($1,$2,$3)`,
       [userId, input.loginId, passwordHash],
@@ -312,6 +316,20 @@ async function ensureAcornWallet(userId: string, client: PoolClient) {
     `INSERT INTO acorn_wallets(user_id)
      VALUES($1)
      ON CONFLICT(user_id) DO NOTHING`,
+    [userId],
+  );
+}
+
+async function ensureSignupGift(userId: string, client: PoolClient) {
+  await client.query(
+    `INSERT INTO acorn_gifts(
+       sender_id,recipient_id,amount,message,request_key,gift_type,status,sender_display_name
+     )
+     SELECT NULL,users.id,100,
+       format('modudadam님이 %s님에게 신규가입 패키지 도토리 100개를 보냈어요!',users.nickname),
+       gen_random_uuid(),'signup_package','pending','modudadam'
+     FROM users WHERE users.id=$1
+     ON CONFLICT DO NOTHING`,
     [userId],
   );
 }

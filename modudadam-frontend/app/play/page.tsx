@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 const contentItems = [
   { href: "/play/attendance", icon: CalendarCheck2, tone: "green", eyebrow: "매일 한 번 스탬프", title: "다담 출석부", description: "매일 출석하고 도토리를 차곡차곡 모아보세요." },
-  { href: "/play/stamps", icon: Gift, tone: "purple", eyebrow: "도토리로 꾸미는 프로필", title: "도토리 스탬프 상점", description: "등급별 스탬프를 둘러보고 대표 스탬프를 선택해 보세요." },
+  { href: "/play/stamps", icon: Gift, tone: "purple", eyebrow: "스탬프 구매와 포인트 전환", title: "도토리 상점", description: "스탬프를 구매하고 도토리를 악행 포인트로 전환해 보세요." },
   { href: "/play/acorn-gift", icon: HandCoins, tone: "amber", eyebrow: "이웃에게 전하는 마음", title: "도토리 선물하기", description: "고마운 이웃에게 메시지와 함께 도토리를 보내보세요." },
   { href: "/play/missions", icon: Trophy, tone: "amber", eyebrow: "매일 새로운 생활 퀴즈", title: "다담 미션", description: "16개 주제의 세 문제를 모두 맞히고 도토리를 모아보세요." },
   { href: "/play/detective", icon: ShieldQuestion, tone: "blue", eyebrow: "오늘의 사건 파일", title: "다담 추리방", description: "열 명의 용의자와 세 단서 속에서 거짓말한 한 사람을 찾아보세요." },

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Heart, Hourglass, Lightbulb, LockKeyhole, Search, ShieldQuestion, Sparkles, Trophy, UnlockKeyhole } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { AchievementDialog } from "@/components/achievement-dialog";
@@ -74,27 +74,44 @@ export function DadamTimeCapsule() {
 
 type DetectiveGame = {
   case:{ title:string;briefing:string;question:string;difficulty:number };
-  suspects:Array<{ id:string;name:string;statement:string;selected:boolean }>;
+  suspects:Array<{ id:string;statement:string;selected:boolean }>;
   hints:Array<{ order:number;content:string }>;
+  playOn:string;
   livesRemaining:number;hintsRevealed:number;hintsRemaining:number;status:"active"|"solved"|"failed";reward:number;rewardPreview:number;walletBalance:number;
-  explanation:string | null;correctName:string | null;
+  explanation:string | null;
 };
 
 export function DadamDetectiveRoom() {
+  const initialLoadStarted=useRef(false);
   const [game,setGame]=useState<DetectiveGame | null>(null); const [selected,setSelected]=useState<string | null>(null);
   const [loading,setLoading]=useState(true);const [pending,setPending]=useState(false);const [error,setError]=useState("");const [feedback,setFeedback]=useState("");
   const [detectiveCelebration,setDetectiveCelebration]=useState<{ title:string;description:string;reward:string } | null>(null);
   const [hintPopup,setHintPopup]=useState<{ order:number;content:string;hintsRemaining:number } | null>(null);
-  const load=useCallback(async() => { setLoading(true);setError("");try { setGame(await apiRequest<DetectiveGame>("/api/features/detective")); } catch(caught) { setError(caught instanceof Error ? caught.message : "오늘의 사건을 불러오지 못했습니다."); } finally { setLoading(false); } },[]);
+  const load=useCallback(async(reshuffle=false) => { setLoading(true);setError("");try { setGame(await apiRequest<DetectiveGame>(`/api/features/detective${reshuffle ? "?reshuffle=1" : ""}`)); } catch(caught) { setError(caught instanceof Error ? caught.message : "오늘의 사건을 불러오지 못했습니다."); } finally { setLoading(false); } },[]);
   useEffect(() => {
-    let active=true;
-    apiRequest<DetectiveGame>("/api/features/detective")
-      .then((data) => { if (active) setGame(data); })
-      .catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : "오늘의 사건을 불러오지 못했습니다."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active=false; };
-  },[]);
+    if (initialLoadStarted.current) return;
+    initialLoadStarted.current=true;
+    void load(true);
+  },[load]);
+  useEffect(() => {
+    if (!game?.playOn) return;
+    const refreshForNewDay=() => {
+      if (currentKstDate()===game.playOn) return;
+      setSelected(null);setFeedback("");setDetectiveCelebration(null);setHintPopup(null);
+      void load(true);
+    };
+    const interval=window.setInterval(refreshForNewDay,60_000);
+    const handleVisibility=() => { if (document.visibilityState==="visible") refreshForNewDay(); };
+    window.addEventListener("focus",refreshForNewDay);
+    document.addEventListener("visibilitychange",handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus",refreshForNewDay);
+      document.removeEventListener("visibilitychange",handleVisibility);
+    };
+  },[game?.playOn,load]);
   const selectedSuspect=useMemo(() => game?.suspects.find((suspect) => suspect.id===selected) || null,[game,selected]);
+  const selectedCandidateNumber=useMemo(() => selected && game ? game.suspects.findIndex((suspect) => suspect.id===selected)+1 : 0,[game,selected]);
   async function accuse() {
     if (!selected || pending || !game || game.status!=="active") return;setPending(true);setError("");
     try {
@@ -120,9 +137,9 @@ export function DadamDetectiveRoom() {
       <article className="detective-case"><header><span>오늘의 사건</span><b aria-label={`난이도 ${game.case.difficulty}단계`}>{"★".repeat(game.case.difficulty)}</b></header><h2>{game.case.title}</h2><DetectiveBriefing text={game.case.briefing}/><div className="detective-question"><span><Search size={19}/></span><div><small>최종 질문</small><strong>{game.case.question}</strong></div></div></article>
       <section className="detective-hints"><header><div><h2><Lightbulb size={18}/> 단서 보관함 <em>{game.hintsRemaining}개 남음</em></h2><p>사건마다 단서 3개를 사용할 수 있으며 보유 도토리는 차감되지 않아요.</p></div>{game.status==="active" && game.hintsRevealed<3 && <button type="button" disabled={pending} onClick={() => void revealHint()}>🌰 단서 1개 사용하기</button>}</header>{game.hints.length ? game.hints.map((hint) => <p key={hint.order}><span>단서 {hint.order}</span>{hint.content}</p>) : <div className="detective-hint-empty"><Lightbulb size={20}/><strong>아직 사용한 단서가 없어요.</strong><span>기록만으로 어렵다면 단서를 하나씩 확인해 보세요.</span></div>}</section>
       {feedback && <p className="feature-notice">{feedback}</p>}{error && <p className="feature-error">{error}</p>}
-      {game.status!=="active" && <article className={`detective-result ${game.status}`}><Sparkles/><small>{game.status==="solved" ? "사건 해결" : "오늘의 수사 종료"}</small><h2>정답 · {game.correctName}</h2><p>{game.explanation}</p><strong>오늘 받은 도토리 {game.reward}개</strong><span>내일 새로운 사건이 열려요.</span></article>}
-      <section className="detective-suspects"><header><div><small>STEP 3</small><h2>수사 결론 선택</h2><p>모든 조사 기록과 단서를 만족하는 결론은 하나뿐이에요.</p></div><b>10개 후보</b></header><div>{game.suspects.map((suspect,index) => <button type="button" key={suspect.id} disabled={suspect.selected || game.status!=="active" || pending} className={`${selected===suspect.id ? "selected" : ""} ${suspect.selected ? "eliminated" : ""}`} onClick={() => setSelected(suspect.id)}><span>{index+1}</span><div><small>결론 후보 {index+1}</small><strong>{suspect.name}</strong><SuspectStatement text={suspect.statement}/></div>{suspect.selected && <em>확인 완료</em>}{selected===suspect.id && !suspect.selected && <em className="choice-ready"><Check size={12}/>선택됨</em>}</button>)}</div></section>
-      {game.status==="active" && <div className="detective-accuse"><span>{selectedSuspect ? `${selectedSuspect.name}을(를) 선택할까요?` : "수사 결론 하나를 선택해 주세요."}</span><button type="button" disabled={!selectedSuspect || pending} onClick={() => void accuse()}>{pending ? "기록 확인 중..." : "이 결론 선택하기"}</button></div>}
+      {game.status!=="active" && <article className={`detective-result ${game.status}`}><Sparkles/><small>{game.status==="solved" ? "사건 해결" : "오늘의 수사 종료"}</small><h2>정답 결론</h2><p>{game.explanation}</p><strong>오늘 받은 도토리 {game.reward}개</strong><span>내일 새로운 사건이 열려요.</span></article>}
+      <section className="detective-suspects"><header><div><small>STEP 3</small><h2>수사 결론 선택</h2><p>입장할 때마다 후보 순서가 바뀝니다. 번호가 아닌 내용을 확인해 주세요.</p></div><b>10개 후보</b></header><div>{game.suspects.map((suspect,index) => <button type="button" key={suspect.id} disabled={suspect.selected || game.status!=="active" || pending} className={`${selected===suspect.id ? "selected" : ""} ${suspect.selected ? "eliminated" : ""}`} onClick={() => setSelected(suspect.id)}><span>{index+1}</span><div><strong>결론 후보 {index+1}</strong><SuspectStatement text={suspect.statement}/></div>{suspect.selected && <em>확인 완료</em>}{selected===suspect.id && !suspect.selected && <em className="choice-ready"><Check size={12}/>선택됨</em>}</button>)}</div></section>
+      {game.status==="active" && <div className="detective-accuse"><span>{selectedSuspect ? `결론 후보 ${selectedCandidateNumber}을 선택할까요?` : "수사 결론 하나를 선택해 주세요."}</span><button type="button" disabled={!selectedSuspect || pending} onClick={() => void accuse()}>{pending ? "기록 확인 중..." : "이 결론 선택하기"}</button></div>}
       <AchievementDialog open={Boolean(detectiveCelebration)} eyebrow="CASE CLOSED" title={detectiveCelebration?.title || ""} description={detectiveCelebration?.description || ""} reward={detectiveCelebration?.reward} confirmLabel="사건 기록 확인하기" onConfirm={() => setDetectiveCelebration(null)} />
       <AchievementDialog open={Boolean(hintPopup)} eyebrow={`CLUE ${hintPopup?.order || ""}`} title={`단서 ${hintPopup?.order || ""}을 확인했어요`} description={hintPopup?.content || ""} reward={`🌰 남은 단서 ${hintPopup?.hintsRemaining ?? 0}개 · 도토리 차감 없음`} confirmLabel="수사 기록에 추가하기" onConfirm={() => setHintPopup(null)} />
     </>}
@@ -146,3 +163,4 @@ function Pagination({ page,totalPages,onChange }:{ page:number;totalPages:number
 }
 function futureLocalValue(days:number,minutes=0) { const date=new Date(Date.now()+days*86_400_000+minutes*60_000);date.setSeconds(0,0);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}T${String(date.getHours()).padStart(2,"0")}:${String(date.getMinutes()).padStart(2,"0")}`; }
 function formatDateTime(value:string) { return new Date(value).toLocaleString("ko-KR",{ year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit" }); }
+function currentKstDate() { const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{ timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit" }).formatToParts(new Date()).map(({ type,value }) => [type,value]));return `${parts.year}-${parts.month}-${parts.day}`; }

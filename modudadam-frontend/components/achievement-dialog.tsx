@@ -10,7 +10,10 @@ type AchievementDialogProps = {
   description: string;
   reward?: string;
   confirmLabel?: string;
+  cancelLabel?: string;
+  pending?: boolean;
   onConfirm: () => void;
+  onCancel?: () => void;
 };
 
 export function AchievementDialog({
@@ -20,21 +23,24 @@ export function AchievementDialog({
   description,
   reward,
   confirmLabel = "확인",
+  cancelLabel = "취소",
+  pending = false,
   onConfirm,
+  onCancel,
 }: AchievementDialogProps) {
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onConfirm();
+      if (event.key === "Escape" && !pending) (onCancel || onConfirm)();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [open, onConfirm]);
+  }, [open, onConfirm, onCancel, pending]);
 
   if (!open) return null;
 
@@ -48,7 +54,7 @@ export function AchievementDialog({
         <p id="achievement-dialog-description">{description}</p>
         {reward && <strong>{reward}</strong>}
       </div>
-      <button type="button" onClick={onConfirm} autoFocus>{confirmLabel}</button>
+      {onCancel ? <div className="achievement-dialog-actions"><button type="button" className="secondary" onClick={onCancel} disabled={pending}>{cancelLabel}</button><button type="button" onClick={onConfirm} disabled={pending} autoFocus>{confirmLabel}</button></div> : <button type="button" onClick={onConfirm} disabled={pending} autoFocus>{confirmLabel}</button>}
     </section>
   </div>;
 }

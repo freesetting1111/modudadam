@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="심연의 낙인">
+  <defs>
+    <linearGradient id="a" x1="8" y1="5" x2="55" y2="59"><stop stop-color="#ff9cab"/><stop offset=".38" stop-color="#e72b50"/><stop offset=".7" stop-color="#7c164a"/><stop offset="1" stop-color="#28143d"/></linearGradient>
+    <radialGradient id="b"><stop stop-color="#ed4369"/><stop offset=".55" stop-color="#63153f"/><stop offset="1" stop-color="#160d27"/></radialGradient>
+    <linearGradient id="c" x1="21" y1="25" x2="44" y2="39"><stop stop-color="#ffea95"/><stop offset=".45" stop-color="#ff6a65"/><stop offset="1" stop-color="#8d1d78"/></linearGradient>
+    <filter id="d"><feDropShadow dx="0" dy="1.5" stdDeviation="2.2" flood-color="#8e123e" flood-opacity=".8"/></filter>
+  </defs>
+  <path d="m32 1 5.7 7.7 9.5-3.3 1.1 9.5 9.6 1-3.5 9 8 5.5-7.7 5.7 3.3 9.5-9.5 1.1-1 9.6-9-3.5-5.5 8-5.7-7.7-9.5 3.3-1.1-9.5-9.6-1 3.5-9-8-5.5 7.7-5.7-3.3-9.5 9.5-1.1 1-9.6 9 3.5Z" fill="url(#a)" stroke="#ffaf90" stroke-width="1.7" filter="url(#d)"/>
+  <circle cx="32" cy="32" r="22.5" fill="url(#b)" stroke="#ff7890" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="18.3" fill="none" stroke="#ef637b" stroke-width="1.3" stroke-dasharray="3 2"/>
+  <path d="M15 32c4.5-8 10.2-12 17-12s12.5 4 17 12c-4.5 8-10.2 12-17 12S19.5 40 15 32Z" fill="#140b21" stroke="#ff7890" stroke-width="2"/>
+  <circle cx="32" cy="32" r="8.3" fill="url(#c)" stroke="#ffd0b6" stroke-width="1.3"/>
+  <path d="m32 26 2 4 4 .9-3 3 1 4.1-4-2-4 2 1-4.1-3-3 4-.9Z" fill="#29102e"/>
+  <path d="M12 17 7 12m45 5 5-5M12 47l-5 5m45-5 5 5" stroke="#ff7189" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

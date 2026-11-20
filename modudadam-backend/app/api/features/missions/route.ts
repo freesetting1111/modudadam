@@ -72,7 +72,7 @@ export async function POST(request:NextRequest) {
         await client.query(`UPDATE daily_mission_attempts SET rewarded_at=now() WHERE id=$1`,[current.id]);
         await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[user.id]);
         const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[user.id]);
-        reward=(wallet.rows[0]?.balance || 0)<9999 ? 1 : 0; walletFull=reward===0;
+        reward=(wallet.rows[0]?.balance || 0)<20000 ? 1 : 0; walletFull=reward===0;
         if (reward) {
           await client.query(`UPDATE acorn_wallets SET balance=balance+1,lifetime_earned=lifetime_earned+1,updated_at=now() WHERE user_id=$1`,[user.id]);
           await client.query(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description) VALUES($1,1,'mission_complete',$2,$3)`,[user.id,`${today}:${category}`,`${category} 오늘의 미션 완료`]);

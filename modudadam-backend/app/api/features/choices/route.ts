@@ -61,7 +61,10 @@ export async function POST(request: NextRequest) {
     if (!isUuid(choiceId) || !isUuid(optionId)) return errorResponse("선택 정보가 올바르지 않습니다.");
     const saved = await query(
       `INSERT INTO daily_choice_votes(choice_id,option_id,user_id)
-       SELECT $1,$2,$3 FROM daily_choice_options WHERE id=$2 AND choice_id=$1
+       SELECT options.choice_id,options.id,$3
+       FROM daily_choice_options options JOIN daily_choices choices ON choices.id=options.choice_id
+       WHERE options.id=$2 AND options.choice_id=$1 AND choices.status='published'
+         AND choices.active_on=(now() AT TIME ZONE 'Asia/Seoul')::date
        ON CONFLICT(choice_id,user_id) DO UPDATE SET option_id=EXCLUDED.option_id,updated_at=now()
        RETURNING option_id`,
       [choiceId, optionId, user.id],

@@ -125,7 +125,7 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           <h2>다담 콘텐츠</h2>
           <div className="dadam-content-links">
             <Link href="/play/attendance" onClick={closeMenu}><span className="dadam-link-icon green"><CalendarCheck2/></span><span><strong>다담 출석부</strong><small>스탬프를 찍고 도토리 모으기</small></span><ChevronRight/></Link>
-            <Link href="/play/stamps" onClick={closeMenu}><span className="dadam-link-icon purple"><Gift/></span><span><strong>도토리 스탬프 상점</strong><small>도토리로 대표 스탬프 꾸미기</small></span><ChevronRight/></Link>
+            <Link href="/play/stamps" onClick={closeMenu}><span className="dadam-link-icon purple"><Gift/></span><span><strong>도토리 상점</strong><small>스탬프 구매와 악행 포인트 전환</small></span><ChevronRight/></Link>
             <Link href="/play/acorn-gift" onClick={closeMenu}><span className="dadam-link-icon amber"><HandCoins/></span><span><strong>도토리 선물하기</strong><small>이웃에게 도토리와 마음 전하기</small></span><ChevronRight/></Link>
             <Link href="/play/missions" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 미션</strong><small>생활 퀴즈를 풀고 도토리 모으기</small></span><ChevronRight/></Link>
             <Link href="/play/detective" onClick={closeMenu}><span className="dadam-link-icon blue"><ShieldQuestion/></span><span><strong>다담 추리방</strong><small>열 명의 용의자 중 진실 찾기</small></span><ChevronRight/></Link>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="혼돈의 왕관">
+  <defs>
+    <linearGradient id="a" x1="7" y1="5" x2="57" y2="59"><stop stop-color="#ff9b77"/><stop offset=".28" stop-color="#f33461"/><stop offset=".57" stop-color="#91205e"/><stop offset=".82" stop-color="#512187"/><stop offset="1" stop-color="#160d2c"/></linearGradient>
+    <radialGradient id="b" cx="38%" cy="30%"><stop stop-color="#7b2b75"/><stop offset=".6" stop-color="#2b123e"/><stop offset="1" stop-color="#0d0919"/></radialGradient>
+    <linearGradient id="c" x1="18" y1="20" x2="47" y2="45"><stop stop-color="#ffe89c"/><stop offset=".28" stop-color="#ff6a68"/><stop offset=".62" stop-color="#d12b7b"/><stop offset="1" stop-color="#7554ec"/></linearGradient>
+    <filter id="d"><feDropShadow dx="0" dy="0" stdDeviation="2.4" flood-color="#ee3267" flood-opacity=".85"/></filter>
+  </defs>
+  <ellipse cx="32" cy="32" rx="29.5" ry="14" fill="none" stroke="url(#a)" stroke-width="2" transform="rotate(-25 32 32)"/>
+  <ellipse cx="32" cy="32" rx="29.5" ry="14" fill="none" stroke="#9d66ff" stroke-width="1.3" transform="rotate(26 32 32)" opacity=".75"/>
+  <path d="m32 1 4.8 7.5 8-4 1 8.8 9-1.2-3.7 8.2 8.7 2.8-6.8 5.8 7.3 5.4-8.4 3.2 4.2 8-9-.7 1.4 8.9-8.2-3.8-2.7 8.6-6.1-6.6-5.4 7.3-3.5-8.3-7.9 4.4.6-9-8.9 1.7 3-8.5-8.8-2.3 7-5.7-7-5.7 8.8-2.3-3-8.5 8.9 1.7-.6-9 7.9 4.4 3.5-8.3 5.4 7.3 6.1-6.6 2.7 8.6 8.2-3.8-1.4 8.9 9-.7-4.2 8 8.4 3.2-7.3 5.4 6.8 5.8-8.7 2.8 3.7 8.2-9-1.2-1 8.8-8-4Z" fill="url(#a)" stroke="#ffad83" stroke-width="1.4" filter="url(#d)"/>
+  <circle cx="32" cy="32" r="20.5" fill="url(#b)" stroke="#ef4c76" stroke-width="1.5"/>
+  <path d="M17 27 24 34l8-17 8 17 7-7-3 19H20Z" fill="url(#c)" stroke="#ffd1a0" stroke-width="1.7" stroke-linejoin="round" filter="url(#d)"/>
+  <path d="M21 41h22M24 45h16" fill="none" stroke="#ffe29a" stroke-width="2" stroke-linecap="round"/>
+  <path d="m32 24 2.2 4.2 4.7.7-3.4 3.3.8 4.7-4.3-2.2-4.3 2.2.8-4.7-3.4-3.3 4.7-.7Z" fill="#37113b" stroke="#ff9d80" stroke-width=".8"/>
+  <g fill="#ffdd99"><circle cx="7" cy="20" r="1.8"/><circle cx="56" cy="14" r="1.4"/><circle cx="58" cy="45" r="1.8"/><circle cx="11" cy="51" r="1.3"/></g>
+</svg>

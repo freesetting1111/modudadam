@@ -5,6 +5,9 @@ import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 
 const kstDate = () => new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit" }).format(new Date());
 const rarityOrder = ["uncommon","common","rare","epic","legendary","mythic"];
+const ACORN_LIMIT = 20000;
+const MISDEED_CONVERSION_AMOUNT = 1000;
+const REPUTATION_POINT_LIMIT = 20000;
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,6 +55,7 @@ export async function POST(request: NextRequest) {
     if (body.action === "attend") return attend(user.id);
     if (body.action === "purchase") return purchaseStamp(user.id,user.email,String(body.stampCode || ""));
     if (body.action === "equip") return equipStamp(user.id,String(body.stampCode || ""));
+    if (body.action === "convert_misdeed") return convertAcornsToMisdeedPoints(user.id);
     if (body.action === "claim_collection_reward") return claimCollectionReward(user.id,String(body.titleCode || ""));
     return errorResponse("요청 내용을 확인해 주세요.");
   } catch (error) {
@@ -81,7 +85,7 @@ async function attend(userId:string) {
     const streak = calculateStreak(recent.rows.map((row) => row.attendanceOn),previousDate(today,1)) + 1;
     const bonus = streak % 30 === 0 ? 10 : streak % 7 === 0 ? 3 : 0;
     const wallet = await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[userId]);
-    const reward = Math.max(0,Math.min(1+bonus,9999-(wallet.rows[0]?.balance || 0)));
+    const reward = Math.max(0,Math.min(1+bonus,ACORN_LIMIT-(wallet.rows[0]?.balance || 0)));
     const stampCode = "basic";
     await client.query(`INSERT INTO attendance_checkins(user_id,attendance_on,stamp_code,acorns_earned) VALUES($1,$2::date,$3,$4)`,[userId,today,stampCode,reward]);
     if (reward>0) {
@@ -130,6 +134,31 @@ async function equipStamp(userId:string,stampCode:string) {
     await client.query(`UPDATE user_attendance_stamps SET equipped=true WHERE user_id=$1 AND stamp_code=$2`,[userId,stampCode]);
     await client.query("COMMIT"); return jsonResponse({ equipped:true,stampCode });
   } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+}
+
+async function convertAcornsToMisdeedPoints(userId:string) {
+  const client=await db.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
+    await client.query(`INSERT INTO user_reputation_points(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
+    const reputation=await client.query<{ misdeedPoints:number }>(`SELECT misdeed_points AS "misdeedPoints" FROM user_reputation_points WHERE user_id=$1 FOR UPDATE`,[userId]);
+    const currentPoints=reputation.rows[0]?.misdeedPoints || 0;
+    if (currentPoints+MISDEED_CONVERSION_AMOUNT>REPUTATION_POINT_LIMIT) {
+      await client.query("ROLLBACK");
+      return errorResponse("악행 포인트는 최대 20,000점까지 보유할 수 있습니다.",409);
+    }
+    const wallet=await client.query<{ balance:number }>(`UPDATE acorn_wallets SET balance=balance-$2,lifetime_spent=lifetime_spent+$2,updated_at=now() WHERE user_id=$1 AND balance >= $2 RETURNING balance`,[userId,MISDEED_CONVERSION_AMOUNT]);
+    if (!wallet.rows[0]) {
+      await client.query("ROLLBACK");
+      return errorResponse("도토리가 부족합니다. 전환에는 도토리 1,000개가 필요합니다.",409);
+    }
+    const transaction=await client.query<{ id:string }>(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,description) VALUES($1,$2,'misdeed_conversion','도토리를 악행 포인트로 전환') RETURNING id::text`,[userId,-MISDEED_CONVERSION_AMOUNT]);
+    const updated=await client.query<{ misdeedPoints:number }>(`UPDATE user_reputation_points SET misdeed_points=misdeed_points+$2,updated_at=now() WHERE user_id=$1 RETURNING misdeed_points AS "misdeedPoints"`,[userId,MISDEED_CONVERSION_AMOUNT]);
+    await client.query(`INSERT INTO reputation_point_ledger(user_id,point_type,amount,source_type,source_key,description) VALUES($1,'misdeed',$2,'acorn_conversion',$3,'도토리 악행 포인트 전환')`,[userId,MISDEED_CONVERSION_AMOUNT,transaction.rows[0].id]);
+    await client.query("COMMIT");
+    return jsonResponse({ converted:true,spentAcorns:MISDEED_CONVERSION_AMOUNT,addedPoints:MISDEED_CONVERSION_AMOUNT,balance:wallet.rows[0].balance,misdeedPoints:updated.rows[0].misdeedPoints });
+  } catch(error) { await client.query("ROLLBACK");throw error; } finally { client.release(); }
 }
 
 async function claimCollectionReward(userId:string,titleCode:string) {

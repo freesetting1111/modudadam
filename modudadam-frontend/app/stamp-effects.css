@@ -1,11 +1,13 @@
 /* 총관리자 전용: 황금 다람쥐와 왕관이 또렷하게 보이는 절제된 황금 오라. */
 .stamp-image-mark.stamp-operator-master {
+  width:1.65em;
+  height:1.65em;
   animation:stamp-master-gold 3.2s ease-in-out infinite;
 }
 
 .stamp-image-mark.stamp-operator-master::before {
-  inset:-7px;
-  background:radial-gradient(circle,#fff9bf 0,#ffd43c80 36%,#e4861738 58%,transparent 75%)!important;
+  inset:-5px;
+  background:radial-gradient(circle,#fff9bf8f 0,#ffd43c52 38%,#e4861724 57%,transparent 74%)!important;
   animation:stamp-master-halo 3.2s ease-in-out infinite;
 }
 
@@ -30,17 +32,188 @@
 }
 
 @keyframes stamp-master-gold {
-  0%,100% { transform:scale(1);filter:drop-shadow(0 0 4px #ffd43c99) drop-shadow(0 2px 2px #5c260b80); }
-  50% { transform:scale(1.025);filter:drop-shadow(0 0 9px #fff09fcc) drop-shadow(0 0 5px #e89222a8); }
+  0%,100% { transform:scale(1);filter:drop-shadow(0 0 3px #ffd43c80) drop-shadow(0 2px 2px #5c260b80); }
+  50% { transform:scale(1.018);filter:drop-shadow(0 0 6px #fff09fa8) drop-shadow(0 0 3px #e892228c); }
 }
 
 @keyframes stamp-master-halo {
-  0%,100% { opacity:.5;transform:scale(.94); }
-  50% { opacity:.86;transform:scale(1.04); }
+  0%,100% { opacity:.4;transform:scale(.96); }
+  50% { opacity:.68;transform:scale(1.025); }
 }
 
 @media (prefers-reduced-motion:reduce) {
   .stamp-image-mark.stamp-operator-master,
   .stamp-image-mark.stamp-operator-master::before { animation:none!important; }
+}
+
+/* 전설: 묵직한 이중 금속 프레임. 큰 이동 없이 광택만 움직입니다. */
+.stamp-tier-list>section.legendary {
+  border:2px solid transparent;
+  background:
+    linear-gradient(#fffdf7,#fffaf0) padding-box,
+    linear-gradient(135deg,#9d6410,#ffe499 34%,#d59522 68%,#fff0b0) border-box;
+  box-shadow:0 8px 22px #9d64101f,inset 0 0 0 1px #fff7d8;
+}
+
+.stamp-tier-list>section.legendary>.stamp-tier-header>span {
+  border:1px solid #e5b747;
+  background:radial-gradient(circle at 34% 28%,#fffdf0,#ffe5a5 58%,#cf8d1b);
+  box-shadow:0 0 0 3px #f8df9e45,0 4px 12px #b878182b;
+}
+
+.stamp-tier-items article.legendary,
+.my-stamp-list article.legendary,
+.stamp-profile-preview.legendary {
+  border-color:#dfb350;
+  background:
+    radial-gradient(circle at 4% 50%,#ffe7a852,transparent 22%),
+    linear-gradient(110deg,#fffdf7,#fff8e7 60%,#fffdf9);
+  box-shadow:inset 3px 0 #d49a25,0 4px 13px #9b691214;
+}
+
+/* 신화: 보석색 다층 프레임과 오라. 운영자 전용보다 밝고 장식적이되 권위색은 사용하지 않습니다. */
+.stamp-tier-list>section.mythic {
+  position:relative;
+  overflow:hidden;
+  border:3px solid transparent;
+  background:
+    radial-gradient(circle at 12% 8%,#f8dcff8a,transparent 28%) padding-box,
+    linear-gradient(135deg,#fff,#fff9ff 52%,#f7fbff) padding-box,
+    linear-gradient(120deg,#ff5fa2,#ffcf5b 25%,#5de1d0 50%,#6b8cff 73%,#c766ff) border-box;
+  box-shadow:0 10px 28px #754cc42b,inset 0 0 20px #bc75e514;
+}
+
+.stamp-tier-list>section.mythic::before {
+  position:absolute;
+  inset:0;
+  background:linear-gradient(105deg,transparent 33%,#ffffffa3 47%,transparent 61%);
+  content:"";
+  transform:translateX(-125%);
+  animation:stamp-prestige-sheen 6.8s ease-in-out infinite;
+  pointer-events:none;
+}
+
+.stamp-tier-list>section.mythic>.stamp-tier-header,
+.stamp-tier-list>section.mythic>.stamp-tier-items { position:relative;z-index:1; }
+
+.stamp-tier-list>section.mythic>.stamp-tier-header>span {
+  border:1px solid #ac7eff;
+  background:radial-gradient(circle at 35% 28%,#fff,#f4dfff 46%,#badfff 72%,#8a6bdb);
+  box-shadow:0 0 0 3px #aa79e735,0 0 16px #6fbdf05e;
+}
+
+.stamp-tier-items article.mythic,
+.my-stamp-list article.mythic,
+.stamp-profile-preview.mythic {
+  border:2px solid transparent;
+  background:
+    radial-gradient(circle at 5% 50%,#ca8cff3b,transparent 24%) padding-box,
+    linear-gradient(105deg,#fffaff,#f9fbff 62%,#fff9ef) padding-box,
+    linear-gradient(135deg,#ff62aa,#f8c950,#57d6d2,#786cff) border-box;
+  box-shadow:0 6px 18px #7251ba20,inset 3px 0 #a866ef;
+}
+
+.stamp-image-mark.stamp-effect-legendary { width:1.42em;height:1.42em; }
+.stamp-image-mark.stamp-effect-mythic { width:1.52em;height:1.52em; }
+.stamp-image-mark.stamp-effect-legendary::before {
+  inset:-6px;
+  background:radial-gradient(circle,#fff5b89c 0,#ffc84745 42%,transparent 72%);
+}
+.stamp-image-mark.stamp-effect-mythic::before {
+  inset:-7px;
+  background:conic-gradient(from 20deg,#ff78af5c,#ffd76b63,#6ee6db5c,#739bff68,#cc7cff63,#ff78af5c);
+  filter:blur(2px);
+}
+
+/* 선행·악행 최상위: 같은 등급 안에서도 5천과 1만 포인트의 위계를 분명히 구분합니다. */
+.stamp-image-mark.stamp-prestige-kindness::before {
+  background:radial-gradient(circle,#fffbd2bd 0,#ffc83270 38%,#ff8a1d2b 60%,transparent 74%);
+}
+.stamp-image-mark.stamp-prestige-misdeed::before {
+  background:radial-gradient(circle,#ffc0cf8f 0,#f1295d6b 38%,#6515a545 60%,transparent 75%);
+}
+.stamp-image-mark.stamp-prestige-final {
+  width:1.7em;
+  height:1.7em;
+  animation:stamp-prestige-breathe 3.8s ease-in-out infinite;
+}
+.stamp-image-mark.stamp-prestige-final::before { inset:-8px;animation:stamp-prestige-halo 3.8s ease-in-out infinite; }
+
+.reputation-track.kindness .my-stamp-list article[data-stamp-code="kindness_5000"] {
+  border:2px solid #e5b841;
+  background:radial-gradient(circle at 5% 50%,#ffd25b68,transparent 24%),linear-gradient(105deg,#fffdf3,#fff6d9 66%,#fffdf8);
+  box-shadow:inset 4px 0 #e0a11e,0 5px 16px #b37a1d26;
+}
+.reputation-track.kindness .my-stamp-list article[data-stamp-code="kindness_10000"] {
+  border:2px solid transparent;
+  background:radial-gradient(circle at 5% 50%,#fff0a780,transparent 25%) padding-box,linear-gradient(105deg,#fffef1,#fff9d8 55%,#effcff) padding-box,linear-gradient(120deg,#ffad16,#fff39b,#4fd7c3,#ffbe22) border-box;
+  box-shadow:inset 4px 0 #ffc52f,0 7px 22px #d5922338;
+}
+.reputation-track.misdeed .my-stamp-list article[data-stamp-code="misdeed_5000"] {
+  border:2px solid #c83f62;
+  background:radial-gradient(circle at 5% 50%,#ed426554,transparent 25%),linear-gradient(105deg,#fff7fa,#fbeef4 65%,#fff9fb);
+  box-shadow:inset 4px 0 #b7224c,0 5px 17px #8d16302b;
+}
+.reputation-track.misdeed .my-stamp-list article[data-stamp-code="misdeed_10000"] {
+  border:2px solid transparent;
+  background:radial-gradient(circle at 5% 50%,#d72f6963,transparent 26%) padding-box,linear-gradient(105deg,#fff7fb,#f8edf8 56%,#f2efff) padding-box,linear-gradient(120deg,#7e164e,#ff496a,#d49a2f,#641c9d) border-box;
+  box-shadow:inset 4px 0 #791c74,0 7px 23px #5c16413b;
+}
+
+@keyframes stamp-prestige-sheen {
+  0%,65%,100% { transform:translateX(-125%);opacity:0; }
+  73% { opacity:.75; }
+  88% { transform:translateX(125%);opacity:0; }
+}
+@keyframes stamp-prestige-breathe {
+  0%,100% { transform:scale(1);filter:drop-shadow(0 0 4px #ffd75a7a); }
+  50% { transform:scale(1.025);filter:drop-shadow(0 0 8px #ffdf79a6); }
+}
+@keyframes stamp-prestige-halo {
+  0%,100% { opacity:.48;transform:scale(.96); }
+  50% { opacity:.82;transform:scale(1.04); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .stamp-tier-list>section.mythic::before,
+  .stamp-image-mark.stamp-prestige-final,
+  .stamp-image-mark.stamp-prestige-final::before { animation:none!important; }
+}
+
+.achievement-dialog-actions { display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px; }
+.achievement-dialog-actions button { min-height:51px;border:0;border-radius:14px;background:linear-gradient(135deg,#5b7ee2,#4569cf);color:#fff;font:inherit;font-size:16px;font-weight:900;box-shadow:0 9px 20px #4f73d934;cursor:pointer; }
+.achievement-dialog-actions button.secondary { border:1px solid #dce3ef;background:#fff;color:#66738a;box-shadow:none; }
+.achievement-dialog-actions button:disabled,.achievement-dialog>button:disabled { cursor:wait;opacity:.58; }
+.achievement-dialog-actions button:focus-visible { outline:3px solid #a8bbf4;outline-offset:3px; }
+
+.stamp-store-tabs { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding:5px;border:1px solid #dfe5ed;border-radius:15px;background:#eef2f7; }
+.stamp-store-tabs button { min-height:45px;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 10px;border:0;border-radius:11px;background:transparent;color:#68758a;font:inherit;font-size:14px;font-weight:900;cursor:pointer; }
+.stamp-store-tabs button.active { background:#fff;color:#3f62bd;box-shadow:0 4px 13px #34476d18; }
+.stamp-store-tabs+.stamp-shop { margin-top:12px; }
+.misdeed-conversion-panel { margin-top:12px;overflow:hidden;border:1px solid #e4dce5;border-radius:19px;background:linear-gradient(150deg,#fff,#fff8fb);box-shadow:0 10px 28px #5d32470f; }
+.misdeed-conversion-panel>header { display:flex;align-items:center;gap:11px;padding:17px 18px;border-bottom:1px solid #efe5ea;background:linear-gradient(135deg,#fff0f4,#fff); }
+.misdeed-conversion-panel>header>span { width:45px;height:45px;display:grid;place-items:center;flex:none;border-radius:14px;background:#ffe0e8;color:#b43f5c; }
+.misdeed-conversion-panel>header small { color:#b23d5a;font-size:12px;font-weight:950;letter-spacing:.55px; }
+.misdeed-conversion-panel>header h2 { margin:2px 0 3px;color:#303a4d;font-size:20px; }
+.misdeed-conversion-panel>header p { margin:0;color:#778294;font-size:14px;line-height:1.5; }
+.misdeed-conversion-status { display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;gap:8px;padding:16px 18px 7px; }
+.misdeed-conversion-status>svg { color:#b1bac7; }
+.misdeed-conversion-status article { display:grid;gap:4px;padding:13px;border:1px solid #e5e8ee;border-radius:13px;background:#fff;text-align:center; }
+.misdeed-conversion-status small { color:#818c9c;font-size:13px; }
+.misdeed-conversion-status strong { color:#38445a;font-size:17px; }
+.misdeed-conversion-rate { display:grid;grid-template-columns:1fr 42px 1fr;align-items:center;margin:9px 18px;padding:17px;border:1px solid #efc7d1;border-radius:16px;background:linear-gradient(135deg,#fff9e9,#fff3f7); }
+.misdeed-conversion-rate>span { display:grid;gap:3px;text-align:center; }
+.misdeed-conversion-rate b { color:#73364a;font-size:21px; }
+.misdeed-conversion-rate small { color:#8c7180;font-size:13px;font-weight:800; }
+.misdeed-conversion-rate i { width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#b43f5c;box-shadow:0 4px 12px #7f33491c; }
+.misdeed-conversion-guide { margin:12px 18px;color:#778294;font-size:14px;line-height:1.65;word-break:keep-all; }
+.misdeed-conversion-panel>button { width:calc(100% - 36px);min-height:50px;margin:2px 18px 18px;border:0;border-radius:14px;background:linear-gradient(135deg,#c84f6d,#a83857);color:#fff;font:inherit;font-size:16px;font-weight:900;box-shadow:0 8px 18px #a8385728;cursor:pointer; }
+.misdeed-conversion-panel>button:disabled { background:#d9dde4;color:#8c95a2;box-shadow:none;cursor:not-allowed; }
+.misdeed-conversion-warning { display:block;margin:-8px 18px 17px;color:#b14861;font-size:13px;font-weight:800;text-align:center; }
+
+@media (max-width:420px) {
+  .stamp-store-tabs button { min-height:48px;font-size:13px;line-height:1.35; }
+  .misdeed-conversion-status { grid-template-columns:1fr; }
+  .misdeed-conversion-status>svg { justify-self:center;transform:rotate(90deg); }
 }
 

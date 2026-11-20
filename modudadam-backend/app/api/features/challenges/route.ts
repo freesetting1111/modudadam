@@ -72,7 +72,7 @@ async function checkIn(userId:string,enrollmentId:string,note:string) {
     const nextCount = count.rows[0].count + 1; const completed = nextCount >= item.goalDays; const requestedReward = item.dailyAcorns + (completed ? item.completionAcorns : 0);
     await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[userId]);
     const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[userId]);
-    const reward=Math.max(0,Math.min(requestedReward,9999-(wallet.rows[0]?.balance || 0)));
+    const reward=Math.max(0,Math.min(requestedReward,20000-(wallet.rows[0]?.balance || 0)));
     const inserted = await client.query(`INSERT INTO challenge_checkins(enrollment_id,checkin_on,note,acorns_earned) VALUES($1,$2::date,$3,$4) ON CONFLICT(enrollment_id,checkin_on) DO NOTHING RETURNING id`,[enrollmentId,today,note || null,reward]);
     if (!inserted.rows[0]) { await client.query("ROLLBACK"); return errorResponse("오늘 인증은 이미 완료했어요.",409); }
     if (reward > 0) {
