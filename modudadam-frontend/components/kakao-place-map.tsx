@@ -1,7 +1,7 @@
 "use client";
 
 import { LocateFixed, MapPin, MousePointerClick, Search } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 export type KakaoPlace = { placeId:string;name:string;address:string;roadAddress:string;latitude:number;longitude:number;placeUrl:string;source?:"search"|"map" };
 type KakaoLatLng={ getLat:()=>number;getLng:()=>number };
@@ -48,13 +48,14 @@ export function KakaoPlacePicker({ javascriptKey,value,onSelect }:{ javascriptKe
 
   useEffect(()=>{if(!ready||!value||!window.kakao||!mapRef.current||!markerRef.current)return;const position=new window.kakao.maps.LatLng(value.latitude,value.longitude);mapRef.current.setCenter(position);markerRef.current.setPosition(position);markerRef.current.setMap(mapRef.current);},[ready,value]);
 
-  async function search(event:FormEvent) {event.preventDefault();const query=keyword.trim();const maps=window.kakao?.maps;if(!query||!maps)return;setSearching(true);setNotice("");const [places,addresses]=await Promise.all([searchPlaces(maps,query),searchAddresses(maps,query)]);const combined=[...places,...addresses].filter((place,index,list)=>list.findIndex((other)=>samePosition(other,place))===index).slice(0,12);setResults(combined);setNotice(combined.length ? "검색 결과에서 원하는 위치를 선택해 주세요." : "검색 결과가 없어요. 장소명이나 주소를 바꿔보세요.");setSearching(false);}
+  async function search() {const query=keyword.trim();const maps=window.kakao?.maps;if(!query||!maps)return;setSearching(true);setNotice("");const [places,addresses]=await Promise.all([searchPlaces(maps,query),searchAddresses(maps,query)]);const combined=[...places,...addresses].filter((place,index,list)=>list.findIndex((other)=>samePosition(other,place))===index).slice(0,12);setResults(combined);setNotice(combined.length ? "검색 결과에서 원하는 위치를 선택해 주세요." : "검색 결과가 없어요. 장소명이나 주소를 바꿔보세요.");setSearching(false);}
+  function searchOnEnter(event:KeyboardEvent<HTMLInputElement>) {if(event.key!=="Enter")return;event.preventDefault();event.stopPropagation();void search();}
   function choose(place:KakaoPlace) {onSelect({...place,source:"search"});setKeyword(place.name);setResults([]);setNotice("검색한 위치를 적용했어요. 필요하면 지도에서 마커를 옮겨 미세 조정할 수 있어요.");}
   function useMyLocation() {navigator.geolocation?.getCurrentPosition((position)=>{const maps=window.kakao?.maps;if(!maps||!mapRef.current)return;mapRef.current.setCenter(new maps.LatLng(position.coords.latitude,position.coords.longitude));setNotice("현재 위치 주변으로 이동했어요. 지도를 누르거나 마커를 옮겨 정확한 장소를 선택해 주세요.");},()=>setNotice("현재 위치를 확인하지 못했어요."),{enableHighAccuracy:true,timeout:8000});}
 
   return <section className="kakao-place-picker">
     <div className="kakao-picker-methods"><strong>두 가지 방법으로 위치를 선택할 수 있어요</strong><span><Search/> 장소·주소 검색</span><i>또는</i><span><MousePointerClick/> 지도 터치·마커 이동</span></div>
-    <form onSubmit={search}><div className="kakao-search-row"><Search/><input value={keyword} onChange={(event)=>setKeyword(event.target.value)} placeholder="장소명, 도로명 또는 지번 주소"/><button type="submit" disabled={!ready||searching}>{searching ? "검색 중" : "검색"}</button></div></form>
+    <div className="kakao-search-box"><div className="kakao-search-row"><Search/><input value={keyword} onChange={(event)=>setKeyword(event.target.value)} onKeyDown={searchOnEnter} placeholder="장소명, 도로명 또는 지번 주소"/><button type="button" disabled={!ready||searching} onClick={()=>void search()}>{searching ? "검색 중" : "검색"}</button></div></div>
     {results.length>0&&<div className="kakao-place-results">{results.map((place)=><button type="button" key={place.placeId} className={samePosition(value,place)?"selected":""} onClick={()=>choose(place)}><strong>{place.name}</strong><span>{place.roadAddress||place.address}</span><em>{place.placeUrl?"장소":"주소"}</em></button>)}</div>}
     <div className="kakao-map-toolbar"><span><MousePointerClick/> 지도를 누르거나 마커를 끌어서 선택하세요.</span><button type="button" onClick={useMyLocation}><LocateFixed/>내 주변으로 이동</button></div>
     <div ref={mapNode} className="kakao-map-canvas"/>
