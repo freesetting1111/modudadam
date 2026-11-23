@@ -94,7 +94,7 @@ export function CommunityActivity() {
   return <div className="activity-page-layout">
     <section className="activity-board-picker">
       <div className="activity-board-picker-heading"><strong>게시판 선택</strong><span>카테고리를 선택해 주세요.</span></div>
-      <CategoryGrid selectedCode={category} onSelect={selectCategory} className="activity-board-grid"/>
+      <CategoryGrid selectedCode={category} onSelect={selectCategory} className="activity-board-grid" includeCommunityBoards/>
     </section>
 
     <section className="activity-card activity-page-card">

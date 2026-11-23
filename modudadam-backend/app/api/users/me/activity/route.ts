@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
     const posts = type === "posts" ? await query(
       `SELECT posts.id,posts.title,posts.created_at AS "createdAt",posts.view_count AS "viewCount",
         posts.comment_count AS "commentCount",categories.name AS "categoryName",categories.code AS "categoryCode",
-        users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji"
+        CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
+        CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji"
        FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
        WHERE posts.author_id=$1 AND posts.status='published' AND categories.code=$2
        ORDER BY posts.created_at DESC,posts.id DESC LIMIT $3 OFFSET $4`,
@@ -56,7 +57,9 @@ export async function GET(request: NextRequest) {
     ) : null;
     const scraps = type === "scraps" ? await query(
       `SELECT posts.id,posts.title,posts.created_at AS "createdAt",posts.view_count AS "viewCount",
-        posts.comment_count AS "commentCount",categories.name AS "categoryName",categories.code AS "categoryCode",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji"
+        posts.comment_count AS "commentCount",categories.name AS "categoryName",categories.code AS "categoryCode",
+        CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
+        CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji"
        FROM post_bookmarks bookmarks JOIN posts ON posts.id=bookmarks.post_id
        JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
        WHERE bookmarks.user_id=$1 AND posts.status='published' AND categories.code=$2

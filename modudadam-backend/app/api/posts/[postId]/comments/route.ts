@@ -34,8 +34,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     `SELECT comments.id,comments.parent_id AS "parentId",comments.reply_to_id AS "replyToId",comments.status,
       CASE WHEN comments.status='deleted' THEN '삭제된 댓글입니다.' ELSE comments.content END AS content,
       comments.created_at AS "createdAt",comments.updated_at AS "updatedAt",
-      users.id AS "authorId",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
-      reply_users.nickname AS "replyToAuthor",user_stamp_emoji(reply_users.id) AS "replyToStampEmoji",
+      CASE WHEN categories.code='anonymous' THEN NULL ELSE users.id END AS "authorId",
+      CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
+      CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
+      CASE WHEN categories.code='anonymous' AND reply_users.id IS NOT NULL THEN '익명' ELSE reply_users.nickname END AS "replyToAuthor",
+      CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(reply_users.id) END AS "replyToStampEmoji",
       (comments.author_id=$2::uuid AND comments.status='published') AS "canDelete",
       (comments.author_id=$2::uuid AND comments.status='published') AS "canEdit",
       ($2::uuid IS NOT NULL AND comments.author_id<>$2::uuid AND comments.status='published') AS "canReport",
@@ -44,6 +47,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       my_reaction.reaction AS "myReaction"
      FROM comments
      JOIN users ON users.id=comments.author_id
+     JOIN posts ON posts.id=comments.post_id
+     JOIN categories ON categories.id=posts.category_id
      LEFT JOIN comments reply_target ON reply_target.id=comments.reply_to_id
      LEFT JOIN users reply_users ON reply_users.id=reply_target.author_id
      LEFT JOIN comment_reactions my_reaction

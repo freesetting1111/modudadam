@@ -2,8 +2,9 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { ChevronRight, Sparkles, TrendingUp } from "lucide-react";
 import { HomeSearch } from "@/components/home-search";
+import { HomeBoardExplorer } from "@/components/home-board-explorer";
 import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
-import { categories, specialBoards } from "@/lib/categories";
+import { categories, communityBoardChoices, specialBoards } from "@/lib/categories";
 import { API_SERVER_URL } from "@/lib/server-config";
 import { PostListMeta } from "@/components/post-list-meta";
 import { WeeklyReputationRankings } from "@/components/weekly-reputation-rankings";
@@ -26,11 +27,7 @@ export default async function Home() {
     categoryCode: category.code,
     posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 5),
   }));
-  const categoryFeeds = categories.map((category) => ({
-    category,
-    posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 5),
-  }));
-  const specialBoardFeeds = specialBoards.map((category) => ({
+  const specialBoardFeeds = specialBoards.filter((category) => category.code !== "anonymous").map((category) => ({
     category,
     posts: categoryPosts.filter((post) => post.categoryCode === category.code).slice(0, 3),
   }));
@@ -53,8 +50,8 @@ export default async function Home() {
     <WeeklyReputationRankings />
 
     <section className="board-directory">
-      <div className="directory-heading"><div><h2><Sparkles size={17}/>주제별 게시판</h2><p>관심 있는 게시판의 새 글을 바로 확인하세요.</p></div><span>{categories.length}개</span></div>
-      <div className="board-card-grid">{categoryFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} slots={5} />)}</div>
+      <div className="directory-heading"><div><h2><Sparkles size={17}/>주제별 게시판</h2><p>게시판을 골라 최신 글 10개를 확인하세요.</p></div><span>{communityBoardChoices.length}개</span></div>
+      <HomeBoardExplorer posts={categoryPosts}/>
     </section>
   </div>;
 }
@@ -82,7 +79,7 @@ async function getWeeklyPostsByCategory(cookieHeader:string): Promise<HomePost[]
 }
 async function getCategoryPosts(cookieHeader:string): Promise<HomePost[]> {
   try {
-    const params = new URLSearchParams({ groupedByCategory: "true", perCategory: "5" });
+    const params = new URLSearchParams({ groupedByCategory: "true", perCategory: "10" });
     const response = await fetch(`${API_SERVER_URL}/api/posts?${params}`, { cache:"no-store",headers:cookieHeader ? { cookie:cookieHeader } : undefined });
     if (!response.ok) return [];
     const body = await response.json() as { success?: boolean; data?: { posts?: HomePost[] } };

@@ -1,12 +1,13 @@
 import {
   Baby, BellRing, BookOpenText, Bot, BriefcaseBusiness, CarFront, ChartNoAxesCombined,
   Clapperboard, CookingPot, Dumbbell, House, Landmark, Luggage, MapPinned,
-  MessageSquareText, Palette, PawPrint, Sparkles,
+  MessageSquareText, Palette, PawPrint, ShieldQuestion, Sparkles,
 } from "lucide-react";
 
 export const specialBoards = [
   { code:"notice",name:"공지사항",icon:BellRing,short:"공지사항",description:"모두다담의 중요한 소식과 이용 안내" },
   { code:"free",name:"자유게시판",icon:MessageSquareText,short:"자유게시판",description:"주제에 관계없이 편하게 이야기를 나누는 공간" },
+  { code:"anonymous",name:"익명게시판",icon:ShieldQuestion,short:"익명게시판",description:"닉네임을 숨기고 솔직한 이야기를 나누는 공간" },
 ] as const;
 
 export const categories = [
@@ -26,6 +27,11 @@ export const categories = [
   { code: "ai-tech", name: "AI·기술", icon: Bot, short: "AI·기술", description: "인공지능, 디지털 기술, 서비스와 활용 경험" },
   { code: "finance", name: "경제·재테크", icon: ChartNoAxesCombined, short: "경제·재테크", description: "경제 흐름, 절약, 금융과 재테크 정보" },
   { code: "career", name: "직장·커리어", icon: BriefcaseBusiness, short: "직장·커리어", description: "직장생활, 업무 노하우, 이직과 커리어 성장" },
+] as const;
+
+export const communityBoardChoices = [
+  ...specialBoards.filter((board) => board.code !== "notice"),
+  ...categories,
 ] as const;
 
 export function findCategory(code: string) { return categories.find((category) => category.code === code); }

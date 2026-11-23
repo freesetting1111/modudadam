@@ -89,7 +89,7 @@ a { color:inherit; text-decoration:none; }
 .category-icon { width:52px; height:52px; border-radius:17px; display:grid; place-items:center; border:1px solid currentColor; box-shadow:0 5px 14px #25304c0b; transition:transform .18s ease,box-shadow .18s ease; }
 .category-grid a:hover .category-icon { transform:translateY(-2px); box-shadow:0 8px 19px #25304c16; }
 .category-pets{color:#db6248;background:#fff2ee}.category-food{color:#e5812c;background:#fff5e9}.category-home{color:#258e7c;background:#eaf8f4}.category-hobby{color:#8b66cf;background:#f5efff}.category-travel{color:#3d79cf;background:#edf5ff}.category-wellness{color:#398c56;background:#edf8f0}.category-family{color:#d46278;background:#fff0f4}.category-mobility{color:#4f6fb7;background:#eff3ff}.category-style{color:#bd5a96;background:#fff0f8}.category-learning{color:#b77a18;background:#fff7e3}.category-local{color:#2188a1;background:#eaf8fb}.category-culture{color:#7063bd;background:#f1efff}
-.category-notice{color:#df6544;background:#fff1eb}.category-free{color:#4f73d9;background:#edf3ff}
+.category-notice{color:#df6544;background:#fff1eb}.category-free{color:#4f73d9;background:#edf3ff}.category-anonymous{color:#6d5aa7;background:#f3efff}
 .pick-section { padding-top:24px; border-bottom:0; }
 .pick-list { display:flex; flex-direction:column; }
 .pick-card { display:grid; grid-template-columns:92px 1fr; gap:13px; padding:13px 0; border-top:1px solid #f0f1f3; }

@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       posts.view_count AS "viewCount", posts.comment_count AS "commentCount",
       posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",
       posts.published_at AS "publishedAt",posts.created_at AS "createdAt",categories.code AS "categoryCode",
-      categories.name AS "categoryName",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
+      categories.name AS "categoryName",
+      CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
+      CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
       left(regexp_replace(posts.content, E'[\\n\\r]+', ' ', 'g'), 140) AS excerpt,
       (posts.view_count + posts.comment_count * 3) AS "popularityScore"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
@@ -41,7 +43,9 @@ export async function GET(request: NextRequest) {
          SELECT posts.id,posts.title,posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
            posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",posts.created_at AS "createdAt",
            posts.published_at,categories.id AS category_id,categories.code AS "categoryCode",
-           categories.name AS "categoryName",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
+           categories.name AS "categoryName",
+           CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
+           CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
            COALESCE(weekly_views.views,0) AS "weeklyViews",
            COALESCE(weekly_comments.comments,0) AS "weeklyComments",
            COALESCE(weekly_likes.likes,0) AS "weeklyLikes",
@@ -71,7 +75,9 @@ export async function GET(request: NextRequest) {
       `WITH ranked AS (
          SELECT posts.id,posts.title,posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
            posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",posts.created_at AS "createdAt",
-           categories.code AS "categoryCode",categories.name AS "categoryName",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
+           categories.code AS "categoryCode",categories.name AS "categoryName",
+           CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
+           CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
            ROW_NUMBER() OVER(PARTITION BY posts.category_id ORDER BY posts.is_pinned DESC,posts.published_at DESC,posts.id DESC) AS category_rank
          FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
          WHERE posts.status='published'
@@ -97,7 +103,9 @@ export async function GET(request: NextRequest) {
        )
        SELECT posts.id,posts.title,posts.view_count AS "viewCount",posts.comment_count AS "commentCount",
          posts.is_notice AS "isNotice",posts.is_pinned AS "isPinned",posts.created_at AS "createdAt",
-         categories.code AS "categoryCode",categories.name AS "categoryName",users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
+         categories.code AS "categoryCode",categories.name AS "categoryName",
+         CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
+         CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
          COALESCE(weekly_views.views,0) AS "weeklyViews",COALESCE(weekly_comments.comments,0) AS "weeklyComments",
          COALESCE(weekly_likes.likes,0) AS "weeklyLikes",
          (COALESCE(weekly_views.views,0) + COALESCE(weekly_comments.comments,0)*3 + COALESCE(weekly_likes.likes,0)*2) AS "weeklyScore"

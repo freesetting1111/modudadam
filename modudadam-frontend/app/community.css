@@ -450,3 +450,30 @@
   .portal-post-meta,
   .board-row-meta{gap:2px 4px}
 }
+
+/* 홈 주제별 게시판은 활동 화면과 같은 선택기를 사용하고 선택한 글 열 개만 보여줍니다. */
+.home-board-explorer{display:grid;gap:12px}
+.home-board-picker{box-shadow:none}
+.home-selected-board{overflow:hidden}
+.home-selected-board>header{height:66px}
+.home-selected-board>header>a{grid-template-columns:32px minmax(0,1fr) 16px;padding:0 13px}
+.home-selected-board>header>a>span:nth-child(2){min-width:0;display:grid;gap:2px}
+.home-selected-board>header strong{font-size:15px}
+.home-selected-board>header small{overflow:hidden;color:#7d8899;font-size:12px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
+.home-selected-board .home-board-explorer-list{
+  min-height:752px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:repeat(10,minmax(74px,auto));
+  padding:5px 10px 7px;
+}
+.home-board-explorer-empty{grid-row:1/-1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;color:#8b95a5;text-align:center}
+.home-board-explorer-empty strong{color:#526076;font-size:15px}
+.home-board-explorer-empty span{font-size:13px}
+.home-selected-board>footer{display:flex;justify-content:flex-end;padding:10px 12px;border-top:1px solid #e9edf2;background:#fbfcfe}
+.home-selected-board>footer a{display:inline-flex;align-items:center;gap:4px;color:var(--board-accent);font-size:14px;font-weight:850}
+
+@media(max-width:520px){
+  .home-board-picker{padding-right:12px;padding-left:12px}
+  .home-selected-board .home-board-explorer-list{min-height:912px;grid-template-rows:repeat(10,minmax(90px,auto));padding-right:8px;padding-left:8px}
+}
