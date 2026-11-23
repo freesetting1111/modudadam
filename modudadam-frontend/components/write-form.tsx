@@ -27,7 +27,7 @@ const EMPTY_EDITOR: EditorValue = {
   uploading: false,
 };
 
-export function WriteForm({ initialCategory = "", initialCategoryName = "", postId }: { initialCategory?: string; initialCategoryName?: string; postId?: string }) {
+export function WriteForm({ initialCategory = "", initialCategoryName = "", postId, mode="community" }: { initialCategory?: string; initialCategoryName?: string; postId?: string;mode?:"community"|"bounty" }) {
   const router = useRouter();
   const editorRef = useRef<RichPostEditorHandle>(null);
   const [categoryCode, setCategoryCode] = useState(initialCategory);
@@ -42,7 +42,8 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(Boolean(postId));
   const [economy,setEconomy]=useState<AcornEconomy | null>(null);
-  const [bountyAmount,setBountyAmount]=useState(0);
+  const isBounty=mode==="bounty";
+  const [bountyAmount,setBountyAmount]=useState(isBounty ? 100 : 0);
 
   useEffect(() => {
     if (!postId) return;
@@ -61,11 +62,11 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
       .finally(() => setLoading(false));
   }, [postId]);
   useEffect(() => {
-    if (postId) return;
+    if (postId || !isBounty) return;
     apiRequest<AcornEconomy>("/api/features/acorn-economy")
       .then(setEconomy)
-      .catch(() => undefined);
-  },[postId]);
+      .catch((caught)=>setError(caught instanceof Error ? caught.message : "도토리 잔액을 확인하지 못했습니다."));
+  },[postId,isBounty]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -100,6 +101,7 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
           contentHtml: prepared.value.contentHtml,
           imageIds: prepared.value.imageIds,
           bountyAmount:postId ? 0 : bountyAmount,
+          postType:isBounty ? "bounty_question" : "community",
         }),
       });
       editorRef.current.commitUploads(prepared.newUploadIds);
@@ -112,27 +114,28 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
     }
   }
 
-  const cancelHref = postId ? `/posts/${postId}` : `/category/${categoryCode}`;
+  const cancelHref = postId ? `/posts/${postId}` : isBounty ? "/play/bounties" : `/category/${categoryCode}`;
   const contentLength = Array.from(editorValue.content).length;
   const hasContent = contentLength > 0 || editorValue.imageCount > 0;
-  const canSubmit = !pending && !editorValue.uploading && Boolean(title.trim()) && hasContent;
+  const canAffordBounty=!isBounty || Boolean(economy && economy.wallet.balance>=bountyAmount);
+  const canSubmit = !pending && !editorValue.uploading && Boolean(title.trim()) && hasContent && canAffordBounty;
   if (loading) return <div className="board-message">게시글을 불러오고 있어요.</div>;
 
   return <form className="write-form compose-form" onSubmit={submit}>
     <div className="write-board-label">
       <span className="write-board-symbol"><FileText size={19} /></span>
-      <span><small>작성 게시판</small><strong>{categoryName}</strong></span>
+      <span><small>{isBounty ? "도움 요청 서비스" : "작성 게시판"}</small><strong>{categoryName}</strong></span>
       <b>전체 공개</b>
     </div>
-    {!postId&&<section className="compose-bounty">
-      <header><span><HandCoins size={20}/></span><div><small>선택 사항</small><strong>좋은 답변에 도토리 현상금 걸기</strong></div><b>{economy ? `보유 ${economy.wallet.balance.toLocaleString()}개` : "잔액 확인 중"}</b></header>
-      <p>도토리를 예치하면 답변자가 더 빨리 발견할 수 있어요. 답변 채택 시 90%가 답변자에게 지급되고 10%는 인플레이션 방지를 위해 소각됩니다.</p>
+    {!postId&&isBounty&&<section className="compose-bounty required">
+      <header><span><HandCoins size={20}/></span><div><small>필수 선택</small><strong>답변 현상금 정하기</strong></div><b>{economy ? `보유 ${economy.wallet.balance.toLocaleString()}개` : "잔액 확인 중"}</b></header>
+      <p>현상금이 높은 질문부터 전용 목록 위에 노출됩니다. 답변 품질이나 응답 시간을 보장하지는 않지만, 채택 보상과 도움 신뢰도가 답변 참여의 분명한 동기가 됩니다.</p>
       <div className="compose-bounty-options">
-        <button type="button" className={bountyAmount===0 ? "active" : ""} onClick={()=>setBountyAmount(0)}>현상금 없음</button>
-        {(economy?.bountyAmounts || [100,300,500,1000,3000,5000]).map((amount)=><button type="button" className={bountyAmount===amount ? "active" : ""} disabled={Boolean(economy&&economy.wallet.balance<amount)} onClick={()=>setBountyAmount(amount)} key={amount}>{amount.toLocaleString()} 🌰</button>)}
+        {(economy?.bountyAmounts || [100,200,300]).map((amount)=><button type="button" className={bountyAmount===amount ? "active" : ""} disabled={Boolean(economy&&economy.wallet.balance<amount)} onClick={()=>setBountyAmount(amount)} key={amount}><b>{amount.toLocaleString()} 🌰</b><small>{amount===100 ? "기본 요청" : amount===200 ? "우선 요청" : "최우선 요청"}</small></button>)}
       </div>
-      {bountyAmount>0&&<div className="compose-bounty-summary"><span>답변자 수령 <b>{Math.floor(bountyAmount*.9).toLocaleString()}개</b></span><span>소각 <b>{Math.floor(bountyAmount*.1).toLocaleString()}개</b></span><span>모집 기간 <b>7일</b></span></div>}
+      <div className="compose-bounty-summary"><span>노출 순서 <b>높은 금액 우선</b></span><span>답변자 수령 <b>{Math.floor(bountyAmount*.9).toLocaleString()}개</b></span><span>소각 <b>{Math.floor(bountyAmount*.1).toLocaleString()}개</b></span><span>모집 기간 <b>7일</b></span></div>
       {economy&&<small className="compose-economy-note">무료 활동 보상은 하루 합산 {economy.dailyFreeLimit}개까지 · 오늘 남은 무료 보상 {economy.dailyFreeRemaining}개</small>}
+      {economy&&economy.wallet.balance<100&&<div className="form-error" role="alert">현상금 질문에는 도토리가 최소 100개 필요합니다.</div>}
     </section>}
     <div className="compose-field">
       <div className="compose-field-heading"><label htmlFor="post-title">제목 <b>필수</b></label></div>

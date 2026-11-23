@@ -1,7 +1,7 @@
 import {
   Baby, BellRing, BookOpenText, Bot, BriefcaseBusiness, CarFront, ChartNoAxesCombined,
   Clapperboard, CookingPot, Dumbbell, House, Landmark, Luggage, MapPinned,
-  MessageSquareText, Palette, PawPrint, ShieldQuestion, Sparkles,
+  HandCoins, MessageSquareText, Palette, PawPrint, ShieldQuestion, Sparkles,
 } from "lucide-react";
 
 export const specialBoards = [
@@ -9,6 +9,8 @@ export const specialBoards = [
   { code:"free",name:"자유게시판",icon:MessageSquareText,short:"자유게시판",description:"주제에 관계없이 편하게 이야기를 나누는 공간" },
   { code:"anonymous",name:"익명게시판",icon:ShieldQuestion,short:"익명게시판",description:"닉네임을 숨기고 솔직한 이야기를 나누는 공간" },
 ] as const;
+
+export const bountyBoard = { code:"bounty",name:"현상금 질문",icon:HandCoins,short:"현상금 질문",description:"도토리를 걸고 경험 있는 이웃의 답변을 요청하는 공간" } as const;
 
 export const categories = [
   { code: "pets", name: "동물·반려동물", icon: PawPrint, short: "반려동물", description: "반려동물 기록, 양육 정보, 용품과 장소" },
@@ -35,5 +37,5 @@ export const communityBoardChoices = [
 ] as const;
 
 export function findCategory(code: string) { return categories.find((category) => category.code === code); }
-export function findBoard(code:string) { return specialBoards.find((board) => board.code===code) || findCategory(code); }
+export function findBoard(code:string) { return code===bountyBoard.code ? bountyBoard : specialBoards.find((board) => board.code===code) || findCategory(code); }
 export function isNoticeBoard(code:string) { return code==="notice"; }

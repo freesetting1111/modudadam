@@ -91,7 +91,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   async function deletePost() {
     if (!post || !window.confirm("게시글을 삭제할까요? 삭제한 글은 목록에서 보이지 않습니다.")) return;
     setDeletingPost(true);
-    try { await apiRequest(`/api/posts/${post.id}`, { method: "DELETE" }); router.replace(`/category/${post.categoryCode}`); router.refresh(); }
+    try { await apiRequest(`/api/posts/${post.id}`, { method: "DELETE" }); router.replace(post.categoryCode==="bounty" ? "/play/bounties" : `/category/${post.categoryCode}`); router.refresh(); }
     catch (caught) { setError(caught instanceof Error ? caught.message : "게시글을 삭제하지 못했습니다."); setDeletingPost(false); }
   }
   async function deleteComment(commentId: string) {
@@ -227,7 +227,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   if (error) return <section className="content-page"><div className="board-message error">{error}</div></section>;
   if (!post) return <section className="content-page"><div className="board-message">글을 불러오고 있어요.</div></section>;
   return <article className="content-page post-page">
-    <Link className="back-link" href={`/category/${post.categoryCode}`}>‹ {post.categoryName} 게시판</Link>
+    <Link className="back-link" href={post.categoryCode==="bounty" ? "/play/bounties" : `/category/${post.categoryCode}`}>‹ {post.categoryName}{post.categoryCode==="bounty" ? " 목록" : " 게시판"}</Link>
     <header className="post-header"><h1>{post.title}</h1><div className="post-meta"><small><StampedName full name={post.authorName} stamp={post.authorStampEmoji} /><span>· {new Date(post.createdAt).toLocaleString("ko-KR")} · 조회 {post.viewCount}</span></small>{post.canEdit && <div className="post-owner-actions"><Link href={`/posts/${post.id}/edit`}><Pencil size={14} /> 수정</Link><button type="button" onClick={deletePost} disabled={deletingPost}><Trash2 size={14} /> {deletingPost ? "삭제 중" : "삭제"}</button></div>}</div></header>
     {post.bounty&&<section className={`post-bounty-card ${post.bounty.status}`}><span><HandCoins size={23}/></span><div><small>{post.bounty.status==="open" ? "답변 현상금 모집 중" : post.bounty.status==="awarded" ? "도토리 현상금 지급 완료" : "도토리 현상금 환불 완료"}</small><strong>{post.bounty.amount.toLocaleString()} 🌰</strong><p>{post.bounty.status==="open" ? `채택된 답변자는 ${post.bounty.awardAmount.toLocaleString()}개를 받아요 · ${new Date(post.bounty.expiresAt).toLocaleDateString("ko-KR")}까지` : post.bounty.status==="awarded" ? `${post.bounty.recipientName || "답변자"}님의 답변이 채택되었어요.` : "모집 기간이 끝나 현상금이 환불되었어요."}</p></div>{post.bounty.canRefund&&<button type="button" disabled={bountyPending} onClick={()=>void refundBounty()}>{bountyPending ? "처리 중" : "환불받기"}</button>}</section>}
     <div className="post-content rich-post-content" dangerouslySetInnerHTML={{ __html: post.renderedContentHtml }} />
@@ -252,7 +252,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
       })}</div>
       <CommentPagination pagination={pagination} onChange={(page) => { setReplyingTo(null); loadComments(page).catch(() => setCommentError("댓글을 불러오지 못했습니다.")); }} />
     </section>
-    <DetailBoardList categoryCode={post.categoryCode} currentPostId={post.id} canWrite={post.categoryCode === "notice" ? post.canEdit : authenticated} />
+    <DetailBoardList categoryCode={post.categoryCode} currentPostId={post.id} canWrite={post.categoryCode === "notice" ? post.canEdit : authenticated} writeHref={post.categoryCode==="bounty" ? "/play/bounties/write" : undefined}/>
     {notice && <div className="community-toast" role="status">{notice}</div>}
     {shareOpen && <div className="report-backdrop" role="dialog" aria-modal="true" aria-labelledby="share-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setShareOpen(false); }}><section className="share-sheet">
       <span className="sheet-handle" /><h2 id="share-title">공유하기</h2>

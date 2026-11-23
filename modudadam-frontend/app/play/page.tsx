@@ -16,7 +16,7 @@ const groups=[
     { href:"/play/taste",icon:Sparkles,tone:"purple",eyebrow:"10문항 분석",title:"취향 발견실",description:"생활 선택으로 내 취향의 결을 발견해요." },
   ]},
   { id:"help",icon:HeartHandshake,title:"도움과 이야기",description:"질문하고 답하며 사람의 경험을 나눠요.",items:[
-    { href:"/category/free/write",icon:HandCoins,tone:"amber",eyebrow:"도토리로 답변 요청",title:"현상금 질문하기",description:"좋은 답변에 도토리를 걸고 도움을 요청해요." },
+    { href:"/play/bounties",icon:HandCoins,tone:"amber",eyebrow:"모두다담 핵심 도움 서비스",title:"현상금 질문",description:"질문을 먼저 노출하고, 채택한 답변에 도토리로 보답해요." },
     { href:"/play/mailbox",icon:Mail,tone:"blue",eyebrow:"고정 익명 ID",title:"다담 우체통",description:"이름을 내려놓고 사연과 답장을 나눠요." },
     { href:"/play/treasures",icon:MapPin,tone:"green",eyebrow:"이웃의 생활 지도",title:"동네 보물지도",description:"이웃이 직접 발견한 좋은 장소를 찾아요." },
     { href:"/play/random",icon:Compass,tone:"amber",eyebrow:"숨은 글 발견",title:"랜덤 이야기 여행",description:"목록 아래 잠들어 있던 이야기를 만나요." },
@@ -38,7 +38,7 @@ export default function PlayPage() {
     <nav className="content-group-nav" aria-label="콘텐츠 빠른 이동">{groups.map(({ id,icon:Icon,title })=><a href={`#${id}`} key={id}><Icon size={17}/><span>{title}</span></a>)}</nav>
     <div className="content-group-list">{groups.map(({ id,icon:GroupIcon,title,description,items })=><section className="content-group" id={id} key={id}>
       <header><span><GroupIcon size={20}/></span><div><h2>{title}</h2><p>{description}</p></div><b>{items.length}개</b></header>
-      <div className="content-hub-list">{items.map(({ href,icon:Icon,tone,eyebrow,title:itemTitle,description:itemDescription })=><Link href={href} key={href} className={`content-hub-card ${tone}`}>
+      <div className="content-hub-list">{items.map(({ href,icon:Icon,tone,eyebrow,title:itemTitle,description:itemDescription })=><Link href={href} key={href} className={`content-hub-card ${tone}${href==="/play/bounties" ? " featured-bounty" : ""}`}>
         <span className="content-hub-icon"><Icon size={22}/></span><span className="content-hub-copy"><small>{eyebrow}</small><strong>{itemTitle}</strong><p>{itemDescription}</p></span><ArrowRight size={18}/>
       </Link>)}</div>
     </section>)}</div>

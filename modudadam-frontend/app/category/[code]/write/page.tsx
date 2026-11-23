@@ -8,6 +8,7 @@ import { findBoard } from "@/lib/categories";
 export default async function CategoryWritePage({ params }: { params: Promise<{ code: string }> }) {
   const category = findBoard((await params).code);
   if (!category) notFound();
+  if(category.code==="bounty") redirect("/play/bounties/write");
   const user=await getServerSessionUser();
   if (!user) redirect(`/login?returnTo=${encodeURIComponent(`/category/${category.code}/write`)}`);
   if (category.code==="notice" && user.email?.trim().toLowerCase()!=="freesetting@naver.com") redirect(`/category/${category.code}`);

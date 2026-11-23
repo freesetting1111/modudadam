@@ -11,9 +11,14 @@ export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get("category");
   const search = request.nextUrl.searchParams.get("q")?.trim();
   const requestedSort = request.nextUrl.searchParams.get("sort");
-  const sort: "latest" | "popular" | "weekly" = requestedSort === "popular" || requestedSort === "weekly" ? requestedSort : "latest";
+  const sort: "latest" | "popular" | "weekly" | "bounty" = requestedSort === "popular" || requestedSort === "weekly" || requestedSort === "bounty" ? requestedSort : "latest";
   const limit = normalizeLimit(request.nextUrl.searchParams.get("limit"));
-  const pageMode = request.nextUrl.searchParams.has("page") || request.nextUrl.searchParams.has("currentPostId");
+  const bountyOnly=request.nextUrl.searchParams.get("bountyOnly")==="true";
+  const bountyFilter=bountyOnly ? ` AND EXISTS(
+    SELECT 1 FROM post_acorn_bounties active_bounty
+    WHERE active_bounty.post_id=posts.id AND active_bounty.status='open' AND active_bounty.expires_at>now()
+  )` : "";
+  const pageMode = request.nextUrl.searchParams.has("page") || request.nextUrl.searchParams.has("currentPostId") || sort==="bounty";
 
   const select = `SELECT posts.id, posts.title, posts.post_type AS "postType",
       posts.view_count AS "viewCount", posts.comment_count AS "commentCount",
@@ -27,7 +32,7 @@ export async function GET(request: NextRequest) {
       (posts.view_count + posts.comment_count * 3) AS "popularityScore"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
      WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
-       AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')`;
+       AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')${bountyFilter}`;
 
   if (request.nextUrl.searchParams.get("weeklyByCategory") === "true") {
     const perCategory = Math.min(5, Math.max(1, Number(request.nextUrl.searchParams.get("perCategory")) || 5));
@@ -135,30 +140,34 @@ export async function GET(request: NextRequest) {
       `SELECT COUNT(*)::int AS total FROM posts
        JOIN categories ON categories.id=posts.category_id
        WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
-         AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')`,
+         AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')${bountyFilter}`,
       [category, search || null],
     );
     const totalItems = totalResult.rows[0]?.total || 0;
     const totalPages = Math.max(1, Math.ceil(totalItems / limit));
     let page = Math.min(requestedPage, totalPages);
     if (!request.nextUrl.searchParams.has("page") && currentPostId) {
-      const orderBy = sort === "popular"
-        ? `posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC`
-        : `posts.is_pinned DESC,posts.published_at DESC,posts.id DESC`;
+      const orderBy = sort === "bounty"
+        ? `(SELECT amount FROM post_acorn_bounties priority_bounty WHERE priority_bounty.post_id=posts.id AND priority_bounty.status='open' AND priority_bounty.expires_at>now()) DESC,posts.published_at DESC,posts.id DESC`
+        : sort === "popular"
+          ? `posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC`
+          : `posts.is_pinned DESC,posts.published_at DESC,posts.id DESC`;
       const position = await query<{ position: string }>(
         `SELECT position::text FROM (
            SELECT posts.id,ROW_NUMBER() OVER(ORDER BY ${orderBy}) AS position
            FROM posts JOIN categories ON categories.id=posts.category_id
            WHERE posts.status='published' AND ($1::text IS NULL OR categories.code=$1)
-             AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')
+             AND ($2::text IS NULL OR (posts.title || ' ' || posts.content) ILIKE '%'||$2||'%')${bountyFilter}
          ) ranked WHERE id=$3`,
         [category, search || null, currentPostId],
       );
       if (position.rows[0]) page = Math.ceil(Number(position.rows[0].position) / limit);
     }
-    const orderBy = sort === "popular"
-      ? `posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC`
-      : `posts.is_pinned DESC,posts.published_at DESC,posts.id DESC`;
+    const orderBy = sort === "bounty"
+      ? `(SELECT amount FROM post_acorn_bounties priority_bounty WHERE priority_bounty.post_id=posts.id AND priority_bounty.status='open' AND priority_bounty.expires_at>now()) DESC,posts.published_at DESC,posts.id DESC`
+      : sort === "popular"
+        ? `posts.is_pinned DESC,(posts.view_count + posts.comment_count * 3) DESC,posts.published_at DESC,posts.id DESC`
+        : `posts.is_pinned DESC,posts.published_at DESC,posts.id DESC`;
     const result = await query(`${select} ORDER BY ${orderBy} LIMIT $3 OFFSET $4`, [category, search || null, limit, (page - 1) * limit]);
     return jsonResponse({ posts: await attachReadState(result.rows,viewerKey), pagination: { page, pageSize: limit, totalItems, totalPages } });
   }
@@ -200,9 +209,14 @@ export async function POST(request: NextRequest) {
     const title = String(body.title || "").trim();
     const content = String(body.content || "").trim();
     const bountyAmount=normalizeBountyAmount(body.bountyAmount);
+    const postType=String(body.postType || "community")==="bounty_question" ? "bounty_question" : "community";
+    const isBountyQuestion=postType==="bounty_question";
     const imageIds = normalizeImageIds(body.imageIds);
     if (!categoryCode || !title) return errorResponse("카테고리와 제목을 입력해 주세요.");
-    if (bountyAmount===null) return errorResponse("답변 현상금은 100, 300, 500, 1,000, 3,000, 5,000개 중에서 선택해 주세요.");
+    if (bountyAmount===null) return errorResponse("답변 현상금은 100, 200, 300개 중에서 선택해 주세요.");
+    if (isBountyQuestion && (categoryCode!=="bounty" || !bountyAmount)) return errorResponse("현상금 질문은 100, 200, 300개 중 하나를 반드시 선택해 주세요.");
+    if (!isBountyQuestion && bountyAmount!==0) return errorResponse("현상금은 현상금 질문 서비스에서만 등록할 수 있습니다.");
+    if (!isBountyQuestion && categoryCode==="bounty") return errorResponse("현상금 질문은 전용 작성 화면에서 등록해 주세요.");
     if (categoryCode==="notice" && user.email?.trim().toLowerCase()!=="freesetting@naver.com") return errorResponse("공지사항은 운영자만 작성할 수 있습니다.",403);
     if (!imageIds || imageIds.length > MAX_POST_IMAGES) return errorResponse(`이미지는 최대 ${MAX_POST_IMAGES}장까지 첨부할 수 있습니다.`);
     if (!content && imageIds.length === 0) return errorResponse("내용을 입력하거나 이미지를 한 장 이상 넣어 주세요.");
@@ -217,7 +231,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO posts(category_id,author_id,title,content,post_type,attributes,is_notice,published_at)
          SELECT id,$1,$2,$3,$4,$5::jsonb,(code='notice'),now() FROM categories WHERE code=$6 AND is_active
          RETURNING id`,
-        [user.id, title, content, body.postType || "community", JSON.stringify({ contentHtml }), categoryCode],
+        [user.id, title, content, postType, JSON.stringify({ contentHtml }), categoryCode],
       );
       const post = result.rows[0];
       if (!post) throw new Error("CATEGORY_NOT_FOUND");
@@ -296,7 +310,7 @@ function encodeCursor(cursor: PostCursor) {
   return Buffer.from(JSON.stringify(cursor)).toString("base64url");
 }
 
-function decodeCursor(value: string | null, sort: "latest" | "popular"): PostCursor | null {
+function decodeCursor(value: string | null, sort: "latest" | "popular" | "weekly" | "bounty"): PostCursor | null {
   if (!value) return null;
   try {
     const cursor = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<PostCursor>;

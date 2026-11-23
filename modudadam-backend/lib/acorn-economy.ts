@@ -2,7 +2,7 @@ import type { PoolClient } from "pg";
 
 export const ACORN_WALLET_LIMIT = 20_000;
 export const DAILY_FREE_ACORN_LIMIT = 5;
-export const BOUNTY_AMOUNTS = [100,300,500,1_000,3_000,5_000] as const;
+export const BOUNTY_AMOUNTS = [100,200,300] as const;
 
 const FREE_REWARD_TYPES = [
   "attendance",

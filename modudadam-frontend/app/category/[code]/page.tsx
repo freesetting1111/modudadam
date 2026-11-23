@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound,redirect } from "next/navigation";
 import { BoardList, type BoardFeedPage } from "@/components/board-list";
 import { categories, findBoard, specialBoards } from "@/lib/categories";
 import { getServerSessionUser } from "@/lib/auth";
@@ -14,6 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 }
 export default async function CategoryPage({ params }: { params: Promise<{ code: string }> }) {
   const category = findBoard((await params).code); if (!category) notFound();
+  if(category.code==="bounty") redirect("/play/bounties");
   const cookieHeader=(await cookies()).toString();
   const [user, initialPage] = await Promise.all([
     getServerSessionUser(),

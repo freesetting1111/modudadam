@@ -35,6 +35,12 @@ export default async function Home() {
   return <div className="community-home">
     <HomeSearch />
 
+    <Link className="home-bounty-gateway" href="/play/bounties">
+      <span className="home-bounty-mark"><HandCoins size={27}/></span>
+      <span className="home-bounty-copy"><small>MODUDADAM BOUNTY · 핵심 도움 서비스</small><strong>검색으로 해결되지 않는 질문이 있나요?</strong><p>도토리를 걸면 질문이 우선 노출되고, 채택한 답변에 직접 보답할 수 있어요.</p></span>
+      <span className="home-bounty-action">현상금 질문 보기<ChevronRight size={18}/></span>
+    </Link>
+
     <section className="home-special-board-section" aria-label="공지사항과 자유게시판">
       <div className="board-card-grid">{specialBoardFeeds.map(({ category, posts }) => <BoardPreview key={category.code} category={category} posts={posts} slots={3} />)}</div>
     </section>

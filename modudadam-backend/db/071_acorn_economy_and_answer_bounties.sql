@@ -13,7 +13,7 @@ INSERT INTO acorn_economy_settings(setting_key,setting_value,description) VALUES
   ('signup_package_amount',20,'신규가입 패키지 도토리'),
   ('bounty_fee_percent',10,'답변 현상금 채택 시 소각 비율'),
   ('bounty_minimum',100,'게시글 답변 현상금 최소 금액'),
-  ('bounty_maximum',5000,'게시글 답변 현상금 최대 금액')
+  ('bounty_maximum',300,'현상금 질문의 최대 금액')
 ON CONFLICT(setting_key) DO UPDATE SET
   setting_value=EXCLUDED.setting_value,
   description=EXCLUDED.description,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS post_acorn_bounties (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id uuid NOT NULL UNIQUE REFERENCES posts(id) ON DELETE RESTRICT,
   sponsor_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  amount integer NOT NULL CHECK (amount BETWEEN 100 AND 5000 AND amount % 100=0),
+  amount integer NOT NULL CHECK (amount IN (100,200,300)),
   fee_amount integer NOT NULL CHECK (fee_amount >= 0),
   award_amount integer NOT NULL CHECK (award_amount > 0),
   status varchar(20) NOT NULL DEFAULT 'open' CHECK (status IN ('open','awarded','refunded')),
