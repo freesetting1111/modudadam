@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock3, LogIn, MapPin, MonitorSmartphone, Network, Search, UsersRound } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock3, LogIn, MapPin, MonitorSmartphone, Network, Route, Search, UsersRound } from "lucide-react";
 import { getServerSessionUser } from "@/lib/auth";
 import { API_SERVER_URL } from "@/lib/server-config";
 import { AdminDatePicker } from "@/components/admin-date-picker";
@@ -15,6 +15,7 @@ type AccessLog = {
   id: string; anonymousId: string | null; userId: string | null; nickname: string | null;
   email: string | null; occurredAt: string; path: string; pageTitle: string | null;
   device: string; ipAddress: string | null; referrer: string | null;
+  trafficSource: { channel: "direct" | "organic_search" | "paid" | "social" | "referral" | "campaign"; label: string; detail: string | null };
 };
 type LogResponse = { success: true; data: {
   startDate: string; endDate: string; totalCount: number; page: number; pageSize: number; totalPages: number; logs: AccessLog[];
@@ -51,7 +52,7 @@ export default async function VisitorAdminPage({ searchParams }: PageProps) {
         <AdminDatePicker label="시작일" name="startDate" defaultValue={startDate}/>
         <AdminDatePicker label="종료일" name="endDate" defaultValue={endDate}/>
       </div>
-      <label><span>검색어</span><div><Search size={17} /><input type="search" name="q" defaultValue={keyword} placeholder="닉네임, 이메일, IP, 경로" /></div></label>
+      <label><span>검색어</span><div><Search size={17} /><input type="search" name="q" defaultValue={keyword} placeholder="닉네임, 이메일, IP, 경로, 유입처" /></div></label>
       <div className="visitor-filter-actions"><Link href="/admin/visitors">초기화</Link><button type="submit">조회하기</button></div>
     </form>
     <div className="visitor-result-summary"><strong>총 {totalCount.toLocaleString()}건</strong><span>최근 기록 순 · 페이지당 {pageSize}건</span></div>
@@ -66,6 +67,7 @@ export default async function VisitorAdminPage({ searchParams }: PageProps) {
             <div><dt><MapPin size={13} /> 접속 화면</dt><dd title={log.path}>{friendlyPath(log.path)}</dd></div>
             <div><dt><MonitorSmartphone size={13} /> 접속 기기</dt><dd>{log.device}</dd></div>
             <div><dt><Network size={13} /> 접속 IP</dt><dd>{log.ipAddress || "기존 로그 · 저장 안 됨"}</dd></div>
+            <div className="visitor-traffic-row"><dt><Route size={13} /> 유입 경로</dt><dd><span className={`visitor-traffic-source ${log.trafficSource.channel}`}>{log.trafficSource.label}</span>{log.trafficSource.detail && <small>{log.trafficSource.detail}</small>}</dd></div>
           </dl>
           <p className="visitor-log-path">{log.path}</p>
         </div>
