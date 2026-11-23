@@ -20,6 +20,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = getSiteUrl();
+const websiteStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "모두다담",
+  alternateName: "Modudadam",
+  url: siteUrl,
+};
+
 const verificationOther: Record<string, string> = {};
 
 if (process.env.BING_SITE_VERIFICATION) {
@@ -27,12 +36,23 @@ if (process.env.BING_SITE_VERIFICATION) {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
+  metadataBase: new URL(siteUrl),
+  applicationName: "모두다담",
   title: {
     default: "모두다담",
     template: "%s | 모두다담",
   },
   description: "모두의 이야기를 한곳에 담는 서비스",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "48x48" },
+      { url: "/favicon-48x48.png", type: "image/png", sizes: "48x48" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/favicon-192x192.png", type: "image/png", sizes: "192x192" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
+  },
   alternates: { canonical: "/" },
   openGraph: { type: "website", locale: "ko_KR", siteName: "모두다담", title: "모두다담", description: "모두의 이야기를 한곳에 담는 서비스", url: "/", images: ["/brand/modudadam-brand-mark.png"] },
   ...(Object.keys(verificationOther).length
@@ -50,6 +70,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
       <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData).replace(/</g, "\\u003c") }} />
         {naverSiteVerification ? <meta name="naver-site-verification" content={naverSiteVerification} /> : null}
         {googleSiteVerification ? <meta name="google-site-verification" content={googleSiteVerification} /> : null}
       </head>
