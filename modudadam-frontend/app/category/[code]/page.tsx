@@ -10,7 +10,9 @@ export function generateStaticParams() { return [...specialBoards,...categories]
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const category = findBoard((await params).code);
   if (!category) return { robots: { index: false, follow: false } };
-  return { title: category.name, description: category.description, alternates: { canonical: `/category/${category.code}` }, openGraph: { title: category.name, description: category.description, url: `/category/${category.code}` } };
+  const title=`${category.name} 커뮤니티`;
+  const description=`${category.description}에 관한 질문, 후기, 경험과 생활 정보를 나누는 모두다담 ${category.name} 커뮤니티입니다.`;
+  return { title, description, alternates: { canonical: `/category/${category.code}` }, openGraph: { type:"website",title, description, url: `/category/${category.code}`,siteName:"모두다담",locale:"ko_KR" } };
 }
 export default async function CategoryPage({ params }: { params: Promise<{ code: string }> }) {
   const category = findBoard((await params).code); if (!category) notFound();

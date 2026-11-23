@@ -229,7 +229,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   return <article className="content-page post-page">
     <Link className="back-link" href={post.categoryCode==="bounty" ? "/play/bounties" : `/category/${post.categoryCode}`}>‹ {post.categoryName}{post.categoryCode==="bounty" ? " 목록" : " 게시판"}</Link>
     <header className="post-header"><h1>{post.title}</h1><div className="post-meta"><small><StampedName full name={post.authorName} stamp={post.authorStampEmoji} /><span>· {new Date(post.createdAt).toLocaleString("ko-KR")} · 조회 {post.viewCount}</span></small>{post.canEdit && <div className="post-owner-actions"><Link href={`/posts/${post.id}/edit`}><Pencil size={14} /> 수정</Link><button type="button" onClick={deletePost} disabled={deletingPost}><Trash2 size={14} /> {deletingPost ? "삭제 중" : "삭제"}</button></div>}</div></header>
-    {post.bounty&&<section className={`post-bounty-card ${post.bounty.status}`}><span><HandCoins size={23}/></span><div><small>{post.bounty.status==="open" ? "답변 현상금 모집 중" : post.bounty.status==="awarded" ? "도토리 현상금 지급 완료" : "도토리 현상금 환불 완료"}</small><strong>{post.bounty.amount.toLocaleString()} 🌰</strong><p>{post.bounty.status==="open" ? `채택된 답변자는 ${post.bounty.awardAmount.toLocaleString()}개를 받아요 · ${new Date(post.bounty.expiresAt).toLocaleDateString("ko-KR")}까지` : post.bounty.status==="awarded" ? `${post.bounty.recipientName || "답변자"}님의 답변이 채택되었어요.` : "모집 기간이 끝나 현상금이 환불되었어요."}</p></div>{post.bounty.canRefund&&<button type="button" disabled={bountyPending} onClick={()=>void refundBounty()}>{bountyPending ? "처리 중" : "환불받기"}</button>}</section>}
+    {post.bounty&&<section className={`post-bounty-card ${post.bounty.status} bounty-tier-${post.bounty.amount}`}><span><HandCoins size={23}/></span><div><small>{post.bounty.status==="open" ? `${bountyTierLabel(post.bounty.amount)} 현상금 · 답변 모집 중` : post.bounty.status==="awarded" ? "도토리 현상금 지급 완료" : "도토리 현상금 환불 완료"}</small><strong>{post.bounty.amount.toLocaleString()} 🌰</strong><p>{post.bounty.status==="open" ? `채택 답변 보상 ${post.bounty.awardAmount.toLocaleString()}개 · ${new Date(post.bounty.expiresAt).toLocaleDateString("ko-KR")} 마감` : post.bounty.status==="awarded" ? `${post.bounty.recipientName || "답변자"}님의 답변이 채택되었어요.` : "모집 기간이 끝나 현상금이 환불되었어요."}</p></div>{post.bounty.canRefund&&<button type="button" disabled={bountyPending} onClick={()=>void refundBounty()}>{bountyPending ? "처리 중" : "환불받기"}</button>}</section>}
     <div className="post-content rich-post-content" dangerouslySetInnerHTML={{ __html: post.renderedContentHtml }} />
     <div className="post-community-actions">
       <button type="button" className={post.isLiked ? "active heart" : ""} onClick={toggleLike} disabled={likePending}><Heart size={18} fill={post.isLiked ? "currentColor" : "none"} /><span>좋아요</span><small>{post.likeCount}</small></button>
@@ -238,13 +238,14 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
       <button type="button" onClick={() => openReport("post", post.id)}><Flag size={18} /><span>신고</span></button>
     </div>
     <section className="comments-section">
-      <h2><MessageCircle size={18} /> 댓글 {pagination.commentCount}</h2>
-      {authenticated ? <form className="comment-form" onSubmit={(event) => submitComment(event)}><textarea name="content" required maxLength={3000} rows={3} placeholder="댓글을 입력해 주세요."/><button type="submit">댓글 등록</button></form> : <Link className="comment-login-prompt" href={`/login?returnTo=${encodeURIComponent(`/posts/${postId}`)}`}>댓글을 작성하려면 로그인해 주세요.</Link>}
+      <h2><MessageCircle size={18} /> {post.bounty ? "답변" : "댓글"} {pagination.commentCount}</h2>
+      {post.bounty?.status==="open"&&<div className="bounty-answer-guide"><CheckCircle2 size={18}/><span>{post.bounty.canAward ? "답변을 확인한 뒤, 답변 아래의 채택 버튼을 누르세요. 채택 시 보상은 즉시 지급됩니다." : "아래에 답변을 남기면 글 작성자가 답변 하나를 채택해 도토리를 지급합니다."}</span></div>}
+      {authenticated ? <form className="comment-form" onSubmit={(event) => submitComment(event)}><textarea name="content" required maxLength={3000} rows={3} placeholder={post.bounty ? "답변을 입력해 주세요." : "댓글을 입력해 주세요."}/><button type="submit">{post.bounty ? "답변 등록" : "댓글 등록"}</button></form> : <Link className="comment-login-prompt" href={`/login?returnTo=${encodeURIComponent(`/posts/${postId}`)}`}>{post.bounty ? "답변" : "댓글"}을 작성하려면 로그인해 주세요.</Link>}
       {commentError && <div className="form-error comment-error">{commentError}</div>}
-      <div className="comment-list">{commentGroups.length === 0 ? <p className="no-comments">첫 댓글을 남겨보세요.</p> : commentGroups.map(({ comment, replies }) => {
+      <div className="comment-list">{commentGroups.length === 0 ? <p className="no-comments">{post.bounty ? "아직 등록된 답변이 없습니다." : "첫 댓글을 남겨보세요."}</p> : commentGroups.map(({ comment, replies }) => {
         const visibleReplyCount = expandedReplies[comment.id] || Math.min(REPLY_PAGE_SIZE, replies.length);
         return <div className="comment-thread" key={comment.id}>
-          <CommentItem comment={comment} reactionPending={reactionPending.has(comment.id)} bountyPending={bountyPending} onAward={awardBounty} onReply={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />
+          <CommentItem comment={comment} bountyAwardAmount={post.bounty?.awardAmount} reactionPending={reactionPending.has(comment.id)} bountyPending={bountyPending} onAward={awardBounty} onReply={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />
           {replyingTo === comment.id && <ReplyForm authorName={comment.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, comment.id)} />}
           {replies.length > 0 && <div className="reply-list">{replies.slice(0, visibleReplyCount).map((reply) => <div key={reply.id}><CommentItem comment={reply} reply reactionPending={reactionPending.has(reply.id)} bountyPending={bountyPending} onAward={awardBounty} onReply={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />{replyingTo === reply.id && <ReplyForm authorName={reply.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, reply.id)} />}</div>)}</div>}
           {replies.length > REPLY_PAGE_SIZE && <button className="reply-toggle" type="button" onClick={() => setExpandedReplies((current) => ({ ...current, [comment.id]: visibleReplyCount < replies.length ? Math.min(replies.length, visibleReplyCount + REPLY_PAGE_SIZE) : REPLY_PAGE_SIZE }))}><Reply size={14} /> {visibleReplyCount < replies.length ? `답글 ${replies.length - visibleReplyCount}개 더 보기` : "답글 접기"}</button>}
@@ -273,7 +274,7 @@ function ReplyForm({ authorName, onCancel, onSubmit }: { authorName: string; onC
   return <form className="comment-form reply-form" onSubmit={onSubmit}><textarea name="content" required maxLength={3000} rows={2} autoFocus placeholder={`${authorName}님에게 답글 작성`} /><div><button type="button" className="reply-cancel" onClick={onCancel}>취소</button><button type="submit">답글 등록</button></div></form>;
 }
 
-function CommentItem({ comment, reply = false, reactionPending = false,bountyPending=false,onAward, onReply, onDelete, onEdit, onReport, onReact }: { comment: Comment; reply?: boolean; reactionPending?: boolean;bountyPending?:boolean;onAward:(commentId:string)=>void; onReply: () => void; onDelete: (commentId: string) => void; onEdit: (commentId: string, content: string) => Promise<void>; onReport: (commentId: string) => void; onReact: (commentId: string, reaction: "like" | "dislike") => void }) {
+function CommentItem({ comment, reply = false, reactionPending = false,bountyPending=false,bountyAwardAmount,onAward, onReply, onDelete, onEdit, onReport, onReact }: { comment: Comment; reply?: boolean; reactionPending?: boolean;bountyPending?:boolean;bountyAwardAmount?:number;onAward:(commentId:string)=>void; onReply: () => void; onDelete: (commentId: string) => void; onEdit: (commentId: string, content: string) => Promise<void>; onReport: (commentId: string) => void; onReact: (commentId: string, reaction: "like" | "dislike") => void }) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [editPending, setEditPending] = useState(false);
@@ -285,7 +286,7 @@ function CommentItem({ comment, reply = false, reactionPending = false,bountyPen
     catch (caught) { setEditError(caught instanceof Error ? caught.message : "댓글을 수정하지 못했습니다."); }
     finally { setEditPending(false); }
   }
-  return <div className={`comment ${reply ? "reply" : ""} ${comment.status === "deleted" ? "deleted" : ""}`}>
+  return <div id={`answer-${comment.id}`} className={`comment ${reply ? "reply" : ""} ${comment.status === "deleted" ? "deleted" : ""}`}>
     <div className="comment-head"><b>{reply && <Reply size={13} />}<StampedName full name={comment.authorName} stamp={comment.authorStampEmoji} />{comment.helpScore>0&&<em className="help-reputation">도움 신뢰 {comment.helpScore} · 채택 {comment.acceptedAnswers}</em>}{comment.isBountyWinner&&<em className="bounty-winner"><CheckCircle2 size={13}/>채택 답변</em>}</b><small>{new Date(comment.createdAt).toLocaleString("ko-KR")}</small></div>
     {editing ? <form className="comment-edit-form" onSubmit={submitEdit}><textarea value={editContent} onChange={(event) => setEditContent(event.target.value.slice(0, 3000))} rows={3} maxLength={3000}/>{editError && <small className="profile-error">{editError}</small>}<div><button type="button" onClick={() => { setEditing(false); setEditContent(comment.content); setEditError(""); }}>취소</button><button type="submit" disabled={editPending || !editContent.trim()}>{editPending ? "저장 중" : "저장"}</button></div></form> : <p>{reply && comment.replyToId !== comment.parentId && comment.replyToAuthor && <strong className="reply-mention">{comment.replyToStampEmoji && <span className="reply-stamp">{comment.replyToStampEmoji}</span>}@{comment.replyToAuthor}</strong>}{comment.content}</p>}
     {comment.status === "published" && <div className="comment-action-row"><div className="comment-primary-actions">
@@ -293,9 +294,13 @@ function CommentItem({ comment, reply = false, reactionPending = false,bountyPen
       <button type="button" disabled={reactionPending} className={comment.myReaction === "dislike" ? "active" : ""} onClick={() => onReact(comment.id, "dislike")}><ThumbsDown size={14} /> {comment.dislikeCount}</button>
       <button type="button" onClick={onReply}><Reply size={14} /> 답글</button>
       <button type="button" onClick={() => onReport(comment.id)}><Flag size={14} /> 신고</button>
-      {comment.canReceiveBounty&&<button type="button" className="bounty-award-button" disabled={bountyPending} onClick={()=>onAward(comment.id)}><HandCoins size={14}/>현상금 채택</button>}
+      {comment.canReceiveBounty&&<button type="button" className="bounty-award-button" disabled={bountyPending} onClick={()=>onAward(comment.id)}><HandCoins size={14}/>채택하고 {(bountyAwardAmount||0).toLocaleString()}개 지급</button>}
     </div><div className="comment-owner-actions">{comment.canEdit && <button type="button" onClick={() => setEditing(true)}><Pencil size={13} /> 수정</button>}{comment.canDelete && <button type="button" className="comment-delete" onClick={() => onDelete(comment.id)}><Trash2 size={13} /> 삭제</button>}</div></div>}
   </div>;
+}
+
+function bountyTierLabel(amount:number) {
+  return amount>=300 ? "최우선" : amount>=200 ? "우선" : "일반";
 }
 
 function CommentPagination({ pagination, onChange }: { pagination: Pagination; onChange: (page: number) => void }) {

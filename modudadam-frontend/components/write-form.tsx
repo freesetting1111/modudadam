@@ -130,7 +130,7 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
     {!postId&&isBounty&&<section className="compose-bounty required">
       <header><span><HandCoins size={20}/></span><div><small>필수 선택</small><strong>답변 현상금 정하기</strong></div><b>{economy ? `보유 ${economy.wallet.balance.toLocaleString()}개` : "잔액 확인 중"}</b></header>
       <div className="compose-bounty-options">
-        {(economy?.bountyAmounts || [100,200,300]).map((amount)=><button type="button" className={bountyAmount===amount ? "active" : ""} disabled={Boolean(economy&&economy.wallet.balance<amount)} onClick={()=>setBountyAmount(amount)} key={amount}><b>{amount.toLocaleString()} 🌰</b><small>{amount===100 ? "기본 요청" : amount===200 ? "우선 요청" : "최우선 요청"}</small></button>)}
+        {(economy?.bountyAmounts || [100,200,300]).map((amount)=><button type="button" className={`bounty-tier-${amount} ${bountyAmount===amount ? "active" : ""}`} disabled={Boolean(economy&&economy.wallet.balance<amount)} onClick={()=>setBountyAmount(amount)} key={amount}><b>{amount.toLocaleString()} 🌰</b><small>{amount===100 ? "일반 노출" : amount===200 ? "우선 노출" : "최우선 노출"}</small></button>)}
       </div>
       <div className="compose-bounty-summary"><span>노출 <b>금액순</b></span><span>답변자 <b>{Math.floor(bountyAmount*.9).toLocaleString()}개</b></span><span>수수료 <b>{Math.floor(bountyAmount*.1).toLocaleString()}개</b></span><span>기간 <b>7일</b></span></div>
       {economy&&economy.wallet.balance<100&&<div className="form-error" role="alert">현상금 질문에는 도토리가 최소 100개 필요합니다.</div>}

@@ -14,6 +14,7 @@ import "./stamp-effects.css";
 import "./readability.css";
 import "./acorn-economy.css";
 import "./content-hub.css";
+import "./ux-refresh.css";
 
 const notoSansKr = Noto_Sans_KR({ variable: "--font-noto-sans-kr", weight: "variable", preload: false, display: "swap" });
 
@@ -41,10 +42,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   applicationName: "모두다담",
   title: {
-    default: "모두다담",
+    default: "모두다담 | 생활 정보·질문·후기 커뮤니티",
     template: "%s | 모두다담",
   },
-  description: "모두의 이야기를 한곳에 담는 서비스",
+  description: "반려동물, 요리, 살림, 취미, 여행, 육아, 재테크 등 생활 정보와 경험을 나누고 질문에 답하는 국내 커뮤니티입니다.",
   icons: {
     icon: [
       { url: "/favicon.ico", type: "image/x-icon", sizes: "48x48" },
@@ -56,7 +57,8 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
   },
   alternates: { canonical: "/" },
-  openGraph: { type: "website", locale: "ko_KR", siteName: "모두다담", title: "모두다담", description: "모두의 이야기를 한곳에 담는 서비스", url: "/", images: ["/brand/modudadam-brand-mark.png"] },
+  openGraph: { type: "website", locale: "ko_KR", siteName: "모두다담", title: "모두다담 | 생활 정보·질문·후기 커뮤니티", description: "생활 정보와 경험을 나누고, 현상금 질문으로 필요한 답을 찾는 국내 커뮤니티입니다.", url: "/", images: ["/brand/modudadam-brand-mark.png"] },
+  twitter: { card:"summary_large_image",title:"모두다담 | 생활 정보·질문·후기 커뮤니티",description:"생활 정보와 경험을 나누고 필요한 답을 찾는 국내 커뮤니티",images:["/brand/modudadam-brand-mark.png"] },
   ...(Object.keys(verificationOther).length
     ? { verification: { other: verificationOther } }
     : {}),

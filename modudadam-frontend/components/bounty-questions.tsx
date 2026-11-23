@@ -44,11 +44,15 @@ export function BountyQuestions() {
     {loading&&!data&&<div className="board-message">현상금 질문을 불러오고 있어요.</div>}
     {error&&<div className="board-message error">{error}</div>}
     {!loading&&!error&&data?.posts.length===0&&<div className="bounty-empty"><HandCoins size={30}/><strong>등록된 질문이 없습니다</strong><Link href="/play/bounties/write">질문 작성</Link></div>}
-    {data&&data.posts.length>0&&<div className="bounty-question-list" aria-busy={loading}>{data.posts.map((post,index)=><Link href={`/posts/${post.id}`} className="bounty-question-card" key={post.id}>
-      <span className={`bounty-priority priority-${post.bountyAmount}`}><small>{index<3&&page===1 ? `우선 ${index+1}` : "현상금"}</small><strong>{post.bountyAmount.toLocaleString()}</strong><em>도토리</em></span>
+    {data&&data.posts.length>0&&<div className="bounty-question-list" aria-busy={loading}>{data.posts.map((post)=><Link href={`/posts/${post.id}`} className={`bounty-question-card bounty-tier-${post.bountyAmount}`} key={post.id}>
+      <span className={`bounty-priority priority-${post.bountyAmount}`}><small>{bountyTierLabel(post.bountyAmount)}</small><strong>{post.bountyAmount.toLocaleString()}</strong><em>도토리</em></span>
       <span className="bounty-question-copy"><strong>{displayPostTitle(post.title)}</strong><PostListMeta authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/></span>
       <span className="bounty-answer-count"><MessageCircle size={15}/><b>{post.commentCount}</b><small>답변</small></span>
     </Link>)}</div>}
     {data&&totalPages>1&&<nav className="board-pagination" aria-label="현상금 질문 페이지"><button type="button" disabled={page<=1||loading} onClick={()=>void load(page-1)} aria-label="이전 페이지"><ChevronLeft size={17}/></button><button className="active" type="button" disabled aria-current="page">{page}</button><button type="button" disabled={page>=totalPages||loading} onClick={()=>void load(page+1)} aria-label="다음 페이지"><ChevronRight size={17}/></button></nav>}
   </>;
+}
+
+function bountyTierLabel(amount:number) {
+  return amount>=300 ? "최우선" : amount>=200 ? "우선" : "일반";
 }

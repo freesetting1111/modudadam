@@ -71,7 +71,7 @@ export function BoardList({ categoryCode, categoryName, canWrite, initialPage }:
       <div className="board-list" aria-busy={loading}>{posts.map((post) =>
         <Link href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.isRead ? "is-read" : ""}`} key={post.id}>
           <div className="board-row-main">
-            <div className="board-row-title" title={post.title}>{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.bountyAmount>0&&<b className="bounty-list-badge"><HandCoins size={12}/>{post.bountyAmount.toLocaleString()}</b>}{displayPostTitle(post.title)}</div>
+            <div className="board-row-title" title={post.title}>{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.bountyAmount>0&&<b className={`bounty-list-badge bounty-tier-${post.bountyAmount}`}><HandCoins size={12}/>{post.bountyAmount.toLocaleString()}</b>}{displayPostTitle(post.title)}</div>
           </div>
           <PostListMeta className="board-row-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
         </Link>)}</div>

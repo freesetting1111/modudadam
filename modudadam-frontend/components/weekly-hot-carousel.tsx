@@ -88,7 +88,7 @@ function CarouselPost({ post, rank, featured }: { post: HomePost; rank?: number;
   return <Link href={`/posts/${post.id}`} className={`portal-post-row ${rank ? "has-rank" : ""} ${featured ? "is-featured" : ""} ${post.isRead ? "is-read" : ""}`}>
     {rank && <strong className={`portal-rank ${rank <= 3 ? `medal-rank medal-rank-${rank}` : ""}`}>{rank <= 3 && <Crown className="rank-crown" size={14} aria-hidden="true" />}{rank}</strong>}
     <div className="portal-post-copy">
-      <div className="portal-post-title"><span title={post.title}>{post.bountyAmount>0&&<b className="bounty-list-badge"><HandCoins size={11}/>{post.bountyAmount.toLocaleString()}</b>}{displayPostTitle(post.title)}</span></div>
+      <div className="portal-post-title"><span title={post.title}>{post.bountyAmount>0&&<b className={`bounty-list-badge bounty-tier-${post.bountyAmount}`}><HandCoins size={11}/>{post.bountyAmount.toLocaleString()}</b>}{displayPostTitle(post.title)}</span></div>
       <PostListMeta className="portal-post-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
     </div>
   </Link>;

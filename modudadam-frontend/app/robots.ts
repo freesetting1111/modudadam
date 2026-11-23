@@ -17,6 +17,7 @@ export default function robots(): MetadataRoute.Robots {
         "/category/*/write",
         "/posts/*/edit",
         "/play/acorn-gift",
+        "/play/bounties/write",
         "/play/attendance",
         "/play/challenges",
         "/play/choice",

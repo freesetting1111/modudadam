@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarCheck2, CalendarHeart, ChevronRight, CircleUserRound, Compass, Flag, Gift, HandCoins, Home, Hourglass, LogOut, Mail, MapPin, Menu, PackageOpen, Search, ShieldQuestion, Sparkles, Trophy, UserRound, Vote, X } from "lucide-react";
+import { ArrowLeft, CalendarHeart, ChevronRight, CircleUserRound, Compass, Flag, HandCoins, HeartHandshake, Home, LogOut, Menu, NotebookTabs, PackageOpen, PenLine, Search, Sparkles, UserRound, X } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { specialBoards } from "@/lib/categories";
 import { apiRequest } from "@/lib/api";
@@ -139,23 +139,21 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
             <span className="drawer-account-copy"><small>모두다담에 오신 걸 환영해요</small><strong>로그인</strong></span>
             <ChevronRight size={19} />
           </Link>)}
+          <nav className="drawer-quick-actions" aria-label="빠른 메뉴">
+            <Link href="/play/bounties/write" onClick={closeMenu}><span><HandCoins size={19}/></span><strong>현상금 질문</strong></Link>
+            <Link href="/write" onClick={closeMenu}><span><PenLine size={19}/></span><strong>글쓰기</strong></Link>
+            <Link href="/search" onClick={closeMenu}><span><Search size={19}/></span><strong>통합검색</strong></Link>
+            <Link href={user ? "/my/activity" : "/login"} onClick={closeMenu}><span><UserRound size={19}/></span><strong>{user ? "내 활동" : "로그인"}</strong></Link>
+          </nav>
           <h2>커뮤니티</h2>
           <div className="drawer-grid drawer-special-boards">{specialBoards.map((board) => { const Icon=board.icon;return <Link href={`/category/${board.code}`} key={board.code} onClick={closeMenu}><span className={`drawer-icon category-${board.code}`}><Icon size={24} strokeWidth={1.9}/></span><span className="drawer-label">{board.name}</span></Link>; })}</div>
-          <h2>카테고리</h2>
-          <CategoryGrid onNavigate={closeMenu}/>
-          <h2>다담 콘텐츠</h2>
-          <div className="dadam-content-links">
-            <Link href="/play/attendance" onClick={closeMenu}><span className="dadam-link-icon green"><CalendarCheck2/></span><span><strong>다담 출석부</strong><small>오늘 출석</small></span><ChevronRight/></Link>
-            <Link href="/play/stamps" onClick={closeMenu}><span className="dadam-link-icon purple"><Gift/></span><span><strong>도토리 상점</strong><small>스탬프 구매와 악행 포인트 전환</small></span><ChevronRight/></Link>
-            <Link href="/play/acorn-gift" onClick={closeMenu}><span className="dadam-link-icon amber"><HandCoins/></span><span><strong>도토리 선물하기</strong><small>도토리 보내기</small></span><ChevronRight/></Link>
-            <Link href="/play/missions" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 미션</strong><small>오늘의 생활 퀴즈</small></span><ChevronRight/></Link>
-            <Link href="/play/detective" onClick={closeMenu}><span className="dadam-link-icon blue"><ShieldQuestion/></span><span><strong>다담 추리방</strong><small>오늘의 추리 문제</small></span><ChevronRight/></Link>
-            <Link href="/play/time-capsule" onClick={closeMenu}><span className="dadam-link-icon purple"><Hourglass/></span><span><strong>다담 타임캡슐</strong><small>예약 편지</small></span><ChevronRight/></Link>
-            <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 극한 밸런스</strong><small>오늘의 양자택일</small></span><ChevronRight/></Link>
-            <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>익명 사연과 답장</small></span><ChevronRight/></Link>
-            <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>10문항 취향 테스트</small></span><ChevronRight/></Link>
-            <Link href="/play/treasures" onClick={closeMenu}><span className="dadam-link-icon green"><MapPin/></span><span><strong>동네 보물지도</strong><small>이웃 추천 장소</small></span><ChevronRight/></Link>
-            <Link href="/play/random" onClick={closeMenu}><span className="dadam-link-icon amber"><Compass/></span><span><strong>랜덤 이야기 여행</strong><small>무작위 게시글</small></span><ChevronRight/></Link>
+          <details className="drawer-collapsible"><summary><span><strong>주제별 게시판</strong><small>관심 주제 16개</small></span><ChevronRight size={18}/></summary><CategoryGrid onNavigate={closeMenu}/></details>
+          <h2>콘텐츠</h2>
+          <div className="drawer-purpose-links">
+            <Link href="/play#daily" onClick={closeMenu}><Sparkles size={20}/><span><strong>매일 참여</strong><small>출석·미션·밸런스</small></span></Link>
+            <Link href="/play#connect" onClick={closeMenu}><HeartHandshake size={20}/><span><strong>함께 나누기</strong><small>선물·우체통·장소</small></span></Link>
+            <Link href="/play#grow" onClick={closeMenu}><NotebookTabs size={20}/><span><strong>기록과 성장</strong><small>스탬프·취향·타임캡슐</small></span></Link>
+            <Link href="/play#explore" onClick={closeMenu}><Compass size={20}/><span><strong>둘러보기</strong><small>추리·랜덤 이야기</small></span></Link>
           </div>
           <h2>서비스 바로가기</h2>
           <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/events" onClick={closeMenu}><CalendarHeart /> 이벤트</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link>{user && <Link href="/my" onClick={closeMenu}><UserRound /> 마이페이지</Link>}{canViewVisitors&&<Link href="/admin/reports" onClick={closeMenu}><Flag/> 신고 검토</Link>}</div>

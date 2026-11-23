@@ -10,8 +10,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const requestedPageSize = Number(request.nextUrl.searchParams.get("pageSize") || 20);
   const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
   const pageSize = Number.isFinite(requestedPageSize) ? Math.min(20, Math.max(1, Math.floor(requestedPageSize))) : 20;
-  const counts = await query<{ rootCount: number; commentCount: number }>(
+  const counts = await query<{ rootCount: number; publishedRootCount:number;commentCount: number }>(
     `SELECT COUNT(*) FILTER(WHERE parent_id IS NULL)::int AS "rootCount",
+            COUNT(*) FILTER(WHERE parent_id IS NULL AND status='published')::int AS "publishedRootCount",
             COUNT(*) FILTER(WHERE status='published')::int AS "commentCount"
        FROM comments
       WHERE post_id=$1 AND status IN ('published','deleted')`,
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   );
   const rootIds = roots.rows.map((root) => root.id);
   if (rootIds.length === 0) {
-    return jsonResponse({ comments: [], pagination: { page: currentPage, pageSize, totalItems: rootCount, totalPages, commentCount: counts.rows[0]?.commentCount || 0 } });
+    return jsonResponse({ comments: [], pagination: { page: currentPage, pageSize, totalItems: rootCount, totalPages, publishedRootCount:counts.rows[0]?.publishedRootCount||0,commentCount: counts.rows[0]?.commentCount || 0 } });
   }
   const result = await query(
     `SELECT comments.id,comments.parent_id AS "parentId",comments.reply_to_id AS "replyToId",comments.status,
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!right.parentId) return 1;
     return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
   });
-  return jsonResponse({ comments: result.rows, pagination: { page: currentPage, pageSize, totalItems: rootCount, totalPages, commentCount: counts.rows[0]?.commentCount || 0 } });
+  return jsonResponse({ comments: result.rows, pagination: { page: currentPage, pageSize, totalItems: rootCount, totalPages, publishedRootCount:counts.rows[0]?.publishedRootCount||0,commentCount: counts.rows[0]?.commentCount || 0 } });
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ postId: string }> }) {
