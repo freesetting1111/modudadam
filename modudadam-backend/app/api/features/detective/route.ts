@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { requireSessionUser } from "@/domains/auth/session";
 import { db, query } from "@/lib/db";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
+import { grantLimitedAcorns } from "@/lib/acorn-economy";
 
 const kstDate = () => {
   const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{ timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit" }).formatToParts(new Date()).map(({ type,value }) => [type,value]));
@@ -64,17 +65,9 @@ export async function POST(request:NextRequest) {
       let reward=0;
       let walletFull=false;
       if (promisedReward>0) {
-        await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[user.id]);
-        const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[user.id]);
-        reward=Math.max(0,Math.min(promisedReward,20000-(wallet.rows[0]?.balance || 0)));
+        const grant=await grantLimitedAcorns(client,{ userId:user.id,requestedAmount:promisedReward,transactionType:"detective_reward",referenceId:today,description:correct ? "다담 추리방 사건 해결" : "다담 추리방 도전 보상" });
+        reward=grant.granted;
         walletFull=reward<promisedReward;
-        if (reward>0) {
-          await client.query(`UPDATE acorn_wallets SET balance=balance+$2,lifetime_earned=lifetime_earned+$2,updated_at=now() WHERE user_id=$1`,[user.id,reward]);
-          await client.query(
-            `INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description)
-             VALUES($1,$2,'detective_reward',$3,$4)`,[user.id,reward,today,correct ? "다담 추리방 사건 해결" : "다담 추리방 도전 보상"],
-          );
-        }
       }
       await client.query(
         `UPDATE detective_daily_attempts SET selected_suspect_ids=array_append(selected_suspect_ids,$2::bigint),

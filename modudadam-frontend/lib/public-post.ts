@@ -8,6 +8,10 @@ export type PublicPost = {
   createdAt: string; publishedAt?: string; updatedAt: string; canEdit: boolean; canReport: boolean;
   isLiked: boolean; likeCount: number; isBookmarked: boolean; bookmarkCount: number;
   renderedContentHtml: string;
+  bounty: null | {
+    id:string;amount:number;awardAmount:number;feeAmount:number;status:"open"|"awarded"|"refunded";
+    expiresAt:string;acceptedCommentId:string|null;recipientName:string|null;canAward:boolean;canRefund:boolean;
+  };
   images: { id: string; url: string; originalName: string; mimeType: string; byteSize: number }[];
 };
 

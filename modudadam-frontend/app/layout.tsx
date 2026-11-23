@@ -12,6 +12,8 @@ import "./community.css";
 import "./features.css";
 import "./stamp-effects.css";
 import "./readability.css";
+import "./acorn-economy.css";
+import "./content-hub.css";
 
 const notoSansKr = Noto_Sans_KR({ variable: "--font-noto-sans-kr", weight: "variable", preload: false, display: "swap" });
 

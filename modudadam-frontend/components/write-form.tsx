@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, HandCoins } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { EditorImage, EditorValue, PreparedEditorValue, RichPostEditor, RichPostEditorHandle } from "@/components/rich-post-editor";
 
@@ -17,6 +17,7 @@ type EditablePost = {
   canEdit: boolean;
   images: EditorImage[];
 };
+type AcornEconomy={ wallet:{ balance:number };dailyFreeEarned:number;dailyFreeLimit:number;dailyFreeRemaining:number;bountyAmounts:number[];bountyFeePercent:number };
 
 const EMPTY_EDITOR: EditorValue = {
   content: "",
@@ -40,6 +41,8 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(Boolean(postId));
+  const [economy,setEconomy]=useState<AcornEconomy | null>(null);
+  const [bountyAmount,setBountyAmount]=useState(0);
 
   useEffect(() => {
     if (!postId) return;
@@ -57,6 +60,12 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
       .catch((caught) => setError(caught instanceof Error ? caught.message : "게시글을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, [postId]);
+  useEffect(() => {
+    if (postId) return;
+    apiRequest<AcornEconomy>("/api/features/acorn-economy")
+      .then(setEconomy)
+      .catch(() => undefined);
+  },[postId]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,6 +99,7 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
           content: prepared.value.content,
           contentHtml: prepared.value.contentHtml,
           imageIds: prepared.value.imageIds,
+          bountyAmount:postId ? 0 : bountyAmount,
         }),
       });
       editorRef.current.commitUploads(prepared.newUploadIds);
@@ -114,6 +124,16 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
       <span><small>작성 게시판</small><strong>{categoryName}</strong></span>
       <b>전체 공개</b>
     </div>
+    {!postId&&<section className="compose-bounty">
+      <header><span><HandCoins size={20}/></span><div><small>선택 사항</small><strong>좋은 답변에 도토리 현상금 걸기</strong></div><b>{economy ? `보유 ${economy.wallet.balance.toLocaleString()}개` : "잔액 확인 중"}</b></header>
+      <p>도토리를 예치하면 답변자가 더 빨리 발견할 수 있어요. 답변 채택 시 90%가 답변자에게 지급되고 10%는 인플레이션 방지를 위해 소각됩니다.</p>
+      <div className="compose-bounty-options">
+        <button type="button" className={bountyAmount===0 ? "active" : ""} onClick={()=>setBountyAmount(0)}>현상금 없음</button>
+        {(economy?.bountyAmounts || [100,300,500,1000,3000,5000]).map((amount)=><button type="button" className={bountyAmount===amount ? "active" : ""} disabled={Boolean(economy&&economy.wallet.balance<amount)} onClick={()=>setBountyAmount(amount)} key={amount}>{amount.toLocaleString()} 🌰</button>)}
+      </div>
+      {bountyAmount>0&&<div className="compose-bounty-summary"><span>답변자 수령 <b>{Math.floor(bountyAmount*.9).toLocaleString()}개</b></span><span>소각 <b>{Math.floor(bountyAmount*.1).toLocaleString()}개</b></span><span>모집 기간 <b>7일</b></span></div>}
+      {economy&&<small className="compose-economy-note">무료 활동 보상은 하루 합산 {economy.dailyFreeLimit}개까지 · 오늘 남은 무료 보상 {economy.dailyFreeRemaining}개</small>}
+    </section>}
     <div className="compose-field">
       <div className="compose-field-heading"><label htmlFor="post-title">제목 <b>필수</b></label></div>
       <input id="post-title" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={80} placeholder="제목을 입력해 주세요" />

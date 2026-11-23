@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ChevronRight, Sparkles, TrendingUp } from "lucide-react";
+import { ChevronRight, HandCoins, Sparkles, TrendingUp } from "lucide-react";
 import { HomeSearch } from "@/components/home-search";
 import { HomeBoardExplorer } from "@/components/home-board-explorer";
 import { CategoryPostCarousels } from "@/components/weekly-hot-carousel";
@@ -13,7 +13,7 @@ import { displayPostTitle } from "@/lib/post-display";
 export type HomePost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
   categoryCode: string; categoryName: string; viewCount: number; commentCount: number; createdAt: string;
-  isRead: boolean;
+  isRead: boolean;bountyAmount:number;
 };
 
 export default async function Home() {
@@ -62,7 +62,7 @@ function BoardPreview({ category, posts, slots }: { category: PreviewBoard; post
   return <article className={`board-preview-card board-preview-${category.code} board-preview-slots-${slots}`}>
     <header><Link href={`/category/${category.code}`}><span className={`board-preview-icon category-${category.code}`}><Icon size={16} /></span><strong>{category.name}</strong><ChevronRight size={14} /></Link></header>
     <div>{posts.length > 0 ? posts.map((post) => <Link className={`board-preview-post ${post.isRead ? "is-read" : ""}`} href={`/posts/${post.id}`} key={post.id}>
-      <span className="board-preview-title" title={post.title}>{displayPostTitle(post.title)}</span>
+      <span className="board-preview-title" title={post.title}>{post.bountyAmount>0&&<b className="bounty-list-badge"><HandCoins size={12}/>{post.bountyAmount.toLocaleString()}</b>}{displayPostTitle(post.title)}</span>
       <PostListMeta className="board-preview-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
     </Link>) : <Link className="board-preview-empty" href={`/category/${category.code}`}>등록된 게시글이 없습니다.</Link>}</div>
   </article>;

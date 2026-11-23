@@ -56,8 +56,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       EXISTS(SELECT 1 FROM post_reactions WHERE post_id=posts.id AND user_id=$2::uuid AND reaction='like') AS "isLiked",
       (SELECT count(*)::int FROM post_reactions WHERE post_id=posts.id AND reaction='like') AS "likeCount",
       EXISTS(SELECT 1 FROM post_bookmarks WHERE post_id=posts.id AND user_id=$2::uuid) AS "isBookmarked",
-      posts.bookmark_count AS "bookmarkCount"
+      posts.bookmark_count AS "bookmarkCount",
+      CASE WHEN bounty.id IS NULL THEN NULL ELSE json_build_object(
+        'id',bounty.id,'amount',bounty.amount,'awardAmount',bounty.award_amount,
+        'feeAmount',bounty.fee_amount,'status',bounty.status,'expiresAt',bounty.expires_at,
+        'acceptedCommentId',bounty.accepted_comment_id,'recipientName',CASE WHEN categories.code='anonymous' THEN '익명 답변자' ELSE bounty_recipient.nickname END,
+        'canAward',(posts.author_id=$2::uuid AND bounty.status='open' AND bounty.expires_at>now()),
+        'canRefund',(posts.author_id=$2::uuid AND bounty.status='open' AND bounty.expires_at<=now())
+      ) END AS bounty
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
+     LEFT JOIN post_acorn_bounties bounty ON bounty.post_id=posts.id
+     LEFT JOIN users bounty_recipient ON bounty_recipient.id=bounty.recipient_id
      WHERE posts.id=$1 AND posts.status='published'`, [postId, user?.id || null,user?.email || null]);
   if (!detail.rows[0]) return errorResponse("글을 찾을 수 없습니다.", 404);
   const imageResult = await query<PostImageRow>(
@@ -170,6 +179,32 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       if (!result.rows[0]) {
         await client.query("ROLLBACK");
         return errorResponse("삭제 권한이 없거나 글이 없습니다.",404);
+      }
+      const openBounty=await client.query<{ id:string;amount:number;awardAmount:number;feeAmount:number }>(
+        `SELECT id,amount,award_amount AS "awardAmount",fee_amount AS "feeAmount"
+         FROM post_acorn_bounties WHERE post_id=$1 AND sponsor_id=$2 AND status='open' FOR UPDATE`,[postId,user.id],
+      );
+      if (openBounty.rows[0]) {
+        const eligible=await client.query<{ count:number }>(
+          `SELECT count(*)::int AS count FROM comments WHERE post_id=$1 AND parent_id IS NULL AND status='published' AND author_id<>$2`,[postId,user.id],
+        );
+        const hasAnswers=(eligible.rows[0]?.count || 0)>0;
+        const refundAmount=hasAnswers ? openBounty.rows[0].awardAmount : openBounty.rows[0].amount;
+        await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[user.id]);
+        const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[user.id]);
+        if ((wallet.rows[0]?.balance || 0)+refundAmount>20000) {
+          await client.query("ROLLBACK");
+          return errorResponse("현상금 환불을 받을 도토리 보관 공간을 먼저 비워 주세요.",409);
+        }
+        await client.query(`UPDATE acorn_wallets SET balance=balance+$2,updated_at=now() WHERE user_id=$1`,[user.id,refundAmount]);
+        await client.query(
+          `INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description)
+           VALUES($1,$2,'bounty_refund',$3,'게시글 삭제에 따른 답변 현상금 환불')`,[user.id,refundAmount,openBounty.rows[0].id],
+        );
+        if (hasAnswers && openBounty.rows[0].feeAmount>0) await client.query(
+          `INSERT INTO acorn_bounty_burns(bounty_id,amount,reason) VALUES($1,$2,'expired_with_answers')`,[openBounty.rows[0].id,openBounty.rows[0].feeAmount],
+        );
+        await client.query(`UPDATE post_acorn_bounties SET status='refunded',refunded_at=now(),updated_at=now() WHERE id=$1`,[openBounty.rows[0].id]);
       }
       const images=await client.query<{ objectKey:string }>(
         `UPDATE post_images SET post_id=NULL,status='deleted',deleted_at=now()

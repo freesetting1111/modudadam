@@ -2,10 +2,10 @@ import type { NextRequest } from "next/server";
 import { requireSessionUser } from "@/domains/auth/session";
 import { db, query } from "@/lib/db";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
+import { grantLimitedAcorns } from "@/lib/acorn-economy";
 
 const kstDate = () => new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit" }).format(new Date());
 const rarityOrder = ["uncommon","common","rare","epic","legendary","mythic"];
-const ACORN_LIMIT = 20000;
 const MISDEED_CONVERSION_AMOUNT = 1000;
 const REPUTATION_POINT_LIMIT = 20000;
 
@@ -101,17 +101,16 @@ async function attend(userId:string) {
     if (exists.rows[0]) { await client.query("ROLLBACK"); return errorResponse("오늘 출석 스탬프는 이미 받았어요.",409); }
     const recent = await client.query<{ attendanceOn:string }>(`SELECT attendance_on::text AS "attendanceOn" FROM attendance_checkins WHERE user_id=$1 ORDER BY attendance_on DESC LIMIT 60`,[userId]);
     const streak = calculateStreak(recent.rows.map((row) => row.attendanceOn),previousDate(today,1)) + 1;
-    const bonus = streak % 30 === 0 ? 10 : streak % 7 === 0 ? 3 : 0;
-    const wallet = await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[userId]);
-    const reward = Math.max(0,Math.min(1+bonus,ACORN_LIMIT-(wallet.rows[0]?.balance || 0)));
+    const bonus = streak % 30 === 0 ? 3 : streak % 7 === 0 ? 1 : 0;
+    const grant=await grantLimitedAcorns(client,{
+      userId,requestedAmount:1+bonus,transactionType:bonus ? "attendance_bonus" : "attendance",
+      referenceId:today,description:bonus ? `${streak}일 연속 출석 보너스` : "오늘의 출석",
+    });
+    const reward=grant.granted;
     const stampCode = "basic";
     await client.query(`INSERT INTO attendance_checkins(user_id,attendance_on,stamp_code,acorns_earned) VALUES($1,$2::date,$3,$4)`,[userId,today,stampCode,reward]);
-    if (reward>0) {
-      await client.query(`UPDATE acorn_wallets SET balance=balance+$2,lifetime_earned=lifetime_earned+$2,updated_at=now() WHERE user_id=$1`,[userId,reward]);
-      await client.query(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description) VALUES($1,$2,$3,$4,$5)`,[userId,reward,bonus ? "attendance_bonus" : "attendance",today,bonus ? `${streak}일 연속 출석 보너스` : "오늘의 출석"]);
-    }
     await client.query("COMMIT");
-    return jsonResponse({ reward,streak,bonus:Math.min(bonus,reward),walletFull:reward===0,stampCode },{ status:201 });
+    return jsonResponse({ reward,streak,bonus:Math.min(bonus,Math.max(0,reward-1)),walletFull:reward===0&&grant.dailyRemaining>0,dailyLimitReached:reward===0&&grant.dailyRemaining===0,dailyRemaining:grant.dailyRemaining,stampCode },{ status:201 });
   } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
 }
 

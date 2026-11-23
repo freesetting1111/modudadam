@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { db, query } from "@/lib/db";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
+import { grantLimitedAcorns } from "@/lib/acorn-economy";
 
 const kstDate = () => new Intl.DateTimeFormat("en-CA",{ timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit" }).format(new Date());
 const validCategory = (value:string) => /^[a-z0-9-]{2,50}$/.test(value);
@@ -66,19 +67,14 @@ export async function POST(request:NextRequest) {
       const bank=await client.query<{ id:string;correctIndex:number;explanation:string }>(`SELECT id::text,correct_index AS "correctIndex",explanation FROM mission_question_bank WHERE id=ANY($1::bigint[])`,[current.questionIds]);
       const byId=new Map(bank.rows.map((question) => [question.id,question]));
       const results=answers.map((answer) => { const question=byId.get(answer.questionId)!; return { questionId:answer.questionId,correct:question.correctIndex===answer.selectedIndex,correctIndex:question.correctIndex,explanation:question.explanation }; });
-      const completed=results.every((result) => result.correct); let reward=0; let walletFull=false;
+      const completed=results.every((result) => result.correct); let reward=0; let walletFull=false;let dailyLimitReached=false;
       await client.query(`UPDATE daily_mission_attempts SET attempt_count=attempt_count+1,completed_at=CASE WHEN $2 THEN COALESCE(completed_at,now()) ELSE completed_at END,updated_at=now() WHERE id=$1`,[current.id,completed]);
       if (completed && !current.rewarded) {
         await client.query(`UPDATE daily_mission_attempts SET rewarded_at=now() WHERE id=$1`,[current.id]);
-        await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[user.id]);
-        const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[user.id]);
-        reward=(wallet.rows[0]?.balance || 0)<20000 ? 1 : 0; walletFull=reward===0;
-        if (reward) {
-          await client.query(`UPDATE acorn_wallets SET balance=balance+1,lifetime_earned=lifetime_earned+1,updated_at=now() WHERE user_id=$1`,[user.id]);
-          await client.query(`INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description) VALUES($1,1,'mission_complete',$2,$3)`,[user.id,`${today}:${category}`,`${category} 오늘의 미션 완료`]);
-        }
+        const grant=await grantLimitedAcorns(client,{ userId:user.id,requestedAmount:1,transactionType:"mission_complete",referenceId:`${today}:${category}`,description:`${category} 오늘의 미션 완료` });
+        reward=grant.granted; walletFull=reward===0&&grant.dailyRemaining>0;dailyLimitReached=reward===0&&grant.dailyRemaining===0;
       }
-      await client.query("COMMIT"); return jsonResponse({ completed,reward,walletFull,results });
+      await client.query("COMMIT"); return jsonResponse({ completed,reward,walletFull,dailyLimitReached,results });
     } catch(error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   } catch(error) {
     console.error("[missions] failed to submit answers",error);

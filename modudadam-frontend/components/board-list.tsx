@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
+import { ChevronLeft, ChevronRight, HandCoins, PenLine } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { PostListMeta } from "@/components/post-list-meta";
 import { displayPostTitle } from "@/lib/post-display";
@@ -11,6 +11,7 @@ export type BoardPost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null; viewCount: number;
   commentCount: number; createdAt: string; isNotice: boolean; isPinned: boolean;
   isRead: boolean;
+  bountyAmount:number;
 };
 export type BoardFeedPage = { posts: BoardPost[]; nextCursor: string | null };
 
@@ -70,7 +71,7 @@ export function BoardList({ categoryCode, categoryName, canWrite, initialPage }:
       <div className="board-list" aria-busy={loading}>{posts.map((post) =>
         <Link href={`/posts/${post.id}`} className={`board-row board-row-dense ${post.isRead ? "is-read" : ""}`} key={post.id}>
           <div className="board-row-main">
-            <div className="board-row-title" title={post.title}>{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{displayPostTitle(post.title)}</div>
+            <div className="board-row-title" title={post.title}>{(post.isNotice || post.isPinned) && <b className="notice-badge">공지</b>}{post.bountyAmount>0&&<b className="bounty-list-badge"><HandCoins size={12}/>{post.bountyAmount.toLocaleString()}</b>}{displayPostTitle(post.title)}</div>
           </div>
           <PostListMeta className="board-row-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
         </Link>)}</div>

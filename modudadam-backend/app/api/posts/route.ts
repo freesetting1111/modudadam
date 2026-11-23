@@ -4,6 +4,7 @@ import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { MAX_POST_IMAGES } from "@/lib/s3";
 import { normalizePostContentHtml } from "@/domains/community/post-content";
+import { normalizeBountyAmount } from "@/lib/acorn-economy";
 
 export async function GET(request: NextRequest) {
   const viewerKey = await getViewerKey(request);
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
       categories.name AS "categoryName",
       CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
       CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
+      COALESCE((SELECT amount FROM post_acorn_bounties bounty WHERE bounty.post_id=posts.id AND bounty.status='open' AND bounty.expires_at>now()),0) AS "bountyAmount",
       left(regexp_replace(posts.content, E'[\\n\\r]+', ' ', 'g'), 140) AS excerpt,
       (posts.view_count + posts.comment_count * 3) AS "popularityScore"
      FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
            categories.name AS "categoryName",
            CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
            CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
+           COALESCE((SELECT amount FROM post_acorn_bounties bounty WHERE bounty.post_id=posts.id AND bounty.status='open' AND bounty.expires_at>now()),0) AS "bountyAmount",
            COALESCE(weekly_views.views,0) AS "weeklyViews",
            COALESCE(weekly_comments.comments,0) AS "weeklyComments",
            COALESCE(weekly_likes.likes,0) AS "weeklyLikes",
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
          FROM scored WHERE "weeklyScore" > 0
        )
        SELECT id,title,"viewCount","commentCount","isNotice","isPinned","createdAt",
-         "categoryCode","categoryName","authorName","authorStampEmoji","weeklyViews","weeklyComments","weeklyLikes","weeklyScore"
+         "categoryCode","categoryName","authorName","authorStampEmoji","bountyAmount","weeklyViews","weeklyComments","weeklyLikes","weeklyScore"
        FROM ranked WHERE category_rank <= $1 ORDER BY "categoryCode",category_rank`,
       [perCategory],
     );
@@ -78,11 +81,12 @@ export async function GET(request: NextRequest) {
            categories.code AS "categoryCode",categories.name AS "categoryName",
            CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
            CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
+           COALESCE((SELECT amount FROM post_acorn_bounties bounty WHERE bounty.post_id=posts.id AND bounty.status='open' AND bounty.expires_at>now()),0) AS "bountyAmount",
            ROW_NUMBER() OVER(PARTITION BY posts.category_id ORDER BY posts.is_pinned DESC,posts.published_at DESC,posts.id DESC) AS category_rank
          FROM posts JOIN categories ON categories.id=posts.category_id JOIN users ON users.id=posts.author_id
          WHERE posts.status='published'
        )
-       SELECT id,title,"viewCount","commentCount","isNotice","isPinned","createdAt","categoryCode","categoryName","authorName","authorStampEmoji"
+       SELECT id,title,"viewCount","commentCount","isNotice","isPinned","createdAt","categoryCode","categoryName","authorName","authorStampEmoji","bountyAmount"
        FROM ranked WHERE category_rank <= $1 ORDER BY "categoryCode",category_rank`,
       [perCategory],
     );
@@ -106,6 +110,7 @@ export async function GET(request: NextRequest) {
          categories.code AS "categoryCode",categories.name AS "categoryName",
          CASE WHEN categories.code='anonymous' THEN '익명' ELSE users.nickname END AS "authorName",
          CASE WHEN categories.code='anonymous' THEN NULL ELSE user_stamp_emoji(users.id) END AS "authorStampEmoji",
+         COALESCE((SELECT amount FROM post_acorn_bounties bounty WHERE bounty.post_id=posts.id AND bounty.status='open' AND bounty.expires_at>now()),0) AS "bountyAmount",
          COALESCE(weekly_views.views,0) AS "weeklyViews",COALESCE(weekly_comments.comments,0) AS "weeklyComments",
          COALESCE(weekly_likes.likes,0) AS "weeklyLikes",
          (COALESCE(weekly_views.views,0) + COALESCE(weekly_comments.comments,0)*3 + COALESCE(weekly_likes.likes,0)*2) AS "weeklyScore"
@@ -194,8 +199,10 @@ export async function POST(request: NextRequest) {
     const categoryCode=String(body.categoryCode || "").trim();
     const title = String(body.title || "").trim();
     const content = String(body.content || "").trim();
+    const bountyAmount=normalizeBountyAmount(body.bountyAmount);
     const imageIds = normalizeImageIds(body.imageIds);
     if (!categoryCode || !title) return errorResponse("카테고리와 제목을 입력해 주세요.");
+    if (bountyAmount===null) return errorResponse("답변 현상금은 100, 300, 500, 1,000, 3,000, 5,000개 중에서 선택해 주세요.");
     if (categoryCode==="notice" && user.email?.trim().toLowerCase()!=="freesetting@naver.com") return errorResponse("공지사항은 운영자만 작성할 수 있습니다.",403);
     if (!imageIds || imageIds.length > MAX_POST_IMAGES) return errorResponse(`이미지는 최대 ${MAX_POST_IMAGES}장까지 첨부할 수 있습니다.`);
     if (!content && imageIds.length === 0) return errorResponse("내용을 입력하거나 이미지를 한 장 이상 넣어 주세요.");
@@ -215,6 +222,25 @@ export async function POST(request: NextRequest) {
       const post = result.rows[0];
       if (!post) throw new Error("CATEGORY_NOT_FOUND");
 
+      let walletBalance:number | null=null;
+      if (bountyAmount>0) {
+        await client.query(`INSERT INTO acorn_wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`,[user.id]);
+        const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[user.id]);
+        if ((wallet.rows[0]?.balance || 0)<bountyAmount) throw new Error("INSUFFICIENT_ACORNS");
+        const feeAmount=Math.floor(bountyAmount*.1);
+        await client.query(`UPDATE acorn_wallets SET balance=balance-$2,lifetime_spent=lifetime_spent+$2,updated_at=now() WHERE user_id=$1`,[user.id,bountyAmount]);
+        const bounty=await client.query<{ id:string }>(
+          `INSERT INTO post_acorn_bounties(post_id,sponsor_id,amount,fee_amount,award_amount)
+           VALUES($1,$2,$3,$4,$3-$4) RETURNING id`,[post.id,user.id,bountyAmount,feeAmount],
+        );
+        await client.query(
+          `INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description)
+           VALUES($1,$2*-1,'bounty_escrow',$3,$4)`,
+          [user.id,bountyAmount,bounty.rows[0].id,`게시글 답변 현상금 ${bountyAmount.toLocaleString()}개 예치`],
+        );
+        walletBalance=(wallet.rows[0]?.balance || 0)-bountyAmount;
+      }
+
       for (const [sortOrder, imageId] of imageIds.entries()) {
         const attached = await client.query(
           `UPDATE post_images SET post_id=$1,status='attached',sort_order=$2,attached_at=now()
@@ -224,7 +250,7 @@ export async function POST(request: NextRequest) {
         if (!attached.rows[0]) throw new Error("INVALID_IMAGE");
       }
       await client.query("COMMIT");
-      return jsonResponse({ id: post.id }, { status: 201 });
+      return jsonResponse({ id: post.id,bountyAmount,walletBalance }, { status: 201 });
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -235,6 +261,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.", 401);
     if (error instanceof Error && error.message === "CATEGORY_NOT_FOUND") return errorResponse("존재하지 않는 카테고리입니다.");
     if (error instanceof Error && error.message === "INVALID_IMAGE") return errorResponse("첨부 이미지가 유효하지 않거나 업로드가 완료되지 않았습니다.");
+    if (error instanceof Error && error.message === "INSUFFICIENT_ACORNS") return errorResponse("현상금으로 예치할 도토리가 부족합니다.",409);
     if (error instanceof Error && error.message === "CONTENT_IMAGE_MISMATCH") return errorResponse("본문 이미지 정보가 올바르지 않습니다.");
     if (error instanceof Error && error.message === "CONTENT_HTML_TOO_LONG") return errorResponse("본문 형식 데이터가 너무 큽니다.");
     console.error("[posts] failed to create post", error);

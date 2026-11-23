@@ -1,0 +1,26 @@
+/* Acorns are useful for reciprocal help, while free issuance stays deliberately scarce. */
+.compose-bounty{display:grid;gap:12px;padding:16px;border:1px solid #ead9af;border-radius:16px;background:linear-gradient(145deg,#fffaf0,#fff)}
+.compose-bounty>header{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px}
+.compose-bounty>header>span{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#fff0c5;color:#a96b0d}
+.compose-bounty>header small{display:block;color:#a96b0d;font-size:12px;font-weight:850}
+.compose-bounty>header strong{display:block;margin-top:2px;color:#283449;font-size:16px}
+.compose-bounty>header>b{color:#92600f;font-size:13px;white-space:nowrap}
+.compose-bounty>p{margin:0;color:#6f7785;font-size:14px;line-height:1.6}
+.compose-bounty-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.compose-bounty-options button{min-height:42px;border:1px solid #e2d8c2;border-radius:10px;background:#fff;color:#6f6658;font:inherit;font-size:13px;font-weight:750;cursor:pointer}
+.compose-bounty-options button.active{border-color:#c58724;background:#fff1cc;color:#8c5908;box-shadow:0 0 0 2px #e0a13c24}
+.compose-bounty-options button:disabled{opacity:.38;cursor:not-allowed}
+.compose-bounty-summary{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;padding:10px 11px;border-radius:10px;background:#fff;color:#7b746a;font-size:13px}
+.compose-bounty-summary b{color:#8c5908}.compose-economy-note{color:#85806f;font-size:12px;line-height:1.5}
+.post-bounty-card{display:grid;grid-template-columns:46px minmax(0,1fr) auto;align-items:center;gap:12px;margin:16px 0 0;padding:14px 15px;border:1px solid #ead39d;border-radius:14px;background:linear-gradient(130deg,#fff8e5,#fff)}
+.post-bounty-card>span{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:#ffe9ad;color:#9d6409}
+.post-bounty-card small{display:block;color:#9d6409;font-size:12px;font-weight:850}.post-bounty-card strong{display:block;margin-top:2px;color:#493719;font-size:18px}
+.post-bounty-card p{margin:3px 0 0;color:#7d7465;font-size:13px;line-height:1.5}
+.post-bounty-card>button{height:38px;padding:0 12px;border:1px solid #d69b35;border-radius:10px;background:#fff;color:#9d6409;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.post-bounty-card.awarded{border-color:#b9ddc6;background:linear-gradient(130deg,#f0fbf4,#fff)}.post-bounty-card.awarded>span{background:#dff4e7;color:#27804d}.post-bounty-card.awarded small{color:#27804d}
+.post-bounty-card.refunded{border-color:#dfe3e9;background:#f8f9fb}.post-bounty-card.refunded>span{background:#eaedf2;color:#697486}.post-bounty-card.refunded small{color:#697486}
+.bounty-winner{display:inline-flex;align-items:center;gap:3px;padding:3px 6px;border-radius:999px;background:#fff1c7;color:#986006;font-size:11px;font-style:normal;font-weight:850}
+.help-reputation{padding:3px 6px;border-radius:999px;background:#edf4ff;color:#4d6cad;font-size:11px;font-style:normal;font-weight:800}
+.comment-primary-actions .bounty-award-button{background:#fff6dd;color:#9a650e;font-weight:800}.comment-primary-actions .bounty-award-button:hover{background:#ffedb8;color:#805000}
+.bounty-list-badge{display:inline-flex;align-items:center;gap:3px;margin-right:5px;padding:2px 5px;border-radius:999px;background:#fff0c7;color:#986006;font-size:11px;font-weight:850;vertical-align:1px}.bounty-list-badge svg{flex:none}
+@media(max-width:420px){.compose-bounty>header{grid-template-columns:40px minmax(0,1fr)}.compose-bounty>header>b{grid-column:2}.compose-bounty-options{grid-template-columns:repeat(2,minmax(0,1fr))}.post-bounty-card{grid-template-columns:42px minmax(0,1fr)}.post-bounty-card>button{grid-column:1/-1;width:100%}}

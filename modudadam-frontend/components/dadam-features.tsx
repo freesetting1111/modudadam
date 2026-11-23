@@ -66,7 +66,7 @@ export function TodayChoice() {
         </button>;
       })}</div>
       <small>{choice.myOptionId ? `총 ${total.toLocaleString()}명이 참여했어요 · 선택을 다시 누르면 변경할 수 있어요.` : "선택하면 전체 결과를 확인할 수 있어요."}</small>
-      <p className="choice-reward-guide">🌰 매일 자정에 결과를 확정해 다수 선택은 20개, 반대 선택은 10개를 선물보따리로 보내드려요. 동률이면 모두 10개를 받아요.</p>
+      <p className="choice-reward-guide">🌰 매일 자정에 결과를 확정해 다수 선택은 3개, 반대 선택은 1개를 선물보따리로 보내드려요. 동률이면 모두 1개를 받아요.</p>
       {error && <p className="feature-error">{error}</p>}
     </article>}
     {previousChoice && <PreviousChoiceResult choice={previousChoice}/>} 
@@ -81,7 +81,7 @@ function PreviousChoiceResult({ choice }: { choice: Choice }) {
     <header><div><small>YESTERDAY&apos;S RESULT</small><h2>어제의 선택 결과</h2></div><time>{new Date(`${choice.activeOn}T00:00:00+09:00`).toLocaleDateString("ko-KR",{ month:"long",day:"numeric",weekday:"short" })}</time></header>
     <h3>{choice.question}</h3>
     <div className="previous-choice-options">{choice.options.map((option) => { const percent = total ? Math.round(option.voteCount / total * 100) : 0; const winner = total > 0 && option.voteCount === highest; const mine = choice.myOptionId === option.id; return <section className={winner ? "winner" : ""} key={option.id}><i style={{ width:`${percent}%` }}/><div><span>{option.emoji}</span><strong>{option.label}</strong>{mine && <em>내 선택</em>}{winner && <b>{tie?"동률":"최다 선택"}</b>}</div><p><strong>{option.voteCount.toLocaleString()}명</strong><span>{percent}%</span></p></section>; })}</div>
-    <footer>총 {total.toLocaleString()}명이 참여했어요. {total>0 ? tie ? "동률 참여자는 모두 도토리 10개를 받아요." : "다수 선택은 20개, 반대 선택은 10개를 받아요." : "참여자가 없어 보상이 지급되지 않았어요."}</footer>
+    <footer>총 {total.toLocaleString()}명이 참여했어요. {total>0 ? tie ? "동률 참여자는 모두 도토리 1개를 받아요." : "다수 선택은 3개, 반대 선택은 1개를 받아요." : "참여자가 없어 보상이 지급되지 않았어요."}</footer>
   </article>;
 }
 

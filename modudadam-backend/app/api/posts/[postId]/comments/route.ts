@@ -44,11 +44,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ($2::uuid IS NOT NULL AND comments.author_id<>$2::uuid AND comments.status='published') AS "canReport",
       comments.like_count AS "likeCount",
       comments.dislike_count AS "dislikeCount",
-      my_reaction.reaction AS "myReaction"
+      my_reaction.reaction AS "myReaction",
+      (bounty.accepted_comment_id=comments.id) AS "isBountyWinner",
+      (posts.author_id=$2::uuid AND comments.author_id<>$2::uuid AND comments.parent_id IS NULL
+        AND comments.status='published' AND bounty.status='open' AND bounty.expires_at>now()) AS "canReceiveBounty",
+      CASE WHEN categories.code='anonymous' THEN 0 ELSE COALESCE(help.score,0) END AS "helpScore",
+      CASE WHEN categories.code='anonymous' THEN 0 ELSE COALESCE(help.accepted_answers,0) END AS "acceptedAnswers"
      FROM comments
      JOIN users ON users.id=comments.author_id
      JOIN posts ON posts.id=comments.post_id
      JOIN categories ON categories.id=posts.category_id
+     LEFT JOIN post_acorn_bounties bounty ON bounty.post_id=posts.id
+     LEFT JOIN user_help_reputation help ON help.user_id=comments.author_id
      LEFT JOIN comments reply_target ON reply_target.id=comments.reply_to_id
      LEFT JOIN users reply_users ON reply_users.id=reply_target.author_id
      LEFT JOIN comment_reactions my_reaction

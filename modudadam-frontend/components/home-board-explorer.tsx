@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, HandCoins } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { HomePost } from "@/app/page";
 import { CategoryGrid } from "@/components/category-grid";
@@ -34,7 +34,7 @@ export function HomeBoardExplorer({ posts }: { posts: HomePost[] }) {
       </header>
       <div className="home-board-explorer-list">
         {selectedPosts.length > 0 ? selectedPosts.map((post) => <Link className={`board-preview-post ${post.isRead ? "is-read" : ""}`} href={`/posts/${post.id}`} key={post.id}>
-          <span className="board-preview-title" title={post.title}>{displayPostTitle(post.title)}</span>
+          <span className="board-preview-title" title={post.title}>{post.bountyAmount>0&&<b className="bounty-list-badge"><HandCoins size={12}/>{post.bountyAmount.toLocaleString()}</b>}{displayPostTitle(post.title)}</span>
           <PostListMeta className="board-preview-meta" authorName={post.authorName} authorStampEmoji={post.authorStampEmoji} createdAt={post.createdAt} viewCount={post.viewCount} commentCount={post.commentCount}/>
         </Link>) : <div className="home-board-explorer-empty"><strong>아직 등록된 글이 없습니다.</strong><span>{selectedBoard.name}의 첫 이야기를 기다리고 있어요.</span></div>}
       </div>

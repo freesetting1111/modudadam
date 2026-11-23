@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, Flag, Heart, MessageCircle, Pencil, Reply, Share2, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
+import { Bookmark, CheckCircle2, ChevronLeft, ChevronRight, Flag, HandCoins, Heart, MessageCircle, Pencil, Reply, Share2, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { DetailBoardList } from "@/components/detail-board-list";
 import type { PublicPost as Post } from "@/lib/public-post";
@@ -14,6 +14,8 @@ type Comment = {
   status: "published" | "deleted"; content: string; authorName: string; authorStampEmoji: string | null;
   createdAt: string; updatedAt: string; canDelete: boolean; canEdit: boolean; canReport: boolean;
   likeCount: number; dislikeCount: number; myReaction: "like" | "dislike" | null;
+  isBountyWinner:boolean;canReceiveBounty:boolean;
+  helpScore:number;acceptedAnswers:number;
 };
 type Pagination = { page: number; pageSize: number; totalItems: number; totalPages: number; commentCount: number };
 type KakaoWindow = Window & { Kakao?: { isInitialized: () => boolean; init: (key: string) => void; Share: { sendDefault: (settings: Record<string, unknown>) => void } } };
@@ -42,6 +44,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   const [reportDetail, setReportDetail] = useState("");
   const [reportError, setReportError] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [bountyPending,setBountyPending]=useState(false);
   const requestedPostId = useRef<string | null>(null);
 
   const loadComments = useCallback(async (page = 1) => {
@@ -149,6 +152,28 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
       setReactionPending((current) => { const next = new Set(current); next.delete(commentId); return next; });
     }
   }
+  async function awardBounty(commentId:string) {
+    if (!post?.bounty || bountyPending) return;
+    if (!window.confirm(`이 답변을 채택하고 도토리 ${post.bounty.awardAmount.toLocaleString()}개를 지급할까요? 채택 후에는 되돌릴 수 없습니다.`)) return;
+    setBountyPending(true);setCommentError("");
+    try {
+      const result=await apiRequest<{ recipientName:string;awardAmount:number }>(`/api/posts/${post.id}/bounty`,{ method:"POST",body:JSON.stringify({ action:"award",commentId }) });
+      setNotice(`${result.recipientName}님의 답변을 채택하고 도토리 ${result.awardAmount.toLocaleString()}개를 지급했어요.`);
+      const [{ post:nextPost }]=await Promise.all([apiRequest<{ post:Post }>(`/api/posts/${post.id}?trackView=false`),loadComments(pagination.page)]);
+      setPost(nextPost);
+    } catch(caught) { setCommentError(caught instanceof Error ? caught.message : "현상금을 지급하지 못했습니다."); }
+    finally { setBountyPending(false); }
+  }
+  async function refundBounty() {
+    if (!post?.bounty || bountyPending) return;
+    setBountyPending(true);setError("");
+    try {
+      const result=await apiRequest<{ refundAmount:number;burnedAmount:number }>(`/api/posts/${post.id}/bounty`,{ method:"POST",body:JSON.stringify({ action:"refund" }) });
+      setNotice(`현상금 ${result.refundAmount.toLocaleString()}개를 환불했어요.${result.burnedAmount ? ` 답변이 있어 ${result.burnedAmount.toLocaleString()}개는 운영 정책에 따라 소각됐어요.` : ""}`);
+      const { post:nextPost }=await apiRequest<{ post:Post }>(`/api/posts/${post.id}?trackView=false`);setPost(nextPost);
+    } catch(caught) { setError(caught instanceof Error ? caught.message : "현상금을 환불하지 못했습니다."); }
+    finally { setBountyPending(false); }
+  }
   async function shareWithKakao() {
     if (!post) return;
     const url = window.location.href;
@@ -204,6 +229,7 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
   return <article className="content-page post-page">
     <Link className="back-link" href={`/category/${post.categoryCode}`}>‹ {post.categoryName} 게시판</Link>
     <header className="post-header"><h1>{post.title}</h1><div className="post-meta"><small><StampedName full name={post.authorName} stamp={post.authorStampEmoji} /><span>· {new Date(post.createdAt).toLocaleString("ko-KR")} · 조회 {post.viewCount}</span></small>{post.canEdit && <div className="post-owner-actions"><Link href={`/posts/${post.id}/edit`}><Pencil size={14} /> 수정</Link><button type="button" onClick={deletePost} disabled={deletingPost}><Trash2 size={14} /> {deletingPost ? "삭제 중" : "삭제"}</button></div>}</div></header>
+    {post.bounty&&<section className={`post-bounty-card ${post.bounty.status}`}><span><HandCoins size={23}/></span><div><small>{post.bounty.status==="open" ? "답변 현상금 모집 중" : post.bounty.status==="awarded" ? "도토리 현상금 지급 완료" : "도토리 현상금 환불 완료"}</small><strong>{post.bounty.amount.toLocaleString()} 🌰</strong><p>{post.bounty.status==="open" ? `채택된 답변자는 ${post.bounty.awardAmount.toLocaleString()}개를 받아요 · ${new Date(post.bounty.expiresAt).toLocaleDateString("ko-KR")}까지` : post.bounty.status==="awarded" ? `${post.bounty.recipientName || "답변자"}님의 답변이 채택되었어요.` : "모집 기간이 끝나 현상금이 환불되었어요."}</p></div>{post.bounty.canRefund&&<button type="button" disabled={bountyPending} onClick={()=>void refundBounty()}>{bountyPending ? "처리 중" : "환불받기"}</button>}</section>}
     <div className="post-content rich-post-content" dangerouslySetInnerHTML={{ __html: post.renderedContentHtml }} />
     <div className="post-community-actions">
       <button type="button" className={post.isLiked ? "active heart" : ""} onClick={toggleLike} disabled={likePending}><Heart size={18} fill={post.isLiked ? "currentColor" : "none"} /><span>좋아요</span><small>{post.likeCount}</small></button>
@@ -218,9 +244,9 @@ export function PostDetail({ postId, authenticated, kakaoJavascriptKey, initialP
       <div className="comment-list">{commentGroups.length === 0 ? <p className="no-comments">첫 댓글을 남겨보세요.</p> : commentGroups.map(({ comment, replies }) => {
         const visibleReplyCount = expandedReplies[comment.id] || Math.min(REPLY_PAGE_SIZE, replies.length);
         return <div className="comment-thread" key={comment.id}>
-          <CommentItem comment={comment} reactionPending={reactionPending.has(comment.id)} onReply={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />
+          <CommentItem comment={comment} reactionPending={reactionPending.has(comment.id)} bountyPending={bountyPending} onAward={awardBounty} onReply={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />
           {replyingTo === comment.id && <ReplyForm authorName={comment.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, comment.id)} />}
-          {replies.length > 0 && <div className="reply-list">{replies.slice(0, visibleReplyCount).map((reply) => <div key={reply.id}><CommentItem comment={reply} reply reactionPending={reactionPending.has(reply.id)} onReply={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />{replyingTo === reply.id && <ReplyForm authorName={reply.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, reply.id)} />}</div>)}</div>}
+          {replies.length > 0 && <div className="reply-list">{replies.slice(0, visibleReplyCount).map((reply) => <div key={reply.id}><CommentItem comment={reply} reply reactionPending={reactionPending.has(reply.id)} bountyPending={bountyPending} onAward={awardBounty} onReply={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)} onDelete={deleteComment} onEdit={editComment} onReport={(id) => openReport("comment", id)} onReact={reactToComment} />{replyingTo === reply.id && <ReplyForm authorName={reply.authorName} onCancel={() => setReplyingTo(null)} onSubmit={(event) => submitComment(event, reply.id)} />}</div>)}</div>}
           {replies.length > REPLY_PAGE_SIZE && <button className="reply-toggle" type="button" onClick={() => setExpandedReplies((current) => ({ ...current, [comment.id]: visibleReplyCount < replies.length ? Math.min(replies.length, visibleReplyCount + REPLY_PAGE_SIZE) : REPLY_PAGE_SIZE }))}><Reply size={14} /> {visibleReplyCount < replies.length ? `답글 ${replies.length - visibleReplyCount}개 더 보기` : "답글 접기"}</button>}
         </div>;
       })}</div>
@@ -247,7 +273,7 @@ function ReplyForm({ authorName, onCancel, onSubmit }: { authorName: string; onC
   return <form className="comment-form reply-form" onSubmit={onSubmit}><textarea name="content" required maxLength={3000} rows={2} autoFocus placeholder={`${authorName}님에게 답글 작성`} /><div><button type="button" className="reply-cancel" onClick={onCancel}>취소</button><button type="submit">답글 등록</button></div></form>;
 }
 
-function CommentItem({ comment, reply = false, reactionPending = false, onReply, onDelete, onEdit, onReport, onReact }: { comment: Comment; reply?: boolean; reactionPending?: boolean; onReply: () => void; onDelete: (commentId: string) => void; onEdit: (commentId: string, content: string) => Promise<void>; onReport: (commentId: string) => void; onReact: (commentId: string, reaction: "like" | "dislike") => void }) {
+function CommentItem({ comment, reply = false, reactionPending = false,bountyPending=false,onAward, onReply, onDelete, onEdit, onReport, onReact }: { comment: Comment; reply?: boolean; reactionPending?: boolean;bountyPending?:boolean;onAward:(commentId:string)=>void; onReply: () => void; onDelete: (commentId: string) => void; onEdit: (commentId: string, content: string) => Promise<void>; onReport: (commentId: string) => void; onReact: (commentId: string, reaction: "like" | "dislike") => void }) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [editPending, setEditPending] = useState(false);
@@ -260,13 +286,14 @@ function CommentItem({ comment, reply = false, reactionPending = false, onReply,
     finally { setEditPending(false); }
   }
   return <div className={`comment ${reply ? "reply" : ""} ${comment.status === "deleted" ? "deleted" : ""}`}>
-    <div className="comment-head"><b>{reply && <Reply size={13} />}<StampedName full name={comment.authorName} stamp={comment.authorStampEmoji} /></b><small>{new Date(comment.createdAt).toLocaleString("ko-KR")}</small></div>
+    <div className="comment-head"><b>{reply && <Reply size={13} />}<StampedName full name={comment.authorName} stamp={comment.authorStampEmoji} />{comment.helpScore>0&&<em className="help-reputation">도움 신뢰 {comment.helpScore} · 채택 {comment.acceptedAnswers}</em>}{comment.isBountyWinner&&<em className="bounty-winner"><CheckCircle2 size={13}/>채택 답변</em>}</b><small>{new Date(comment.createdAt).toLocaleString("ko-KR")}</small></div>
     {editing ? <form className="comment-edit-form" onSubmit={submitEdit}><textarea value={editContent} onChange={(event) => setEditContent(event.target.value.slice(0, 3000))} rows={3} maxLength={3000}/>{editError && <small className="profile-error">{editError}</small>}<div><button type="button" onClick={() => { setEditing(false); setEditContent(comment.content); setEditError(""); }}>취소</button><button type="submit" disabled={editPending || !editContent.trim()}>{editPending ? "저장 중" : "저장"}</button></div></form> : <p>{reply && comment.replyToId !== comment.parentId && comment.replyToAuthor && <strong className="reply-mention">{comment.replyToStampEmoji && <span className="reply-stamp">{comment.replyToStampEmoji}</span>}@{comment.replyToAuthor}</strong>}{comment.content}</p>}
     {comment.status === "published" && <div className="comment-action-row"><div className="comment-primary-actions">
       <button type="button" disabled={reactionPending} className={comment.myReaction === "like" ? "active" : ""} onClick={() => onReact(comment.id, "like")}><ThumbsUp size={14} /> {comment.likeCount}</button>
       <button type="button" disabled={reactionPending} className={comment.myReaction === "dislike" ? "active" : ""} onClick={() => onReact(comment.id, "dislike")}><ThumbsDown size={14} /> {comment.dislikeCount}</button>
       <button type="button" onClick={onReply}><Reply size={14} /> 답글</button>
       <button type="button" onClick={() => onReport(comment.id)}><Flag size={14} /> 신고</button>
+      {comment.canReceiveBounty&&<button type="button" className="bounty-award-button" disabled={bountyPending} onClick={()=>onAward(comment.id)}><HandCoins size={14}/>현상금 채택</button>}
     </div><div className="comment-owner-actions">{comment.canEdit && <button type="button" onClick={() => setEditing(true)}><Pencil size={13} /> 수정</button>}{comment.canDelete && <button type="button" className="comment-delete" onClick={() => onDelete(comment.id)}><Trash2 size={13} /> 삭제</button>}</div></div>}
   </div>;
 }
