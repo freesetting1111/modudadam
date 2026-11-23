@@ -242,15 +242,16 @@ export async function POST(request: NextRequest) {
         const wallet=await client.query<{ balance:number }>(`SELECT balance FROM acorn_wallets WHERE user_id=$1 FOR UPDATE`,[user.id]);
         if ((wallet.rows[0]?.balance || 0)<bountyAmount) throw new Error("INSUFFICIENT_ACORNS");
         const feeAmount=Math.floor(bountyAmount*.1);
+        const awardAmount=bountyAmount-feeAmount;
         await client.query(`UPDATE acorn_wallets SET balance=balance-$2,lifetime_spent=lifetime_spent+$2,updated_at=now() WHERE user_id=$1`,[user.id,bountyAmount]);
         const bounty=await client.query<{ id:string }>(
           `INSERT INTO post_acorn_bounties(post_id,sponsor_id,amount,fee_amount,award_amount)
-           VALUES($1,$2,$3,$4,$3-$4) RETURNING id`,[post.id,user.id,bountyAmount,feeAmount],
+           VALUES($1,$2,$3::integer,$4::integer,$5::integer) RETURNING id`,[post.id,user.id,bountyAmount,feeAmount,awardAmount],
         );
         await client.query(
           `INSERT INTO acorn_transactions(user_id,amount,transaction_type,reference_id,description)
-           VALUES($1,$2*-1,'bounty_escrow',$3,$4)`,
-          [user.id,bountyAmount,bounty.rows[0].id,`게시글 답변 현상금 ${bountyAmount.toLocaleString()}개 예치`],
+           VALUES($1,$2::integer,'bounty_escrow',$3,$4)`,
+          [user.id,-bountyAmount,bounty.rows[0].id,`게시글 답변 현상금 ${bountyAmount.toLocaleString()}개 예치`],
         );
         walletBalance=(wallet.rows[0]?.balance || 0)-bountyAmount;
       }

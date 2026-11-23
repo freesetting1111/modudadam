@@ -11,8 +11,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <div className="login-v2-hero">
       <div className="login-v2-mascot"><Image src="/brand/modudadam-login-wave.png" alt="반갑게 손을 흔드는 모두다담 다람쥐" width={184} height={184} priority /></div>
       <div className="login-v2-copy">
-        <h1>일상의 모든 순간을<br /><strong>모두다담</strong>과 함께해요</h1>
-        <p>간편하게 로그인하고<br />다양한 생활 이야기를 만나보세요</p>
+        <h1><strong>모두다담</strong> 로그인</h1>
+        <p>로그인하고 이야기를 이어가세요.</p>
       </div>
     </div>
     <LoginForm returnTo={returnTo} oauthError={query.oauthError} provider={query.provider} />

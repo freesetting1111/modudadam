@@ -51,23 +51,23 @@ export function MyOverview() {
   return <div className="my-dashboard">
     <section className="my-account-summary">
       <span className="my-account-avatar"><Image src={profile.avatarUrl || "/brand/modudadam-avatar-clean.png"} alt="" width={64} height={64} unoptimized={Boolean(profile.avatarUrl)} /></span>
-      <div><strong><StampedName full name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>{profile.statusMessage || "프로필을 완성하고 나를 소개해 보세요."}</p></div>
+      <div><strong><StampedName full name={profile.nickname} stamp={profile.stampEmoji} /></strong><p>{profile.statusMessage || "상태 메시지가 없습니다."}</p></div>
       <Link href="/my/profile"><Pencil size={14} /> 편집</Link>
     </section>
 
     <section className="my-menu-section">
       <h2>커뮤니티</h2>
       <nav className="my-menu-list" aria-label="커뮤니티 메뉴">
-        <MenuLink href="/my/activity" icon="community" tone="blue" title="내 커뮤니티 활동" description="작성글, 작성 댓글, 스크랩을 게시판별로 확인해요." />
-        <MenuLink href="/my/stamps" icon="stamp" tone="green" title="내 스탬프" description="닉네임 옆에 표시할 대표 스탬프를 선택해요." />
+        <MenuLink href="/my/activity" icon="community" tone="blue" title="내 커뮤니티 활동" description="작성글 · 댓글 · 스크랩" />
+        <MenuLink href="/my/stamps" icon="stamp" tone="green" title="내 스탬프" description="대표 스탬프 설정" />
       </nav>
     </section>
 
     <section className="my-menu-section">
       <h2>계정 및 안내</h2>
       <nav className="my-menu-list" aria-label="계정 및 안내 메뉴">
-        <MenuLink href="/my/profile" icon="profile" tone="purple" title="프로필 편집" description="닉네임과 기본 정보를 관리해요." />
-        <MenuLink href="/my/policies" icon="policy" tone="peach" title="약관 및 정책" description="서비스 이용약관과 개인정보 처리 내용을 확인해요." />
+        <MenuLink href="/my/profile" icon="profile" tone="purple" title="프로필 편집" description="닉네임과 기본 정보" />
+        <MenuLink href="/my/policies" icon="policy" tone="peach" title="약관 및 정책" description="이용약관과 개인정보 처리" />
       </nav>
     </section>
 

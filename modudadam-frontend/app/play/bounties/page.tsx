@@ -9,7 +9,7 @@ export const metadata:Metadata={ title:"현상금 질문",description:"도토리
 export default async function BountyQuestionsPage() {
   await requirePlayUser("/play/bounties");
   return <section className="content-page bounty-service-page">
-    <header className="bounty-service-hero"><span><HandCoins size={31}/></span><div><small>MODUDADAM BOUNTY</small><h1>현상금 질문</h1><p>검색으로 해결하기 어려운 생활 질문을 올리고, 채택한 답변에 도토리로 보답하세요.</p></div><Link href="/play/bounties/write"><PenLine size={17}/>질문 작성</Link></header>
+    <header className="bounty-service-hero"><span><HandCoins size={31}/></span><div><h1>현상금 질문</h1><p>질문을 올리고 채택한 답변에 도토리를 지급합니다.</p></div><Link href="/play/bounties/write"><PenLine size={17}/>질문 작성</Link></header>
     <BountyQuestions/>
   </section>;
 }

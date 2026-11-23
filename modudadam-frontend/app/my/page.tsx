@@ -9,7 +9,7 @@ export default async function MyPage() {
   if (!user) redirect("/login?returnTo=/my");
 
   return <section className="my-page my-home-page">
-    <header className="my-page-heading"><h1>마이페이지</h1><p>내 정보와 커뮤니티 활동을 관리해요.</p></header>
+    <header className="my-page-heading"><h1>마이페이지</h1><p>내 정보와 활동</p></header>
     <MyOverview />
   </section>;
 }

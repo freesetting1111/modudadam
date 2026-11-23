@@ -14,7 +14,7 @@ type PublicEvent = {
 export default async function EventsPage({ searchParams }: { searchParams: Promise<{ eventError?: string }> }) {
   const [{ eventError }, events] = await Promise.all([searchParams, loadEvents()]);
   return <section className="event-hub">
-    <header className="event-hub-hero"><span><CalendarHeart size={26}/></span><div><small>MODUDADAM EVENT</small><h1>모두다담 이벤트</h1><p>재미있는 참여형 콘텐츠와 새로운 이야기를 만나보세요.</p></div></header>
+    <header className="event-hub-hero"><span><CalendarHeart size={26}/></span><div><small>이벤트</small><h1>모두다담 이벤트</h1><p>진행 중인 이벤트를 확인하세요.</p></div></header>
     {eventError && <p className="event-hub-error">이벤트를 열지 못했어요. 잠시 후 다시 시도해 주세요.</p>}
     <div className="event-hub-heading"><h2>진행 중인 이벤트</h2><span>{events.length}개</span></div>
     {events.length ? <div className="event-card-list">{events.map((event) =>

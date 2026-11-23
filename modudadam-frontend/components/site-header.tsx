@@ -145,17 +145,17 @@ export function SiteHeader({ initialUser }: { initialUser: SessionUser | null })
           <CategoryGrid onNavigate={closeMenu}/>
           <h2>다담 콘텐츠</h2>
           <div className="dadam-content-links">
-            <Link href="/play/attendance" onClick={closeMenu}><span className="dadam-link-icon green"><CalendarCheck2/></span><span><strong>다담 출석부</strong><small>스탬프를 찍고 도토리 모으기</small></span><ChevronRight/></Link>
+            <Link href="/play/attendance" onClick={closeMenu}><span className="dadam-link-icon green"><CalendarCheck2/></span><span><strong>다담 출석부</strong><small>오늘 출석</small></span><ChevronRight/></Link>
             <Link href="/play/stamps" onClick={closeMenu}><span className="dadam-link-icon purple"><Gift/></span><span><strong>도토리 상점</strong><small>스탬프 구매와 악행 포인트 전환</small></span><ChevronRight/></Link>
-            <Link href="/play/acorn-gift" onClick={closeMenu}><span className="dadam-link-icon amber"><HandCoins/></span><span><strong>도토리 선물하기</strong><small>이웃에게 도토리와 마음 전하기</small></span><ChevronRight/></Link>
-            <Link href="/play/missions" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 미션</strong><small>생활 퀴즈를 풀고 도토리 모으기</small></span><ChevronRight/></Link>
-            <Link href="/play/detective" onClick={closeMenu}><span className="dadam-link-icon blue"><ShieldQuestion/></span><span><strong>다담 추리방</strong><small>열 명의 용의자 중 진실 찾기</small></span><ChevronRight/></Link>
-            <Link href="/play/time-capsule" onClick={closeMenu}><span className="dadam-link-icon purple"><Hourglass/></span><span><strong>다담 타임캡슐</strong><small>미래의 나에게 마음 봉인하기</small></span><ChevronRight/></Link>
-            <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 극한 밸런스</strong><small>피할 수 없는 오늘의 양자택일</small></span><ChevronRight/></Link>
-            <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>고정 익명 ID로 나누는 마음</small></span><ChevronRight/></Link>
-            <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>10문항으로 알아보는 생활 취향</small></span><ChevronRight/></Link>
-            <Link href="/play/treasures" onClick={closeMenu}><span className="dadam-link-icon green"><MapPin/></span><span><strong>동네 보물지도</strong><small>이웃이 발견한 좋은 장소</small></span><ChevronRight/></Link>
-            <Link href="/play/random" onClick={closeMenu}><span className="dadam-link-icon amber"><Compass/></span><span><strong>랜덤 이야기 여행</strong><small>숨은 게시글 우연히 만나기</small></span><ChevronRight/></Link>
+            <Link href="/play/acorn-gift" onClick={closeMenu}><span className="dadam-link-icon amber"><HandCoins/></span><span><strong>도토리 선물하기</strong><small>도토리 보내기</small></span><ChevronRight/></Link>
+            <Link href="/play/missions" onClick={closeMenu}><span className="dadam-link-icon amber"><Trophy/></span><span><strong>다담 미션</strong><small>오늘의 생활 퀴즈</small></span><ChevronRight/></Link>
+            <Link href="/play/detective" onClick={closeMenu}><span className="dadam-link-icon blue"><ShieldQuestion/></span><span><strong>다담 추리방</strong><small>오늘의 추리 문제</small></span><ChevronRight/></Link>
+            <Link href="/play/time-capsule" onClick={closeMenu}><span className="dadam-link-icon purple"><Hourglass/></span><span><strong>다담 타임캡슐</strong><small>예약 편지</small></span><ChevronRight/></Link>
+            <Link href="/play/choice" onClick={closeMenu}><span className="dadam-link-icon coral"><Vote/></span><span><strong>오늘의 극한 밸런스</strong><small>오늘의 양자택일</small></span><ChevronRight/></Link>
+            <Link href="/play/mailbox" onClick={closeMenu}><span className="dadam-link-icon blue"><Mail/></span><span><strong>다담 우체통</strong><small>익명 사연과 답장</small></span><ChevronRight/></Link>
+            <Link href="/play/taste" onClick={closeMenu}><span className="dadam-link-icon purple"><Sparkles/></span><span><strong>취향 발견실</strong><small>10문항 취향 테스트</small></span><ChevronRight/></Link>
+            <Link href="/play/treasures" onClick={closeMenu}><span className="dadam-link-icon green"><MapPin/></span><span><strong>동네 보물지도</strong><small>이웃 추천 장소</small></span><ChevronRight/></Link>
+            <Link href="/play/random" onClick={closeMenu}><span className="dadam-link-icon amber"><Compass/></span><span><strong>랜덤 이야기 여행</strong><small>무작위 게시글</small></span><ChevronRight/></Link>
           </div>
           <h2>서비스 바로가기</h2>
           <div className="service-links"><Link href="/" onClick={closeMenu}><Home /> 홈</Link><Link href="/events" onClick={closeMenu}><CalendarHeart /> 이벤트</Link><Link href="/search" onClick={closeMenu}><Search /> 통합검색</Link>{user && <Link href="/my" onClick={closeMenu}><UserRound /> 마이페이지</Link>}{canViewVisitors&&<Link href="/admin/reports" onClick={closeMenu}><Flag/> 신고 검토</Link>}</div>

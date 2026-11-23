@@ -37,8 +37,8 @@ export default async function Home() {
 
     <Link className="home-bounty-gateway" href="/play/bounties">
       <span className="home-bounty-mark"><HandCoins size={27}/></span>
-      <span className="home-bounty-copy"><small>MODUDADAM BOUNTY · 핵심 도움 서비스</small><strong>검색으로 해결되지 않는 질문이 있나요?</strong><p>도토리를 걸면 질문이 우선 노출되고, 채택한 답변에 직접 보답할 수 있어요.</p></span>
-      <span className="home-bounty-action">현상금 질문 보기<ChevronRight size={18}/></span>
+      <span className="home-bounty-copy"><small>현상금 질문</small><strong>답변이 필요한 질문을 올려보세요</strong><p>금액이 높을수록 먼저 노출됩니다.</p></span>
+      <span className="home-bounty-action">질문 보기<ChevronRight size={18}/></span>
     </Link>
 
     <section className="home-special-board-section" aria-label="공지사항과 자유게시판">
@@ -48,7 +48,7 @@ export default async function Home() {
     <section className="community-dashboard community-dashboard-stacked" aria-label="커뮤니티 주요 게시글">
       <header className="home-feature-heading">
         <span><TrendingUp size={20}/></span>
-        <div><small>DISCOVER THIS WEEK</small><h2>지금 사람들이 모이는 이야기</h2><p>이번 주에 많이 읽힌 글과 방금 올라온 새 이야기를 만나보세요.</p></div>
+        <div><small>이번 주</small><h2>인기 글과 새 글</h2></div>
       </header>
       <CategoryPostCarousels hotGroups={weeklyGroups} latestGroups={latestGroups} />
     </section>
@@ -56,7 +56,7 @@ export default async function Home() {
     <WeeklyReputationRankings />
 
     <section className="board-directory">
-      <div className="directory-heading"><div><h2><Sparkles size={17}/>주제별 게시판</h2><p>게시판을 골라 최신 글 10개를 확인하세요.</p></div><span>{communityBoardChoices.length}개</span></div>
+      <div className="directory-heading"><div><h2><Sparkles size={17}/>주제별 게시판</h2></div><span>{communityBoardChoices.length}개</span></div>
       <HomeBoardExplorer posts={categoryPosts}/>
     </section>
   </div>;

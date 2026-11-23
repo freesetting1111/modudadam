@@ -9,32 +9,32 @@ export const metadata: Metadata = {
 };
 
 const groups=[
-  { id:"today",icon:Gamepad2,title:"오늘 즐기기",description:"짧게 참여하고 바로 결과를 확인해요.",items:[
-    { href:"/play/choice",icon:Vote,tone:"coral",eyebrow:"매일 한 번",title:"오늘의 극한 밸런스",description:"두 선택 중 하나를 고르고 모두의 답을 확인해요." },
-    { href:"/play/detective",icon:ShieldQuestion,tone:"blue",eyebrow:"오늘의 사건",title:"다담 추리방",description:"단서를 조합해 거짓말한 한 사람을 찾아보세요." },
-    { href:"/play/missions",icon:Trophy,tone:"amber",eyebrow:"생활 퀴즈",title:"다담 미션",description:"관심 주제의 세 문제에 도전해요." },
-    { href:"/play/taste",icon:Sparkles,tone:"purple",eyebrow:"10문항 분석",title:"취향 발견실",description:"생활 선택으로 내 취향의 결을 발견해요." },
+  { id:"today",icon:Gamepad2,title:"오늘 즐기기",description:"매일 바뀌는 콘텐츠",items:[
+    { href:"/play/choice",icon:Vote,tone:"coral",eyebrow:"매일 한 번",title:"오늘의 극한 밸런스",description:"두 선택 중 하나를 골라요." },
+    { href:"/play/detective",icon:ShieldQuestion,tone:"blue",eyebrow:"오늘의 사건",title:"다담 추리방",description:"단서를 보고 정답을 찾아요." },
+    { href:"/play/missions",icon:Trophy,tone:"amber",eyebrow:"생활 퀴즈",title:"다담 미션",description:"주제별 세 문제를 풀어요." },
+    { href:"/play/taste",icon:Sparkles,tone:"purple",eyebrow:"10문항",title:"취향 발견실",description:"내 생활 취향을 확인해요." },
   ]},
-  { id:"help",icon:HeartHandshake,title:"도움과 이야기",description:"질문하고 답하며 사람의 경험을 나눠요.",items:[
-    { href:"/play/bounties",icon:HandCoins,tone:"amber",eyebrow:"모두다담 핵심 도움 서비스",title:"현상금 질문",description:"질문을 먼저 노출하고, 채택한 답변에 도토리로 보답해요." },
-    { href:"/play/mailbox",icon:Mail,tone:"blue",eyebrow:"고정 익명 ID",title:"다담 우체통",description:"이름을 내려놓고 사연과 답장을 나눠요." },
-    { href:"/play/treasures",icon:MapPin,tone:"green",eyebrow:"이웃의 생활 지도",title:"동네 보물지도",description:"이웃이 직접 발견한 좋은 장소를 찾아요." },
-    { href:"/play/random",icon:Compass,tone:"amber",eyebrow:"숨은 글 발견",title:"랜덤 이야기 여행",description:"목록 아래 잠들어 있던 이야기를 만나요." },
+  { id:"help",icon:HeartHandshake,title:"도움과 이야기",description:"질문과 익명 이야기",items:[
+    { href:"/play/bounties",icon:HandCoins,tone:"amber",eyebrow:"도토리 보상",title:"현상금 질문",description:"답변이 필요한 질문을 올려요." },
+    { href:"/play/mailbox",icon:Mail,tone:"blue",eyebrow:"고정 익명 ID",title:"다담 우체통",description:"익명으로 사연과 답장을 나눠요." },
+    { href:"/play/treasures",icon:MapPin,tone:"green",eyebrow:"장소 추천",title:"동네 보물지도",description:"이웃이 등록한 장소를 찾아요." },
+    { href:"/play/random",icon:Compass,tone:"amber",eyebrow:"무작위 게시글",title:"랜덤 이야기 여행",description:"게시글 하나를 무작위로 골라요." },
   ]},
-  { id:"record",icon:NotebookTabs,title:"기록과 성장",description:"오늘의 실천과 마음을 시간 속에 쌓아요.",items:[
-    { href:"/play/attendance",icon:CalendarCheck2,tone:"green",eyebrow:"하루 한 번",title:"다담 출석부",description:"출석을 기록하고 연속 출석을 이어가요." },
-    { href:"/play/challenges",icon:Trophy,tone:"coral",eyebrow:"생활 습관",title:"다담 챌린지",description:"작은 목표를 정하고 꾸준히 인증해요." },
-    { href:"/play/time-capsule",icon:Hourglass,tone:"purple",eyebrow:"미래의 나에게",title:"다담 타임캡슐",description:"오늘의 마음을 봉인하고 정한 날 다시 열어요." },
+  { id:"record",icon:NotebookTabs,title:"기록과 성장",description:"출석과 개인 기록",items:[
+    { href:"/play/attendance",icon:CalendarCheck2,tone:"green",eyebrow:"하루 한 번",title:"다담 출석부",description:"오늘의 출석을 기록해요." },
+    { href:"/play/challenges",icon:Trophy,tone:"coral",eyebrow:"생활 습관",title:"다담 챌린지",description:"목표를 정하고 인증해요." },
+    { href:"/play/time-capsule",icon:Hourglass,tone:"purple",eyebrow:"예약 편지",title:"다담 타임캡슐",description:"정한 날짜까지 편지를 보관해요." },
   ]},
-  { id:"acorn",icon:Store,title:"도토리 관리",description:"모은 도토리를 확인하고 필요한 곳에 사용해요.",items:[
-    { href:"/play/acorn-gift",icon:HandCoins,tone:"amber",eyebrow:"고마운 이웃에게",title:"도토리 선물하기",description:"메시지와 함께 보유 도토리를 나눠요." },
-    { href:"/play/stamps",icon:Gift,tone:"purple",eyebrow:"꾸미기와 포인트",title:"도토리 상점",description:"스탬프를 구매하고 포인트 기능을 이용해요." },
+  { id:"acorn",icon:Store,title:"도토리",description:"선물과 상점",items:[
+    { href:"/play/acorn-gift",icon:HandCoins,tone:"amber",eyebrow:"도토리 보내기",title:"도토리 선물하기",description:"다른 사용자에게 도토리를 보내요." },
+    { href:"/play/stamps",icon:Gift,tone:"purple",eyebrow:"스탬프 구매",title:"도토리 상점",description:"도토리와 포인트를 사용해요." },
   ]},
 ] as const;
 
 export default function PlayPage() {
   return <section className="content-hub-page grouped-content-hub">
-    <header className="content-hub-hero"><span><Shapes size={27}/></span><div><small>MODUDADAM CONTENTS</small><h1>무엇을 하고 싶으세요?</h1><p>목적을 먼저 고르면 필요한 콘텐츠를 빠르게 찾을 수 있어요.</p></div></header>
+    <header className="content-hub-hero"><span><Shapes size={27}/></span><div><h1>콘텐츠</h1><p>원하는 메뉴를 선택하세요.</p></div></header>
     <nav className="content-group-nav" aria-label="콘텐츠 빠른 이동">{groups.map(({ id,icon:Icon,title })=><a href={`#${id}`} key={id}><Icon size={17}/><span>{title}</span></a>)}</nav>
     <div className="content-group-list">{groups.map(({ id,icon:GroupIcon,title,description,items })=><section className="content-group" id={id} key={id}>
       <header><span><GroupIcon size={20}/></span><div><h2>{title}</h2><p>{description}</p></div><b>{items.length}개</b></header>

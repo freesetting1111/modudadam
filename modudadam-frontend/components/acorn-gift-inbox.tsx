@@ -33,17 +33,17 @@ export function AcornGiftInbox() {
 
   const received=(data?.gifts || []).filter((gift)=>gift.direction==="received"&&gift.status==="claimed").slice(0,10);
   return <section className="gift-inbox-page">
-    <header className="gift-inbox-hero"><span><PackageOpen/></span><div><small>MY GIFT BAG</small><h1>내 선물함</h1><p>도착한 도토리 선물을 확인하고 직접 받아보세요.</p></div><strong>{data?.pendingPagination.totalItems || 0}개</strong></header>
-    {!data&&!notice?<div className="feature-loading">선물보따리를 열고 있어요.</div>:<>
-      <section className="gift-inbox-pending"><header><div><h2>받지 않은 선물</h2><p>받기를 누르면 내 도토리 지갑에 들어와요.</p></div><span>{data?.pendingPagination.totalItems || 0}</span></header>
-        {data?.pendingGifts.length?<div>{data.pendingGifts.map((gift)=><article key={gift.id}><span><Gift/></span><div><small>{giftLabel(gift.giftType)} · {formatDate(gift.createdAt)}</small><strong>{gift.senderName}님이 보낸 도토리 {gift.amount.toLocaleString()}개</strong><p>{gift.message || "도토리 선물이 도착했어요."}</p></div><button type="button" disabled={Boolean(pending)} onClick={()=>void claim(gift)}>{pending===gift.id?"받는 중...":"받기"}</button></article>)}</div>:<div className="gift-inbox-empty"><PackageCheck/><strong>모든 선물을 받았어요.</strong><p>새 선물이 도착하면 헤더에 숫자로 알려드릴게요.</p></div>}
+    <header className="gift-inbox-hero"><span><PackageOpen/></span><div><small>도토리 선물</small><h1>내 선물함</h1><p>받지 않은 선물을 확인하세요.</p></div><strong>{data?.pendingPagination.totalItems || 0}개</strong></header>
+    {!data&&!notice?<div className="feature-loading">불러오는 중...</div>:<>
+      <section className="gift-inbox-pending"><header><div><h2>받지 않은 선물</h2><p>받으면 도토리 지갑에 추가됩니다.</p></div><span>{data?.pendingPagination.totalItems || 0}</span></header>
+        {data?.pendingGifts.length?<div>{data.pendingGifts.map((gift)=><article key={gift.id}><span><Gift/></span><div><small>{giftLabel(gift.giftType)} · {formatDate(gift.createdAt)}</small><strong>{gift.senderName}님이 보낸 도토리 {gift.amount.toLocaleString()}개</strong><p>{gift.message || "도토리 선물이 도착했어요."}</p></div><button type="button" disabled={Boolean(pending)} onClick={()=>void claim(gift)}>{pending===gift.id?"받는 중...":"받기"}</button></article>)}</div>:<div className="gift-inbox-empty"><PackageCheck/><strong>받지 않은 선물이 없습니다.</strong></div>}
         {data&&data.pendingPagination.totalPages>1&&<nav className="feature-pagination gift-inbox-pagination" aria-label="받지 않은 선물 페이지"><button type="button" disabled={giftPage<=1||Boolean(pending)} onClick={()=>setGiftPage((page)=>page-1)}><ChevronLeft/></button><strong>{giftPage} / {data.pendingPagination.totalPages}</strong><button type="button" disabled={giftPage>=data.pendingPagination.totalPages||Boolean(pending)} onClick={()=>setGiftPage((page)=>page+1)}><ChevronRight/></button></nav>}
       </section>
-      <Link className="gift-inbox-send-link" href="/play/acorn-gift"><HandCoins/>나도 도토리 선물하러 가기</Link>
+      <Link className="gift-inbox-send-link" href="/play/acorn-gift"><HandCoins/>도토리 선물하기</Link>
       <section className="gift-inbox-history"><header><h2>최근 받은 선물</h2><span>최근 10건</span></header>{received.length?<div>{received.map((gift)=><article key={gift.id}><span>🌰</span><div><strong>{gift.partnerName}님에게 받은 도토리 {gift.amount.toLocaleString()}개</strong><p>{gift.message}</p></div><time dateTime={gift.claimedAt || gift.createdAt}>{formatDate(gift.claimedAt || gift.createdAt)}</time></article>)}</div>:<p>아직 수령한 선물이 없습니다.</p>}</section>
     </>}
     {notice&&<p className="reward-notice">{notice}</p>}
-    <AchievementDialog open={Boolean(celebration)} eyebrow="GIFT RECEIVED" title="선물을 수령 완료했습니다." description={celebration?.description || ""} reward={celebration?.reward} confirmLabel="확인" onConfirm={()=>setCelebration(null)}/>
+    <AchievementDialog open={Boolean(celebration)} eyebrow="선물 받기" title="선물을 받았어요" description={celebration?.description || ""} reward={celebration?.reward} confirmLabel="확인" onConfirm={()=>setCelebration(null)}/>
   </section>;
 }
 

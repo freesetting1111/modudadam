@@ -124,17 +124,15 @@ export function WriteForm({ initialCategory = "", initialCategoryName = "", post
   return <form className="write-form compose-form" onSubmit={submit}>
     <div className="write-board-label">
       <span className="write-board-symbol"><FileText size={19} /></span>
-      <span><small>{isBounty ? "도움 요청 서비스" : "작성 게시판"}</small><strong>{categoryName}</strong></span>
+      <span><small>{isBounty ? "구분" : "작성 게시판"}</small><strong>{categoryName}</strong></span>
       <b>전체 공개</b>
     </div>
     {!postId&&isBounty&&<section className="compose-bounty required">
       <header><span><HandCoins size={20}/></span><div><small>필수 선택</small><strong>답변 현상금 정하기</strong></div><b>{economy ? `보유 ${economy.wallet.balance.toLocaleString()}개` : "잔액 확인 중"}</b></header>
-      <p>현상금이 높은 질문부터 전용 목록 위에 노출됩니다. 답변 품질이나 응답 시간을 보장하지는 않지만, 채택 보상과 도움 신뢰도가 답변 참여의 분명한 동기가 됩니다.</p>
       <div className="compose-bounty-options">
         {(economy?.bountyAmounts || [100,200,300]).map((amount)=><button type="button" className={bountyAmount===amount ? "active" : ""} disabled={Boolean(economy&&economy.wallet.balance<amount)} onClick={()=>setBountyAmount(amount)} key={amount}><b>{amount.toLocaleString()} 🌰</b><small>{amount===100 ? "기본 요청" : amount===200 ? "우선 요청" : "최우선 요청"}</small></button>)}
       </div>
-      <div className="compose-bounty-summary"><span>노출 순서 <b>높은 금액 우선</b></span><span>답변자 수령 <b>{Math.floor(bountyAmount*.9).toLocaleString()}개</b></span><span>소각 <b>{Math.floor(bountyAmount*.1).toLocaleString()}개</b></span><span>모집 기간 <b>7일</b></span></div>
-      {economy&&<small className="compose-economy-note">무료 활동 보상은 하루 합산 {economy.dailyFreeLimit}개까지 · 오늘 남은 무료 보상 {economy.dailyFreeRemaining}개</small>}
+      <div className="compose-bounty-summary"><span>노출 <b>금액순</b></span><span>답변자 <b>{Math.floor(bountyAmount*.9).toLocaleString()}개</b></span><span>수수료 <b>{Math.floor(bountyAmount*.1).toLocaleString()}개</b></span><span>기간 <b>7일</b></span></div>
       {economy&&economy.wallet.balance<100&&<div className="form-error" role="alert">현상금 질문에는 도토리가 최소 100개 필요합니다.</div>}
     </section>}
     <div className="compose-field">

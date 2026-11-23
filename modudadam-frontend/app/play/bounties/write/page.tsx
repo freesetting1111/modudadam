@@ -12,7 +12,7 @@ export default async function BountyQuestionWritePage() {
     <header className="compose-header bounty-compose-header">
       <Link href="/play/bounties" aria-label="현상금 질문 목록으로 돌아가기"><ChevronLeft size={24}/></Link>
       <span className="compose-category-icon"><HandCoins size={23}/></span>
-      <div><small>도토리로 답변 요청</small><h1>현상금 질문 작성</h1></div>
+      <div><small>현상금 질문</small><h1>질문 작성</h1></div>
     </header>
     <WriteForm initialCategory="bounty" initialCategoryName="현상금 질문" mode="bounty"/>
   </section>;
