@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">백 번째 진실</title>
+  <defs><linearGradient id="a" x1="8" y1="5" x2="55" y2="59" gradientUnits="userSpaceOnUse"><stop stop-color="#7e62d9"/><stop offset="1" stop-color="#3a275e"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#2a1748" flood-opacity=".35"/></filter></defs>
+  <path d="M32 3 40 9l10-1 4 9 7 7-4 10 1 10-9 5-6 9-11-3-11 3-6-9-9-5 1-10-4-10 7-7 4-9 10 1Z" fill="url(#a)" filter="url(#s)"/>
+  <circle cx="28" cy="28" r="13" fill="#f7f2ff" stroke="#d9caff" stroke-width="3"/>
+  <circle cx="28" cy="28" r="7" fill="none" stroke="#7657b4" stroke-width="4"/>
+  <path d="m37 37 10 10" stroke="#f6c85f" stroke-width="5" stroke-linecap="round"/>
+  <path d="m24 28 3 3 6-7" fill="none" stroke="#4a986f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

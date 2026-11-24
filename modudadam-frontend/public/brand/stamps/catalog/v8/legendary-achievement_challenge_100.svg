@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">백일의 약속</title>
+  <defs><linearGradient id="a" x1="8" y1="5" x2="56" y2="59" gradientUnits="userSpaceOnUse"><stop stop-color="#fff09b"/><stop offset=".5" stop-color="#dda832"/><stop offset="1" stop-color="#725018"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#795216" flood-opacity=".42"/></filter></defs>
+  <path d="M32 2 41 8l11-1 4 10 7 8-5 10 1 11-10 5-7 9-10-4-10 4-7-9-10-5 1-11-5-10 7-8 4-10 11 1Z" fill="url(#a)" filter="url(#s)"/>
+  <rect x="14" y="15" width="36" height="35" rx="8" fill="#fff9dc" stroke="#fff0aa" stroke-width="2"/>
+  <path d="M14 25h36M23 12v8M41 12v8" stroke="#5c8e78" stroke-width="4" stroke-linecap="round"/>
+  <path d="m23 36 6 6 13-14" fill="none" stroke="#d19224" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -13,9 +13,10 @@ export async function GET(request: NextRequest) {
   try {
     const user = await requireSessionUser(request);
     await ensureAccount(user.id,user.email);
+    await query(`SELECT grant_activity_achievement_stamps($1::uuid)`,[user.id]);
     const requestedMonth = request.nextUrl.searchParams.get("month") || kstDate().slice(0,7);
     const month = /^\d{4}-\d{2}$/.test(requestedMonth) ? requestedMonth : kstDate().slice(0,7);
-    const [wallet,checkins,stamps,recent,titleCatalog,reputation] = await Promise.all([
+    const [wallet,checkins,stamps,recent,titleCatalog,reputation,activityAchievements] = await Promise.all([
       query<{ balance:number;lifetimeEarned:number;lifetimeSpent:number }>(`SELECT balance,lifetime_earned AS "lifetimeEarned",lifetime_spent AS "lifetimeSpent" FROM acorn_wallets WHERE user_id=$1`,[user.id]),
       query<{ attendanceOn:string;stampCode:string;emoji:string;acornsEarned:number }>(`SELECT checkins.attendance_on::text AS "attendanceOn",'basic' AS "stampCode",catalog.emoji,checkins.acorns_earned AS "acornsEarned" FROM attendance_checkins checkins JOIN attendance_stamp_catalog catalog ON catalog.code='basic' WHERE checkins.user_id=$1 AND to_char(checkins.attendance_on,'YYYY-MM')=$2 ORDER BY checkins.attendance_on`,[user.id,month]),
       query<{ code:string;name:string;emoji:string;description:string;price:number;rarity:string;accessScope:string;owned:boolean;equipped:boolean }>(`SELECT catalog.code,catalog.name,catalog.emoji,catalog.description,catalog.price,catalog.rarity,catalog.access_scope AS "accessScope",
@@ -40,6 +41,32 @@ export async function GET(request: NextRequest) {
       query<{ attendanceOn:string }>(`SELECT attendance_on::text AS "attendanceOn" FROM attendance_checkins WHERE user_id=$1 ORDER BY attendance_on DESC LIMIT 60`,[user.id]),
       query<{ code:string;name:string;emoji:string;description:string;requiredRarity:string;requiresAllPublic:boolean;rewardStampCode:string;rewardStampName:string;rewardStampEmoji:string;claimed:boolean }>(`SELECT title.code,title.name,title.emoji,title.description,title.required_rarity AS "requiredRarity",title.requires_all_public AS "requiresAllPublic",title.reward_stamp_code AS "rewardStampCode",reward.name AS "rewardStampName",reward.emoji AS "rewardStampEmoji",(owned.stamp_code IS NOT NULL) AS claimed FROM stamp_collection_title_catalog title JOIN attendance_stamp_catalog reward ON reward.code=title.reward_stamp_code LEFT JOIN user_attendance_stamps owned ON owned.stamp_code=reward.code AND owned.user_id=$1 WHERE title.enabled ORDER BY title.sort_order`,[user.id]),
       query<{ kindnessPoints:number;misdeedPoints:number }>(`SELECT kindness_points AS "kindnessPoints",misdeed_points AS "misdeedPoints" FROM user_reputation_points WHERE user_id=$1`,[user.id]),
+      query<{ code:string;stampCode:string;name:string;emoji:string;description:string;rarity:string;metricType:string;target:number;progress:number;owned:boolean;equipped:boolean }>(
+        `SELECT achievement.code,achievement.stamp_code AS "stampCode",catalog.name,catalog.emoji,catalog.description,catalog.rarity,
+          achievement.metric_type AS "metricType",achievement.threshold AS target,
+          LEAST(achievement.threshold,
+            CASE achievement.metric_type
+              WHEN 'detective_solved' THEN (SELECT count(*) FROM detective_daily_attempts WHERE user_id=$1 AND status='solved')
+              WHEN 'mission_completed' THEN (SELECT count(*) FROM daily_mission_attempts WHERE user_id=$1 AND completed_at IS NOT NULL)
+              WHEN 'treasure_likes_received' THEN (
+                SELECT count(*) FROM local_treasure_likes likes
+                JOIN local_treasures treasures ON treasures.id=likes.treasure_id
+                WHERE treasures.author_id=$1 AND treasures.status='published'
+              )
+              WHEN 'challenge_checkin_days' THEN (
+                SELECT count(DISTINCT checkins.checkin_on) FROM challenge_checkins checkins
+                JOIN challenge_enrollments enrollments ON enrollments.id=checkins.enrollment_id
+                WHERE enrollments.user_id=$1
+              )
+              ELSE 0
+            END
+          )::int AS progress,
+          (owned.stamp_code IS NOT NULL) AS owned,COALESCE(owned.equipped,false) AS equipped
+        FROM activity_stamp_achievement_catalog achievement
+        JOIN attendance_stamp_catalog catalog ON catalog.code=achievement.stamp_code
+        LEFT JOIN user_attendance_stamps owned ON owned.user_id=$1 AND owned.stamp_code=achievement.stamp_code
+        WHERE achievement.enabled AND catalog.enabled
+        ORDER BY achievement.sort_order`,[user.id]),
     ]);
     const today = kstDate();
     const completedRarities = new Set(rarityOrder.filter((rarity) => {
@@ -59,7 +86,7 @@ export async function GET(request: NextRequest) {
       const collected=requiredStamps.filter((stamp) => stamp.owned).length;
       return { ...title,collected,total:requiredStamps.length,unlocked:requiredStamps.length>0 && collected===requiredStamps.length };
     });
-    return jsonResponse({ month,today,todayChecked:recent.rows.some((row) => row.attendanceOn === today),streak:calculateStreak(recent.rows.map((row) => row.attendanceOn),today),wallet:wallet.rows[0],reputation:reputation.rows[0],checkins:checkins.rows,stamps:stampItems,titles:collectionTitles });
+    return jsonResponse({ month,today,todayChecked:recent.rows.some((row) => row.attendanceOn === today),streak:calculateStreak(recent.rows.map((row) => row.attendanceOn),today),wallet:wallet.rows[0],reputation:reputation.rows[0],checkins:checkins.rows,stamps:stampItems,titles:collectionTitles,activityAchievements:activityAchievements.rows });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.",401);
     return errorResponse("출석부를 불러오지 못했습니다.",500);

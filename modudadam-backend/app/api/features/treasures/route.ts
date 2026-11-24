@@ -24,8 +24,10 @@ export async function GET(request: NextRequest) {
     `SELECT treasures.id,treasures.title,treasures.treasure_type AS "treasureType",treasures.description,
        treasures.address,treasures.road_address AS "roadAddress",treasures.kakao_place_id AS "kakaoPlaceId",
        treasures.place_url AS "placeUrl",treasures.latitude::float8 AS latitude,treasures.longitude::float8 AS longitude,
-       (treasures.author_id=$4::uuid) AS "isMine",treasures.created_at AS "createdAt",
-       users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji"
+       COALESCE(treasures.author_id=$4::uuid,false) AS "isMine",treasures.created_at AS "createdAt",
+       users.nickname AS "authorName",user_stamp_emoji(users.id) AS "authorStampEmoji",
+       (SELECT count(*)::int FROM local_treasure_likes likes WHERE likes.treasure_id=treasures.id) AS "likeCount",
+       EXISTS(SELECT 1 FROM local_treasure_likes likes WHERE likes.treasure_id=treasures.id AND likes.user_id=$4::uuid) AS "likedByMe"
      FROM local_treasures treasures JOIN users ON users.id=treasures.author_id
      WHERE treasures.status='published' AND ($1::text IS NULL OR treasures.treasure_type=$1)
      ORDER BY treasures.created_at DESC LIMIT $2 OFFSET $3`,
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
          latitude::float8 AS latitude,longitude::float8 AS longitude,created_at AS "createdAt"`,
       [user.id, title, treasureType, description, address, roadAddress || null, kakaoPlaceId, placeUrl || null, latitude, longitude],
     );
-    return jsonResponse({ ...saved.rows[0], authorName: user.nickname, authorStampEmoji: user.stampEmoji }, { status: 201 });
+    return jsonResponse({ ...saved.rows[0], authorName: user.nickname, authorStampEmoji: user.stampEmoji,likeCount:0,likedByMe:false,isMine:true }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return errorResponse("로그인이 필요합니다.", 401);
     return errorResponse("동네 보물을 등록하지 못했습니다.", 500);
