@@ -97,18 +97,23 @@ export function MyStampManager() {
     if(event.pointerType!=="mouse"||event.button!==0) return;
     const tabs=event.currentTarget;const drag=tierTabsDragRef.current;
     drag.pointerId=event.pointerId;drag.startX=event.clientX;drag.scrollLeft=tabs.scrollLeft;drag.moved=false;drag.suppressClick=false;
-    tabs.setPointerCapture(event.pointerId);tabs.classList.add("dragging");
   }
   function moveTierTabsDrag(event:ReactPointerEvent<HTMLElement>) {
     const drag=tierTabsDragRef.current;if(drag.pointerId!==event.pointerId) return;
     const distance=event.clientX-drag.startX;
-    if(Math.abs(distance)>4) { drag.moved=true;drag.suppressClick=true;event.preventDefault(); }
-    if(drag.moved) event.currentTarget.scrollLeft=drag.scrollLeft-distance;
+    if(!drag.moved&&Math.abs(distance)>=10) {
+      drag.moved=true;drag.suppressClick=true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.currentTarget.classList.add("dragging");
+    }
+    if(drag.moved) { event.preventDefault();event.currentTarget.scrollLeft=drag.scrollLeft-distance; }
   }
   function finishTierTabsDrag(event:ReactPointerEvent<HTMLElement>) {
     const drag=tierTabsDragRef.current;if(drag.pointerId!==event.pointerId) return;
     if(event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    event.currentTarget.classList.remove("dragging");drag.pointerId=-1;
+    event.currentTarget.classList.remove("dragging");drag.pointerId=-1;drag.moved=false;
+    if(event.type==="pointercancel") drag.suppressClick=false;
+    else if(drag.suppressClick) window.setTimeout(() => { tierTabsDragRef.current.suppressClick=false; },0);
   }
   function blockTierTabClickAfterDrag(event:ReactMouseEvent<HTMLElement>) {
     const drag=tierTabsDragRef.current;if(!drag.suppressClick) return;
