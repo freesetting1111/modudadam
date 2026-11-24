@@ -8,7 +8,8 @@ export function StampedName({ name, stamp, className = "", full = false }: { nam
 }
 export function StampMark({ stamp, className="" }: { stamp:string;className?:string }) {
   const image=stamp.startsWith("/");
-  return <span className={`stamped-name-mark ${stampEffect(stamp)} ${image ? "stamp-image-mark" : ""} ${className}`.trim()} aria-label="대표 스탬프">
+  const system=stamp.includes("/catalog/v8/") ? "stamp-system-v8" : "";
+  return <span className={`stamped-name-mark ${stampEffect(stamp)} ${system} ${image ? "stamp-image-mark" : ""} ${className}`.trim()} aria-label="대표 스탬프">
     {image ? <Image src={stamp} alt="" aria-hidden="true" width={32} height={32}/> : stamp}
   </span>;
 }
@@ -22,6 +23,12 @@ function stampEffect(stamp: string) {
   if (stamp.includes("operator_starseed")) return "stamp-effect-operator stamp-operator-starseed";
   if (stamp.includes("operator_master")) return "stamp-effect-operator stamp-operator-master";
   if (stamp.includes("/operator-")) return "stamp-effect-operator";
+  if (stamp.includes("/v8/mythic-")) return "stamp-effect-mythic";
+  if (stamp.includes("/v8/legendary-")) return "stamp-effect-legendary";
+  if (stamp.includes("/v8/epic-")) return "stamp-effect-epic";
+  if (stamp.includes("/v8/rare-")) return "stamp-effect-rare";
+  if (stamp.includes("/v8/common-")) return "stamp-effect-common";
+  if (stamp.includes("/v8/uncommon-")) return "stamp-effect-uncommon";
   if (stamp.includes("/mythic-")) return "stamp-effect-mythic";
   if (stamp.includes("/legendary-")) return "stamp-effect-legendary";
   if (stamp.includes("/epic-")) return "stamp-effect-epic";

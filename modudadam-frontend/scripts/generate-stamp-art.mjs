@@ -5,10 +5,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import * as Icons from "lucide-react";
 
 const catalog = {
-  basic:"Footprints",sprout:"Sprout",acorn:"Nut",clover:"Clover",sun:"Sun",moon:"MoonStar",flower:"Flower2",cloud:"CloudSun",leaf:"Leaf",coffee:"Coffee",bread:"Croissant",heart:"Heart",star:"Star",cat:"Cat",dog:"Dog",rabbit:"Rabbit",squirrel:"Squirrel",cherry:"Cherry",lemon:"Citrus",tulip:"Flower",maple:"MapleLeaf",snow:"Snowflake",umbrella:"Umbrella",rainbow:"Rainbow",butterfly:"BugPlay",bee:"Bug",ladybug:"BugOff",whale:"Waves",dolphin:"FishSymbol",penguin:"Bird",fox:"Origami",owl:"Bird",panda:"CircleDotDashed",unicorn:"Sparkle",rocket:"Rocket",planet:"Orbit",comet:"Telescope",crystal:"Gem",crown:"Crown",fire:"Flame",purple_heart:"HeartHandshake",blue_heart:"HeartPulse",magic:"WandSparkles",artist:"Palette",music:"Music2",trophy:"Trophy",medal:"Medal",galaxy:"Atom",phoenix:"Feather",royal_squirrel:"BadgeCent",aurora_crown:"Crown",modudadam_master:"BadgeCheck",
+  basic:"Footprints",sprout:"Sprout",acorn:"Nut",clover:"Clover",sun:"Sun",moon:"MoonStar",flower:"Flower2",cloud:"CloudSun",leaf:"Leaf",coffee:"Coffee",bread:"Croissant",heart:"Heart",star:"Star",cat:"Cat",dog:"Dog",rabbit:"Rabbit",squirrel:"Squirrel",cherry:"Cherry",lemon:"Citrus",tulip:"Flower",maple:"MapleLeaf",snow:"Snowflake",umbrella:"Umbrella",rainbow:"Rainbow",butterfly:"BugPlay",bee:"Bug",ladybug:"BugOff",whale:"Waves",dolphin:"FishSymbol",penguin:"Bird",fox:"Origami",owl:"Bird",panda:"CircleDotDashed",unicorn:"Sparkle",rocket:"Rocket",planet:"Orbit",comet:"Telescope",crystal:"Gem",crown:"Crown",fire:"Flame",purple_heart:"HeartHandshake",blue_heart:"HeartPulse",magic:"WandSparkles",artist:"Palette",music:"Music2",trophy:"Trophy",medal:"Medal",galaxy:"Atom",phoenix:"Feather",royal_squirrel:"Squirrel",aurora_crown:"Crown",modudadam_master:"Squirrel",
   operator_guardian:"ShieldCheck",operator_starseed:"BadgePlus",operator_master:"ShieldEllipsis",
-  reward_sprout_keeper:"TreePine",reward_daily_collector:"LibraryBig",reward_rare_explorer:"Compass",reward_heroic_archivist:"Award",reward_legend_keeper:"ShieldHalf",reward_dadam_grandmaster:"BadgeCheck",
-  kindness_100:"Heart",kindness_500:"HeartHandshake",kindness_1000:"Handshake",kindness_5000:"HeartCrack",kindness_10000:"Sparkles",
+  reward_sprout_keeper:"TreePine",reward_daily_collector:"CalendarCheck2",reward_rare_explorer:"Compass",reward_heroic_archivist:"BookOpenCheck",reward_legend_keeper:"ShieldHalf",reward_dadam_grandmaster:"Gem",
+  kindness_100:"Heart",kindness_500:"HeartHandshake",kindness_1000:"Handshake",kindness_5000:"Heart",kindness_10000:"Sparkles",
   misdeed_100:"CircleAlert",misdeed_500:"TriangleAlert",misdeed_1000:"ScanEye",misdeed_5000:"ShieldAlert",misdeed_10000:"Skull",
 };
 const rarities = {
@@ -20,31 +20,45 @@ const rarities = {
   mythic:["aurora_crown","modudadam_master","reward_dadam_grandmaster","kindness_10000","misdeed_10000"],
   operator:["operator_guardian","operator_starseed","operator_master"],
 };
-const baseHues={ uncommon:148,common:216,rare:265,epic:310,legendary:32,mythic:335,operator:220 };
-const directory=join(process.cwd(),"public","brand","stamps","catalog","v3");
+const palettes={
+  uncommon:{ edge:"#34745f",faceA:"#f8fcfa",faceB:"#cce7dc",coreA:"#ffffff",coreB:"#e3f2ec",icon:"#245747",accent:"#6fc1a0",shadow:"#245747" },
+  common:{ edge:"#315f9d",faceA:"#f6f9ff",faceB:"#cbdcf3",coreA:"#ffffff",coreB:"#e5eefb",icon:"#294f82",accent:"#72a1de",shadow:"#274a77" },
+  rare:{ edge:"#6846a9",faceA:"#fbf8ff",faceB:"#d8c9f2",coreA:"#ffffff",coreB:"#eee7fb",icon:"#503188",accent:"#9c7bd2",shadow:"#462b78" },
+  epic:{ edge:"#d16bb5",faceA:"#3b275e",faceB:"#20183f",coreA:"#4c2e70",coreB:"#251942",icon:"#fff8ff",accent:"#ff8ad2",shadow:"#1c1038" },
+  legendary:{ edge:"#d4a438",faceA:"#28230f",faceB:"#11151f",coreA:"#3b3114",coreB:"#171923",icon:"#ffe596",accent:"#f6c44f",shadow:"#17120a" },
+  mythic:{ edge:"#9b72ef",faceA:"#251744",faceB:"#0f1732",coreA:"#38215d",coreB:"#141a36",icon:"#fffaff",accent:"#62dfd3",shadow:"#0d1028" },
+  operator:{ edge:"#f2c85c",faceA:"#192b4a",faceB:"#080f20",coreA:"#233e68",coreB:"#0b1529",icon:"#fff0a8",accent:"#60d9f2",shadow:"#050a14" },
+};
+const directory=join(process.cwd(),"public","brand","stamps","catalog","v8");
 await mkdir(directory,{ recursive:true });
 for (const [rarity,codes] of Object.entries(rarities)) {
   for (const code of codes) {
-    const themedHue=code.startsWith("kindness_")?38:code.startsWith("misdeed_")?352:baseHues[rarity];
-    const hue=(themedHue+hash(code)%25-12+360)%360;
-    const operator=rarity==="operator";
-    const dark=operator?"#08152f":`hsl(${hue} 78% 25%)`;const middle=operator?"#31569b":`hsl(${hue} 84% 47%)`;const light=operator?"#ffe59a":`hsl(${(hue+18)%360} 94% 76%)`;const glow=operator?"#ffd45c":`hsl(${(hue+35)%360} 100% 70%)`;
-    const iconColor=["legendary","mythic","operator"].includes(rarity)?"#fff3a3":"#ffffff";
-    const Icon=Icons[catalog[code]] || Icons.Badge;const id=`g-${code.replaceAll("_","-")}`;
-    const icon=renderToStaticMarkup(createElement(Icon,{ strokeWidth:2.15,color:iconColor })).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"");
-    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${code}"><defs><linearGradient id="${id}" x1="7" y1="5" x2="57" y2="59"><stop stop-color="${light}"/><stop offset=".48" stop-color="${middle}"/><stop offset="1" stop-color="${dark}"/></linearGradient><radialGradient id="${id}-core"><stop stop-color="${middle}"/><stop offset="1" stop-color="${dark}"/></radialGradient><filter id="${id}-shadow"><feDropShadow dx="0" dy="2" stdDeviation="2.6" flood-color="${middle}" flood-opacity=".72"/></filter><filter id="${id}-glow"><feDropShadow dx="0" dy="0" stdDeviation="1.6" flood-color="${iconColor}" flood-opacity=".98"/></filter></defs>${frameFor(rarity,id,glow,iconColor)}<circle cx="32" cy="32" r="15.5" fill="url(#${id}-core)" stroke="${iconColor}" stroke-opacity=".72" stroke-width="1.4"/><g transform="translate(14 14) scale(1.5)" fill="none" stroke="${iconColor}" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" filter="url(#${id}-glow)">${icon}</g></svg>`;
+    const palette=palettes[rarity];
+    const id=`s8-${code.replaceAll("_","-")}`;
+    const themeAccent=code.startsWith("kindness_")?"#f0b83f":code.startsWith("misdeed_")?"#e55472":`hsl(${hash(code)%360} 58% 55%)`;
+    const iconColor=code.startsWith("kindness_")&&!["epic","legendary","mythic","operator"].includes(rarity)?"#805712":code.startsWith("misdeed_")&&!["epic","legendary","mythic","operator"].includes(rarity)?"#8f2940":palette.icon;
+    const Icon=Icons[catalog[code]] || Icons.Badge;
+    const icon=renderToStaticMarkup(createElement(Icon,{ strokeWidth:2.35,color:iconColor })).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"");
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="${code}"><defs><linearGradient id="${id}-face" x1="12" y1="7" x2="68" y2="73"><stop stop-color="${palette.faceA}"/><stop offset="1" stop-color="${palette.faceB}"/></linearGradient><linearGradient id="${id}-core" x1="25" y1="22" x2="57" y2="61"><stop stop-color="${palette.coreA}"/><stop offset="1" stop-color="${palette.coreB}"/></linearGradient><linearGradient id="${id}-theme" x1="16" y1="12" x2="65" y2="68"><stop stop-color="${palette.accent}"/><stop offset="1" stop-color="${themeAccent}"/></linearGradient><filter id="${id}-shadow" x="-35%" y="-35%" width="170%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="${palette.shadow}" flood-opacity=".34"/></filter><filter id="${id}-icon" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation=".65" flood-color="${palette.shadow}" flood-opacity=".28"/></filter></defs>${frameFor(rarity,id,palette,themeAccent)}<path d="M40 22.5c10.2 0 18.5 7.8 18.5 17.5S50.2 57.5 40 57.5 21.5 49.7 21.5 40 29.8 22.5 40 22.5Z" fill="url(#${id}-core)" stroke="${palette.edge}" stroke-opacity=".82" stroke-width="1.5"/><path d="M27 28c5-5 17-7 25 0" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/><g transform="translate(22 22) scale(1.5)" fill="none" stroke="${iconColor}" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round" filter="url(#${id}-icon)">${icon}</g>${signatureFor(code,themeAccent,palette.icon)}</svg>`;
     await writeFile(join(directory,`${rarity}-${code}.svg`),svg,"utf8");
   }
 }
 
 function hash(value) { return [...value].reduce((total,character)=>((total*31)+character.charCodeAt(0))>>>0,0); }
-function frameFor(rarity,id,glow,iconColor) {
-  const common=`fill="url(#${id})" stroke="${glow}" filter="url(#${id}-shadow)"`;
-  if (rarity==="uncommon") return `<path d="M32 4 55 16v26L32 60 9 48V16Z" ${common} stroke-width="2"/><path d="M32 9 50 19v20L32 54 14 45V19Z" fill="#fff" fill-opacity=".16"/>`;
-  if (rarity==="common") return `<path d="M32 2 55 11v23c0 14-9 23-23 28C18 57 9 48 9 34V11Z" ${common} stroke-width="2.3"/><path d="M32 8 49 15v18c0 10-6 18-17 23-11-5-17-13-17-23V15Z" fill="#fff" fill-opacity=".17"/>`;
-  if (rarity==="rare") return `<path d="M32 1 52 9 63 32 52 55 32 63 12 55 1 32 12 9Z" ${common} stroke-width="2.4"/><path d="M32 7 48 14 57 32 48 50 32 57 16 50 7 32 16 14Z" fill="#fff" fill-opacity=".16"/><path d="M32 2v7M62 32h-7M32 62v-7M2 32h7" stroke="${iconColor}" stroke-width="2"/>`;
-  if (rarity==="epic") return `<path d="M24 16C15 10 8 11 2 16c8 2 10 7 13 12-6-1-10 1-13 5 8 1 13 5 19 10M40 16c9-6 16-5 22 0-8 2-10 7-13 12 6-1 10 1 13 5-8 1-13 5-19 10" fill="url(#${id})" stroke="${glow}" stroke-width="2"/><path d="M32 3 53 17l-4 28-17 16-17-16-4-28Z" ${common} stroke-width="2.5"/><path d="M32 9 47 20l-3 22-12 12-12-12-3-22Z" fill="#fff" fill-opacity=".17"/><circle cx="9" cy="17" r="2" fill="${iconColor}"/><circle cx="55" cy="17" r="2" fill="${iconColor}"/>`;
-  if (rarity==="legendary") return `<path d="m32 1 6 8 10-4 2 10 10 2-4 10 7 5-7 6 4 10-10 2-2 10-10-4-6 7-6-7-10 4-2-10-10-2 4-10-7-6 7-5-4-10 10-2 2-10 10 4Z" ${common} stroke-width="2.2"/><circle cx="32" cy="32" r="23" fill="#fff" fill-opacity=".12" stroke="${iconColor}" stroke-opacity=".65"/><circle cx="32" cy="32" r="19" fill="none" stroke="${iconColor}" stroke-opacity=".45" stroke-dasharray="2 3"/>`;
-  if (rarity==="mythic") return `<ellipse cx="32" cy="32" rx="30" ry="16" fill="none" stroke="${glow}" stroke-width="2" transform="rotate(-22 32 32)"/><ellipse cx="32" cy="32" rx="30" ry="16" fill="none" stroke="${iconColor}" stroke-opacity=".6" transform="rotate(22 32 32)"/><path d="m32 1 5 8 9-5 1 10 11-1-5 9 9 5-8 6 7 8-10 2 3 10-10-2-2 11-8-7-7 7-3-10-10 2 2-10-10-2 7-8-8-6 9-5-5-9 11 1 1-10 9 5Z" ${common} stroke-width="2.2"/><path d="M22 10 27 3l5 7 5-7 5 7" fill="none" stroke="${iconColor}" stroke-width="2.2"/><circle cx="6" cy="25" r="2.2" fill="${iconColor}"/><circle cx="58" cy="39" r="2.2" fill="${iconColor}"/>`;
-  return `<path d="M20 17 10 9 3 15l12 14C8 29 4 32 2 37c8 0 13 4 19 9M44 17l10-8 7 6-12 14c7 0 11 3 13 8-8 0-13 4-19 9" fill="url(#${id})" stroke="${glow}" stroke-width="2"/><path d="M17 13 24 5l8 8 8-8 7 8 8-4-5 14v21c-4 9-10 14-18 18-8-4-14-9-18-18V23L9 9Z" ${common} stroke-width="2.4"/><path d="M20 21h24v20c-3 7-7 11-12 14-5-3-9-7-12-14Z" fill="#fff" fill-opacity=".16" stroke="${iconColor}" stroke-opacity=".75"/><circle cx="32" cy="7" r="3" fill="${iconColor}"/>`;
+function frameFor(rarity,id,palette,themeAccent) {
+  const face=`fill="url(#${id}-face)" stroke="${palette.edge}" filter="url(#${id}-shadow)"`;
+  if (rarity==="uncommon") return `<path d="M40 7 66 22v31L40 69 14 53V22Z" ${face} stroke-width="2.4"/><path d="M40 13 61 25v25L40 63 19 50V25Z" fill="none" stroke="#fff" stroke-opacity=".72" stroke-width="1.4"/><path d="M40 8v8" stroke="${themeAccent}" stroke-width="3" stroke-linecap="round"/>`;
+  if (rarity==="common") return `<path d="M40 5 66 15v28c0 16-10 26-26 33C24 69 14 59 14 43V15Z" ${face} stroke-width="2.6"/><path d="M40 11 60 19v23c0 12-7 20-20 27-13-7-20-15-20-27V19Z" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.5"/><path d="m17 18 7-3M63 18l-7-3" stroke="${themeAccent}" stroke-width="2.4" stroke-linecap="round"/>`;
+  if (rarity==="rare") return `<path d="M40 3 63 12 77 40 63 68 40 77 17 68 3 40 17 12Z" ${face} stroke-width="2.7"/><path d="M40 10 58 17 69 40 58 63 40 70 22 63 11 40 22 17Z" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.6"/><path d="M40 4v10M76 40H66M40 76V66M4 40h10" stroke="url(#${id}-theme)" stroke-width="3" stroke-linecap="round"/>`;
+  if (rarity==="epic") return `<path d="M26 18C17 10 8 10 2 16c9 3 12 9 15 16-7-2-12 1-16 6 10 1 17 7 25 14M54 18c9-8 18-8 24-2-9 3-12 9-15 16 7-2 12 1 16 6-10 1-17 7-25 14" fill="url(#${id}-theme)" stroke="${palette.edge}" stroke-width="2.3"/><path d="M40 4 65 19l-5 34-20 22-20-22-5-34Z" ${face} stroke-width="2.8"/><path d="M40 11 58 23l-4 27-14 17-14-17-4-27Z" fill="none" stroke="#fff" stroke-opacity=".48" stroke-width="1.6"/><circle cx="9" cy="18" r="2.6" fill="${themeAccent}"/><circle cx="71" cy="18" r="2.6" fill="${themeAccent}"/>`;
+  if (rarity==="legendary") return `<path d="m40 2 7 9 12-5 2 12 12 2-5 12 9 8-9 8 5 12-12 2-2 12-12-5-7 9-7-9-12 5-2-12-12-2 5-12-9-8 9-8-5-12 12-2 2-12 12 5Z" ${face} stroke-width="2.5"/><circle cx="40" cy="40" r="29" fill="none" stroke="${palette.accent}" stroke-width="2"/><circle cx="40" cy="40" r="24" fill="none" stroke="#fff" stroke-opacity=".38" stroke-dasharray="3 4"/><path d="M40 5v8M75 40h-8M40 75v-8M5 40h8" stroke="${themeAccent}" stroke-width="3" stroke-linecap="round"/>`;
+  if (rarity==="mythic") return `<ellipse cx="40" cy="40" rx="37" ry="20" fill="none" stroke="url(#${id}-theme)" stroke-width="2.4" transform="rotate(-23 40 40)"/><ellipse cx="40" cy="40" rx="37" ry="20" fill="none" stroke="${palette.edge}" stroke-width="2" transform="rotate(23 40 40)"/><path d="m40 3 6 9 10-6 2 12 12-1-5 11 11 5-9 8 8 9-12 3 4 12-12-2-3 12-10-8-8 8-4-12-12 3 3-12-12-3 8-9-9-8 11-5-5-11 12 1 2-12 10 6Z" ${face} stroke-width="2.6"/><path d="m27 14 6-9 7 9 7-9 6 9" fill="none" stroke="${palette.icon}" stroke-width="2.7"/><circle cx="8" cy="30" r="2.5" fill="${themeAccent}"/><circle cx="72" cy="52" r="2.5" fill="${palette.accent}"/>`;
+  return `<path d="M24 20 12 9 4 17l14 17C10 34 5 38 2 45c10 0 17 5 24 12M56 20 68 9l8 8-14 17c8 0 13 4 16 11-10 0-17 5-24 12" fill="url(#${id}-theme)" stroke="${palette.edge}" stroke-width="2.4"/><path d="M19 15 28 5l12 10L52 5l9 10 10-5-7 18v25c-5 11-13 18-24 24-11-6-19-13-24-24V28L9 10Z" ${face} stroke-width="2.8"/><circle cx="40" cy="8" r="3.2" fill="${themeAccent}"/>`;
+}
+
+function signatureFor(code,accent,iconColor) {
+  if (code.startsWith("kindness_")) return `<path d="M18 57c7 7 13 10 22 13 9-3 15-6 22-13" fill="none" stroke="${accent}" stroke-width="2.3" stroke-linecap="round"/>`;
+  if (code.startsWith("misdeed_")) return `<path d="m17 58 6-2 3 6 6-3 4 6 5-5 5 5 4-6 6 3 3-6 6 2" fill="none" stroke="${accent}" stroke-width="2.3" stroke-linejoin="round"/>`;
+  if (code.startsWith("reward_") || ["modudadam_master","royal_squirrel","aurora_crown"].includes(code)) return `<path d="m28 64 3-3 3 3 6-7 6 7 3-3 3 3" fill="none" stroke="${accent}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<circle cx="18" cy="58" r="2.1" fill="${accent}"/><circle cx="62" cy="58" r="2.1" fill="${iconColor}" fill-opacity=".65"/>`;
 }

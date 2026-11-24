@@ -11,6 +11,7 @@ import "./globals.css";
 import "./community.css";
 import "./features.css";
 import "./stamp-effects.css";
+import "./stamp-system-v8.css";
 import "./readability.css";
 import "./acorn-economy.css";
 import "./content-hub.css";

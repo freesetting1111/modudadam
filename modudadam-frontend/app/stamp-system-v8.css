@@ -1,0 +1,71 @@
+/*
+ * Stamp system v8
+ * The inline footprint never grows by rarity. Prestige comes from the vector frame,
+ * material and light density so author names remain readable in dense post lists.
+ */
+.stamped-name{position:relative;isolation:isolate;max-width:100%;align-items:center;column-gap:6px}
+.stamped-name-text{position:relative;z-index:2}
+.stamped-name .stamp-image-mark{--stamp-mark-size:1.34em;width:var(--stamp-mark-size)!important;height:var(--stamp-mark-size)!important;flex:0 0 var(--stamp-mark-size);margin:0;position:relative;z-index:1;overflow:visible;isolation:isolate;transform-origin:center}
+.stamped-name .stamp-image-mark img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain}
+.stamped-name .stamp-image-mark::before{z-index:-1!important;inset:-2px!important;border-radius:50%;filter:none!important;opacity:.48;pointer-events:none}
+.stamped-name .stamp-image-mark.stamp-effect-uncommon::before{background:radial-gradient(circle,#7ac5a23a,transparent 70%)}
+.stamped-name .stamp-image-mark.stamp-effect-common::before{background:radial-gradient(circle,#79a8df42,transparent 70%)}
+.stamped-name .stamp-image-mark.stamp-effect-rare::before{background:radial-gradient(circle,#a884df4d,transparent 70%)}
+.stamped-name .stamp-image-mark.stamp-effect-epic::before{background:radial-gradient(circle,#f080cf52,transparent 72%)}
+.stamped-name .stamp-image-mark.stamp-effect-legendary::before{background:radial-gradient(circle,#f2c45166,transparent 72%)}
+.stamped-name .stamp-image-mark.stamp-effect-mythic::before{background:radial-gradient(circle,#8b75ef5e 0,#5ddfd33d 42%,transparent 73%)}
+.stamped-name .stamp-system-v8.stamp-effect-epic{animation:stamp-v8-epic 4.2s ease-in-out infinite!important}
+.stamped-name .stamp-system-v8.stamp-effect-legendary{animation:stamp-v8-legendary 4.5s ease-in-out infinite!important}
+.stamped-name .stamp-system-v8.stamp-effect-mythic{animation:stamp-v8-mythic 4.8s ease-in-out infinite!important}
+.stamped-name .stamp-system-v8.stamp-prestige-final{width:var(--stamp-mark-size)!important;height:var(--stamp-mark-size)!important}
+
+/* A clear material ladder: enamel → steel → gem → arcane → relic → celestial. */
+.stamp-tier-list>section{--tier-accent:#6f8598;--tier-soft:#f7f9fb;--tier-ink:#344156;--tier-line:#dce2e9}
+.stamp-tier-list>section.uncommon{--tier-accent:#4f9b7c;--tier-soft:#f1f8f4;--tier-ink:#285f4c;--tier-line:#bddbcd;border-color:#c7ddd3;background:linear-gradient(135deg,#fbfefc,#f2f8f5)}
+.stamp-tier-list>section.common{--tier-accent:#4d78b7;--tier-soft:#f0f5fb;--tier-ink:#315888;--tier-line:#bfd0e7;border-color:#c2d1e3;background:linear-gradient(135deg,#fbfdff,#f0f5fb)}
+.stamp-tier-list>section.rare{--tier-accent:#7657b4;--tier-soft:#f5f1fb;--tier-ink:#55388e;--tier-line:#cfbfeb;border:2px solid transparent;background:linear-gradient(#fbf9ff,#f5f1fb) padding-box,linear-gradient(135deg,#bba7df,#7050aa) border-box;box-shadow:0 6px 18px #60438c12}
+.stamp-tier-list>section.epic{--tier-accent:#ec7dca;--tier-soft:#2a2042;--tier-ink:#fff6ff;--tier-line:#664987;border:2px solid #7c559d;background:radial-gradient(circle at 8% 15%,#c96cac26,transparent 31%),linear-gradient(135deg,#33224f,#211a38 72%);box-shadow:0 8px 22px #2515362b}
+.stamp-tier-list>section.legendary{--tier-accent:#efc454;--tier-soft:#201d17;--tier-ink:#ffe9a6;--tier-line:#866b31;border:2px solid transparent;background:radial-gradient(circle at 10% 16%,#f5c94d2b,transparent 30%) padding-box,linear-gradient(135deg,#211e17,#121620 72%) padding-box,linear-gradient(120deg,#8c6a22,#f8d777,#9a7022) border-box;box-shadow:0 9px 25px #6b4d172e}
+.stamp-tier-list>section.mythic{--tier-accent:#b996ff;--tier-soft:#1d1838;--tier-ink:#fff8ff;--tier-line:#745bb4;position:relative;border:3px solid transparent;background:radial-gradient(circle at 12% 8%,#c976ff35,transparent 31%) padding-box,linear-gradient(135deg,#251947,#10182f 70%) padding-box,linear-gradient(120deg,#b276ff,#5fe2d5,#f1c66b,#795be3) border-box;box-shadow:0 10px 30px #46327935}
+.stamp-tier-list>section:is(.epic,.legendary,.mythic) .stamp-tier-header{color:var(--tier-ink)}
+.stamp-tier-list>section:is(.epic,.legendary,.mythic) .stamp-tier-header small,.stamp-tier-list>section:is(.epic,.legendary,.mythic) .stamp-tier-header b{color:var(--tier-accent)}
+.stamp-tier-list>section .stamp-tier-header>span{border:1px solid var(--tier-line);background:var(--tier-soft);box-shadow:inset 0 1px #ffffff70,0 3px 10px #24314912}
+.stamp-tier-list>section:is(.epic,.legendary,.mythic) .stamp-tier-items{border-top-color:#ffffff20;background:#0c102215}
+
+.stamp-tier-items article,.my-stamp-list article,.collection-titles article{--card-accent:#75869c;position:relative;border-left:4px solid var(--card-accent)}
+.stamp-tier-items article.uncommon,.my-stamp-list article.uncommon,.collection-titles article.uncommon{--card-accent:#4f9b7c;background:linear-gradient(100deg,#f1f8f4,#fff 38%)}
+.stamp-tier-items article.common,.my-stamp-list article.common,.collection-titles article.common{--card-accent:#4d78b7;background:linear-gradient(100deg,#eef4fb,#fff 40%)}
+.stamp-tier-items article.rare,.my-stamp-list article.rare,.collection-titles article.rare{--card-accent:#7657b4;border-top-color:#dfd5ef;background:linear-gradient(100deg,#f2edf9,#fff 43%);box-shadow:inset 0 0 0 1px #e6ddf3}
+.stamp-tier-items article.epic,.my-stamp-list article.epic,.collection-titles article.epic{--card-accent:#e878c6;border-color:#71518c;background:radial-gradient(circle at 5% 50%,#ec77ca2b,transparent 24%),linear-gradient(105deg,#33234d,#231b38);color:#fff5ff;box-shadow:inset 0 0 0 1px #ffffff12}
+.stamp-tier-items article.legendary,.my-stamp-list article.legendary,.collection-titles article.legendary{--card-accent:#efc454;border-color:#8d6e31;background:radial-gradient(circle at 6% 50%,#f2c4502c,transparent 25%),linear-gradient(105deg,#282317,#141820);color:#ffe9a5;box-shadow:inset 0 0 0 1px #f5d97929}
+.stamp-tier-items article.mythic,.my-stamp-list article.mythic,.collection-titles article.mythic{--card-accent:#9e7cf0;border:2px solid transparent;border-left:4px solid #9e7cf0;background:radial-gradient(circle at 7% 50%,#bb78ff35,transparent 25%) padding-box,linear-gradient(105deg,#2a1d4c,#111a34) padding-box,linear-gradient(125deg,#a977fa,#5fe0d6,#eec766) border-box;color:#fff8ff;box-shadow:0 5px 17px #3c286b29}
+.stamp-tier-items article:is(.epic,.legendary,.mythic) p,.stamp-tier-items article:is(.epic,.legendary,.mythic)>div>small,.my-stamp-list article:is(.epic,.legendary,.mythic) small,.collection-titles article:is(.epic,.legendary,.mythic) p,.collection-titles article:is(.epic,.legendary,.mythic) em{color:#cbd0df}
+.stamp-tier-items article:is(.epic,.legendary,.mythic) .stamped-name-text,.my-stamp-list article:is(.epic,.legendary,.mythic) .stamped-name-text,.collection-titles article:is(.epic,.legendary,.mythic) strong{color:inherit}
+.stamp-tier-items article:is(.epic,.legendary,.mythic)>button,.my-stamp-list article:is(.epic,.legendary,.mythic)>button,.collection-titles article:is(.epic,.legendary,.mythic)>button{background:#ffffffea;color:#3c3354}
+.my-stamp-list article.selected,.stamp-tier-items article.equipped{box-shadow:inset 0 0 0 2px #59a989,0 4px 14px #397d6324}
+
+/* Store and collection views may enlarge the art because they have reserved space. */
+.stamp-tier-items .stamp-image-mark,.my-stamp-list .stamp-image-mark,.collection-titles .stamp-image-mark{--stamp-mark-size:36px;width:var(--stamp-mark-size)!important;height:var(--stamp-mark-size)!important;flex-basis:var(--stamp-mark-size)}
+.stamp-tier-items .stamped-name,.my-stamp-list .stamped-name{column-gap:9px}
+.stamp-tier-items .stamp-image-mark::before,.my-stamp-list .stamp-image-mark::before,.collection-titles .stamp-image-mark::before{inset:-4px!important}
+.stamp-tier-header .stamp-image-mark{--stamp-mark-size:40px;width:var(--stamp-mark-size)!important;height:var(--stamp-mark-size)!important}
+.collection-titles article>span{overflow:visible;background:transparent!important}
+.collection-titles article.unlocked{border-left:4px solid var(--card-accent)}
+.collection-titles article.equipped{box-shadow:inset 0 0 0 2px #62b08e,0 5px 16px #2d7c5a24}
+
+/* Kindness and caution are parallel five-step ladders, not recolored copies. */
+.reputation-track .my-stamp-list article{min-height:64px}
+.reputation-track.kindness .my-stamp-list article{--path-accent:#d29a24;border-left-color:var(--path-accent);background:linear-gradient(100deg,#fff7dc,#fff 43%)}
+.reputation-track.misdeed .my-stamp-list article{--path-accent:#c94463;border-left-color:var(--path-accent);background:linear-gradient(100deg,#fff0f3,#fff 43%)}
+.reputation-track.kindness .my-stamp-list article.rare{--path-accent:#62a98f;background:linear-gradient(100deg,#eaf7f1,#fff 43%)}
+.reputation-track.misdeed .my-stamp-list article.rare{--path-accent:#8454b4;background:linear-gradient(100deg,#f2eafa,#fff 43%)}
+.reputation-track.kindness .my-stamp-list article[data-stamp-code="kindness_5000"]{border:2px solid #a88027;border-left:5px solid #f0c450;background:radial-gradient(circle at 7% 50%,#f1c74d32,transparent 25%),linear-gradient(105deg,#282318,#151922);color:#ffe8a2;box-shadow:0 6px 19px #7b591d30}
+.reputation-track.kindness .my-stamp-list article[data-stamp-code="kindness_10000"]{border:2px solid transparent;border-left:5px solid #eec45d;background:radial-gradient(circle at 7% 50%,#ffe17840,transparent 25%) padding-box,linear-gradient(105deg,#2d2545,#102b35) padding-box,linear-gradient(125deg,#f6c859,#6ee0c7,#fff0a2) border-box;color:#fff2b5;box-shadow:0 7px 23px #99732336}
+.reputation-track.misdeed .my-stamp-list article[data-stamp-code="misdeed_5000"]{border:2px solid #8e294d;border-left:5px solid #e64c72;background:radial-gradient(circle at 7% 50%,#e74c7135,transparent 25%),linear-gradient(105deg,#371d31,#181522);color:#ffc1d0;box-shadow:0 6px 19px #6e183635}
+.reputation-track.misdeed .my-stamp-list article[data-stamp-code="misdeed_10000"]{border:2px solid transparent;border-left:5px solid #f05a79;background:radial-gradient(circle at 7% 50%,#f055783b,transparent 25%) padding-box,linear-gradient(105deg,#421d39,#19142e) padding-box,linear-gradient(125deg,#f15a78,#8d55d4,#d2a64c) border-box;color:#ffd0da;box-shadow:0 7px 23px #65183742}
+.reputation-track .my-stamp-list article:is(.legendary,.mythic) small{color:#d9cbd6}
+
+@keyframes stamp-v8-epic{0%,100%{transform:scale(1);filter:drop-shadow(0 0 2px #ce6fb766)}50%{transform:scale(1.008);filter:drop-shadow(0 0 4px #e584ca80)}}
+@keyframes stamp-v8-legendary{0%,100%{transform:scale(1);filter:drop-shadow(0 0 2px #d3a63870)}50%{transform:scale(1.01);filter:drop-shadow(0 0 5px #f1c74d8f)}}
+@keyframes stamp-v8-mythic{0%,100%{transform:scale(1);filter:drop-shadow(0 0 3px #8c69df70)}50%{transform:scale(1.012);filter:drop-shadow(0 0 5px #62d9d19c)}}
+@media(prefers-reduced-motion:reduce){.stamp-system-v8{animation:none!important}}
