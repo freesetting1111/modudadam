@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 export type PublicPlayFeatureCode =
+  | "acorn-gift"
   | "attendance"
   | "choice"
   | "detective"
@@ -18,13 +19,20 @@ export type PublicPlayFeature = {
   title: string;
   description: string;
   summary: string;
-  icon: "calendar" | "choice" | "detective" | "mailbox" | "missions" | "stamps" | "taste" | "time-capsule" | "treasures";
+  icon: "acorn-gift" | "calendar" | "choice" | "detective" | "mailbox" | "missions" | "stamps" | "taste" | "time-capsule" | "treasures";
   tone: "blue" | "coral" | "amber" | "green" | "purple";
+  indexable?: boolean;
   actionLabel: string;
   points: Array<{ title: string; description: string }>;
 };
 
 export const publicPlayFeatures: Record<PublicPlayFeatureCode, PublicPlayFeature> = {
+  "acorn-gift": {
+    code:"acorn-gift",path:"/play/acorn-gift",eyebrow:"이웃에게 선물",title:"도토리 선물",icon:"acorn-gift",tone:"amber",indexable:false,actionLabel:"로그인하고 선물하기",
+    description:"고마운 이웃에게 원하는 만큼의 도토리와 짧은 메시지를 보내보세요.",
+    summary:"받은 선물은 선물 보따리에서 확인하고 직접 수령합니다. 보낸 도토리 10개마다 선행 포인트 1점이 쌓여요.",
+    points:[{ title:"수량 직접 입력",description:"보유 도토리 안에서 선물할 수량을 정합니다." },{ title:"선물 보따리",description:"받은 사람은 보낸 이와 수량을 확인하고 수령합니다." },{ title:"선행 포인트",description:"선물한 도토리 10개마다 1점이 적립됩니다." }],
+  },
   attendance: {
     code:"attendance",path:"/play/attendance",eyebrow:"매일 출석",title:"다담 출석부",icon:"calendar",tone:"green",actionLabel:"로그인하고 출석하기",
     description:"하루 한 번 출석을 기록하고 연속 출석 보상과 스탬프를 모아보세요.",
@@ -81,7 +89,7 @@ export const publicPlayFeatures: Record<PublicPlayFeatureCode, PublicPlayFeature
   },
 };
 
-export const publicPlayFeaturePaths = Object.values(publicPlayFeatures).map((feature) => feature.path);
+export const publicPlayFeaturePaths = Object.values(publicPlayFeatures).filter((feature)=>feature.indexable!==false).map((feature) => feature.path);
 
 export function publicPlayFeatureMetadata(code:PublicPlayFeatureCode):Metadata {
   const feature=publicPlayFeatures[code];
@@ -89,7 +97,7 @@ export function publicPlayFeatureMetadata(code:PublicPlayFeatureCode):Metadata {
     title:feature.title,
     description:feature.description,
     alternates:{ canonical:feature.path },
-    robots:{ index:true,follow:true },
+    robots:{ index:feature.indexable!==false,follow:feature.indexable!==false },
     openGraph:{ type:"website",title:`${feature.title} | 모두다담`,description:feature.description,url:feature.path,siteName:"모두다담",locale:"ko_KR" },
     twitter:{ card:"summary",title:`${feature.title} | 모두다담`,description:feature.description },
   };

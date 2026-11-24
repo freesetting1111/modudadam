@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Heart, Hourglass, Lightbulb, LockKeyhole, Search, ShieldQuestion, Sparkles, Trophy, UnlockKeyhole } from "lucide-react";
 import { apiRequest } from "@/lib/api";
@@ -10,8 +11,8 @@ type Capsule = {
   opensAt:string;openedAt:string | null;createdAt:string;canOpen:boolean;
 };
 
-export function DadamTimeCapsule() {
-  const [scope,setScope]=useState<"mine"|"public">("mine");
+export function DadamTimeCapsule({ authenticated }:{ authenticated:boolean }) {
+  const [scope,setScope]=useState<"mine"|"public">(authenticated ? "mine" : "public");
   const [items,setItems]=useState<Capsule[]>([]);
   const [page,setPage]=useState(1); const [totalPages,setTotalPages]=useState(1);
   const [loading,setLoading]=useState(true); const [pending,setPending]=useState(false);
@@ -54,7 +55,7 @@ export function DadamTimeCapsule() {
 
   return <section className="dadam-feature-page time-capsule-page">
     <header className="dadam-feature-hero"><span><Hourglass size={25}/></span><div><small>예약 편지</small><h1>다담 타임캡슐</h1><p>정한 날짜까지 편지를 보관해요.</p></div></header>
-    <button className="feature-primary-button" type="button" onClick={() => setCompose((value) => !value)}><LockKeyhole size={18}/>{compose ? "작성 취소" : "새 타임캡슐 봉인하기"}</button>
+    {authenticated ? <button className="feature-primary-button" type="button" onClick={() => setCompose((value) => !value)}><LockKeyhole size={18}/>{compose ? "작성 취소" : "새 타임캡슐 봉인하기"}</button> : <Link className="feature-primary-button" href="/login?returnTo=%2Fplay%2Ftime-capsule"><LockKeyhole size={18}/>로그인하고 타임캡슐 만들기</Link>}
     {compose && <form className="feature-form capsule-form" onSubmit={createCapsule}>
       <label>캡슐 이름<input name="title" required minLength={2} maxLength={80} placeholder="미래의 나에게"/></label>
       <label>봉인할 편지<textarea name="content" required minLength={10} maxLength={4000} rows={8} placeholder="지금의 마음과 기억하고 싶은 이야기를 적어주세요."/></label>
@@ -62,7 +63,7 @@ export function DadamTimeCapsule() {
       <fieldset><legend>개봉 후 공개 범위</legend><label className="capsule-radio"><input type="radio" name="visibility" value="private" defaultChecked/><span><strong>나만 보기</strong><small>내 보관함에서만 확인해요.</small></span></label><label className="capsule-radio"><input type="radio" name="visibility" value="public"/><span><strong>익명으로 함께 보기</strong><small>개봉한 뒤 공개 타임캡슐에 익명으로 소개돼요.</small></span></label></fieldset>
       <button type="submit" disabled={pending}>{pending ? "봉인하는 중..." : "이 날짜까지 봉인하기"}</button>
     </form>}
-    <nav className="capsule-tabs" aria-label="타임캡슐 목록"><button type="button" className={scope==="mine" ? "active" : ""} onClick={() => changeScope("mine")}>내 타임캡슐</button><button type="button" className={scope==="public" ? "active" : ""} onClick={() => changeScope("public")}>익명 공개 캡슐</button></nav>
+    <nav className="capsule-tabs" aria-label="타임캡슐 목록">{authenticated&&<button type="button" className={scope==="mine" ? "active" : ""} onClick={() => changeScope("mine")}>내 타임캡슐</button>}<button type="button" className={scope==="public" ? "active" : ""} onClick={() => changeScope("public")}>익명 공개 캡슐</button></nav>
     {notice && <p className="feature-notice">{notice}</p>}{error && <p className="feature-error">{error}</p>}
     <div className="capsule-list">{loading ? <div className="feature-loading">타임캡슐 보관함을 열고 있어요.</div> : items.length ? items.map((item) => <article className={item.status==="sealed" ? "sealed" : "opened"} key={item.id}>
       <div className="capsule-status-icon">{item.status==="sealed" ? <LockKeyhole/> : <UnlockKeyhole/>}</div><div className="capsule-copy"><small>{item.status==="sealed" ? `개봉 예정 · ${formatDateTime(item.opensAt)}` : `개봉 · ${formatDateTime(item.openedAt || item.opensAt)}`}</small><h2>{item.title}</h2>{item.content ? <p>{item.content}</p> : <p className="capsule-hidden">편지는 개봉일까지 안전하게 가려져 있어요.</p>}<span>{item.visibility==="public" ? "익명 공개" : "나만 보기"}</span></div>{item.canOpen && <button type="button" disabled={pending} onClick={() => void openCapsule(item.id)}>지금 개봉</button>}

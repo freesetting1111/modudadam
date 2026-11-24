@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 export type ContentHubStatus={ state:"todo"|"active"|"done"|"locked";label:string };
-export type ContentHubItem={ code:string;href:string;title:string;label:string;description:string;icon:string;tone:"blue"|"coral"|"amber"|"green"|"purple";status:ContentHubStatus|null };
+export type ContentHubItem={ code:string;href:string;title:string;label:string;description:string;icon:string;tone:"blue"|"coral"|"amber"|"green"|"purple";requiresAuth:boolean;status:ContentHubStatus|null };
 export type ContentHubGroup={ code:string;title:string;description:string;icon:string;items:ContentHubItem[] };
 export type ContentHubData={ authenticated:boolean;openBountyCount:number;dailyCompleted:number;dailyTotal:number;groups:ContentHubGroup[] };
 
@@ -34,14 +34,16 @@ export function ContentHub({ data }:{ data:ContentHubData }) {
       <div className="content-primary-icon"><HandCoins size={28}/></div>
       <div className="content-primary-copy"><small>빠르게 도움받기</small><h2 id="content-primary-title">답이 필요한 질문이 있나요?</h2><p>도토리 현상금을 걸면 금액이 높은 질문부터 노출됩니다.</p><span>{data.openBountyCount ? `답변 대기 ${data.openBountyCount.toLocaleString()}건` : "첫 질문을 등록해 보세요"}</span></div>
       <div className="content-primary-buttons">
-        <TrackedLink href="/play/bounties/write" itemCode="bounty" placement="primary" className="primary">질문 올리기<ArrowRight size={17}/></TrackedLink>
+        <TrackedLink href={data.authenticated ? "/play/bounties/write" : "/login?returnTo=%2Fplay%2Fbounties%2Fwrite"} itemCode="bounty" placement="primary" className="primary">
+          {!data.authenticated&&<LockKeyhole size={15}/>} {data.authenticated ? "질문 올리기" : "로그인하고 질문하기"}
+        </TrackedLink>
         <TrackedLink href="/play/bounties" itemCode="bounty" placement="primary">질문 둘러보기</TrackedLink>
       </div>
     </section>
 
     {daily&&<section className="daily-action-board" id="daily" aria-labelledby="daily-action-title">
-      <header><div><small>오늘의 루틴</small><h2 id="daily-action-title">오늘 할 일</h2></div><div className="daily-progress-copy"><strong>{data.authenticated ? `${data.dailyCompleted}/${data.dailyTotal}` : "로그인 후 표시"}</strong><span>완료</span></div></header>
-      <div className="daily-progress-track" aria-label={data.authenticated ? `오늘 할 일 ${data.dailyCompleted}개 완료` : "로그인이 필요합니다"}><i style={{ width:`${data.authenticated ? progress : 0}%` }}/></div>
+      <header><div><small>오늘의 루틴</small><h2 id="daily-action-title">오늘 할 일</h2></div>{data.authenticated&&<div className="daily-progress-copy"><strong>{data.dailyCompleted}/{data.dailyTotal}</strong><span>완료</span></div>}</header>
+      {data.authenticated&&<div className="daily-progress-track" aria-label={`오늘 할 일 ${data.dailyCompleted}개 완료`}><i style={{ width:`${progress}%` }}/></div>}
       <div className="daily-action-grid">{daily.items.map((item)=>{
         const Icon=icons[item.icon] || Sparkles;const status=item.status;
         return <TrackedLink href={item.href} itemCode={item.code} placement="daily" className={`daily-action-card ${item.tone} ${status?.state || "todo"}`} key={item.code}>
@@ -60,8 +62,8 @@ export function ContentHub({ data }:{ data:ContentHubData }) {
       const GroupIcon=icons[group.icon] || Shapes;
       return <section className="content-purpose-group" id={group.code} key={group.code}>
         <header><span><GroupIcon size={19}/></span><div><h2>{group.title}</h2><p>{group.description}</p></div></header>
-        <div className="content-purpose-grid">{group.items.map((item)=>{const Icon=icons[item.icon] || Sparkles;return <TrackedLink href={item.href} itemCode={item.code} placement="group" className={`content-purpose-card ${item.tone}`} key={item.code}>
-          <span className="content-purpose-icon"><Icon size={22}/></span><span className="content-purpose-copy"><small>{item.label}</small><strong>{item.title}</strong><p>{item.description}</p>{item.status&&<em className={item.status.state}>{item.status.label}</em>}</span><ArrowRight size={17}/>
+        <div className="content-purpose-grid">{group.items.map((item)=>{const Icon=icons[item.icon] || Sparkles;return <TrackedLink href={item.href} itemCode={item.code} placement="group" className={`content-purpose-card ${item.tone} ${item.status?.state || ""}`} key={item.code}>
+          <span className="content-purpose-icon"><Icon size={22}/></span><span className="content-purpose-copy"><small>{item.label}</small><strong>{item.title}</strong><p>{item.description}</p>{item.status&&<em className={item.status.state}>{item.status.state==="locked"&&<LockKeyhole size={12}/>} {item.status.label}</em>}</span><ArrowRight size={17}/>
         </TrackedLink>;})}</div>
       </section>;
     })}</div>

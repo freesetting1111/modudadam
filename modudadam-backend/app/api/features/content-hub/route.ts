@@ -6,7 +6,7 @@ import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 type CatalogRow = {
   groupCode:string;groupTitle:string;groupDescription:string;groupIcon:string;
   itemCode:string;href:string;itemTitle:string;label:string;itemDescription:string;
-  itemIcon:string;tone:"blue"|"coral"|"amber"|"green"|"purple";
+  itemIcon:string;tone:"blue"|"coral"|"amber"|"green"|"purple";requiresAuth:boolean;
 };
 
 type DailyStateRow = {
@@ -24,7 +24,11 @@ export async function GET(request:NextRequest) {
         `SELECT groups.code AS "groupCode",groups.title AS "groupTitle",
                 groups.description AS "groupDescription",groups.icon AS "groupIcon",
                 items.code AS "itemCode",items.href,items.title AS "itemTitle",
-                items.label,items.description AS "itemDescription",items.icon AS "itemIcon",items.tone
+                items.label,items.description AS "itemDescription",items.icon AS "itemIcon",items.tone,
+                COALESCE(
+                  (to_jsonb(items)->>'requires_auth')::boolean,
+                  items.code IN ('attendance','choice','detective','missions','acorn-gift','stamps')
+                ) AS "requiresAuth"
            FROM content_hub_groups groups
            JOIN content_hub_items items ON items.group_code=groups.code AND items.enabled
           WHERE groups.enabled
@@ -37,7 +41,9 @@ export async function GET(request:NextRequest) {
     const state=stateResult.rows[0];
     const itemStates:Record<string,{ state:"todo"|"active"|"done"|"locked";label:string }>={};
     if (!user) {
-      for (const code of ["attendance","choice","detective","missions"]) itemStates[code]={ state:"locked",label:"로그인 필요" };
+      for (const item of catalog.rows) {
+        if (item.requiresAuth) itemStates[item.itemCode]={ state:"locked",label:"로그인 필요" };
+      }
     } else if (state) {
       itemStates.attendance=state.attendanceDone ? { state:"done",label:"완료" } : { state:"todo",label:"출석하기" };
       itemStates.choice=state.choiceDone ? { state:"done",label:"참여 완료" } : { state:"todo",label:"선택하기" };
@@ -59,7 +65,8 @@ export async function GET(request:NextRequest) {
       }
       group.items.push({
         code:row.itemCode,href:row.href,title:row.itemTitle,label:row.label,
-        description:row.itemDescription,icon:row.itemIcon,tone:row.tone,status:itemStates[row.itemCode] || null,
+        description:row.itemDescription,icon:row.itemIcon,tone:row.tone,requiresAuth:row.requiresAuth,
+        status:itemStates[row.itemCode] || null,
       });
     }
 

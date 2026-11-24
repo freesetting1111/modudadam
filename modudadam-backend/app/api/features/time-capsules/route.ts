@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { requireSessionUser } from "@/domains/auth/session";
+import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
 import { db, query } from "@/lib/db";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 
@@ -7,14 +7,15 @@ const PAGE_SIZE = 10;
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireSessionUser(request);
+    const user = await getSessionUser(request);
     const scope = request.nextUrl.searchParams.get("scope") === "public" ? "public" : "mine";
+    if (scope === "mine" && !user) return errorResponse("내 타임캡슐을 확인하려면 로그인이 필요합니다.",401);
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page")) || 1);
     const offset = (page - 1) * PAGE_SIZE;
     const condition = scope === "public"
       ? `status='opened' AND visibility='public'`
       : `user_id=$1::uuid AND status<>'deleted'`;
-    const params = scope === "public" ? [PAGE_SIZE, offset] : [user.id, PAGE_SIZE, offset];
+    const params = scope === "public" ? [PAGE_SIZE, offset] : [user!.id, PAGE_SIZE, offset];
     const limitIndex = scope === "public" ? 1 : 2;
     const offsetIndex = scope === "public" ? 2 : 3;
     const [items, count] = await Promise.all([
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       ),
       scope === "public"
         ? query<{ count:number }>(`SELECT count(*)::int AS count FROM time_capsules WHERE ${condition}`)
-        : query<{ count:number }>(`SELECT count(*)::int AS count FROM time_capsules WHERE ${condition}`,[user.id]),
+        : query<{ count:number }>(`SELECT count(*)::int AS count FROM time_capsules WHERE ${condition}`,[user!.id]),
     ]);
     return jsonResponse({
       items: items.rows,

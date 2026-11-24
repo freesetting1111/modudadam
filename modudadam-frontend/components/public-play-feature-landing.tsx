@@ -1,12 +1,12 @@
 import Link from "next/link";
 import {
-  CalendarCheck2, Compass, Hourglass, Mail, MapPin, ShieldQuestion, ShoppingBag, Sparkles, Trophy, Vote,
+  CalendarCheck2, Compass, Gift, Hourglass, Mail, MapPin, ShieldQuestion, ShoppingBag, Sparkles, Trophy, Vote,
 } from "lucide-react";
 import { getSiteUrl } from "@/lib/site-url";
 import type { PublicPlayFeature } from "@/lib/public-play-features";
 
 const icons={
-  calendar:CalendarCheck2,choice:Vote,detective:ShieldQuestion,mailbox:Mail,missions:Trophy,
+  "acorn-gift":Gift,calendar:CalendarCheck2,choice:Vote,detective:ShieldQuestion,mailbox:Mail,missions:Trophy,
   stamps:ShoppingBag,taste:Sparkles,"time-capsule":Hourglass,treasures:MapPin,
 };
 

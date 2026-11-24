@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { getSessionUser, requireSessionUser } from "@/domains/auth/session";
+import { getSessionUser } from "@/domains/auth/session";
 import { corsPreflightResponse, errorResponse, jsonResponse } from "@/lib/http";
 import { query } from "@/lib/db";
 
@@ -9,7 +9,6 @@ const dimensions: Dimension[] = ["neuroticism","extraversion","openness","agreea
 
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
-  if (!user) return errorResponse("취향 발견실을 이용하려면 로그인이 필요합니다.",401);
   const questions = await query<QuestionRow>(
     `WITH available AS (
        SELECT bank.*,CASE WHEN exposure.question_id IS NULL THEN 0 ELSE 1 END AS used
@@ -31,25 +30,26 @@ export async function GET(request: NextRequest) {
               row_number() OVER(PARTITION BY dimension ORDER BY used,random()) AS rn
          FROM available
      )
-     SELECT id,dimension,question,options FROM ranked WHERE rn<=2 ORDER BY random()`,[user.id],
+     SELECT id,dimension,question,options FROM ranked WHERE rn<=2 ORDER BY random()`,[user?.id || null],
   );
-  if (questions.rows.length === 10) await query(
+  if (user && questions.rows.length === 10) await query(
     `INSERT INTO taste_question_exposures(user_id,question_id)
      SELECT $1::uuid,unnest($2::bigint[]) ON CONFLICT(user_id,question_id) DO UPDATE SET seen_at=now()`,
     [user.id,questions.rows.map((question) => question.id)],
   );
-  const latest = await query(
+  const latest = user ? await query(
     `SELECT quiz_code AS "quizCode",result_code AS "resultCode",created_at AS "createdAt"
        FROM taste_quiz_results WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1`, [user.id],
-  );
-  return jsonResponse({ questions: questions.rows, latestResult: latest.rows[0] || null });
+  ) : null;
+  return jsonResponse({ questions: questions.rows, latestResult: latest?.rows[0] || null });
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireSessionUser(request);
+    const user = await getSessionUser(request);
     const body = await request.json();
     const action = body.action === "save" ? "save" : "analyze";
+    if (action === "save" && !user) return errorResponse("결과를 저장하려면 로그인이 필요합니다.",401);
     const answers: Array<{ questionId: string; score: number }> = Array.isArray(body.answers) ? body.answers.slice(0,10).map((answer: unknown) => {
       const item = answer as { questionId?: unknown; score?: unknown };
       return { questionId: String(item?.questionId || ""), score: Number(item?.score) };

@@ -23,6 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/events`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/play`, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteUrl}/play/bounties`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${siteUrl}/play/challenges`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/play/random`, changeFrequency: "weekly", priority: 0.7 },
     ...publicPlayFeaturePaths.map((path) => ({ url:`${siteUrl}${path}`,changeFrequency:"weekly" as const,priority:0.7 })),
     ...specialBoards.map((board) => ({ url: `${siteUrl}/category/${board.code}`, changeFrequency: "daily" as const, priority: 0.8 })),
