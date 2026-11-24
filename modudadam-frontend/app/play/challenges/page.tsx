@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";
-export default function ChallengesPage() { redirect("/play/missions"); }
+import { permanentRedirect } from "next/navigation";
+export default function ChallengesPage() { permanentRedirect("/play/missions"); }

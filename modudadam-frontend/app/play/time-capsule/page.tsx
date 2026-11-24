@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
 import { DadamTimeCapsule } from "@/components/dadam-time-detective";
-import { memberContentMetadata, requirePlayUser } from "@/lib/play-auth";
+import { PublicPlayFeatureLanding } from "@/components/public-play-feature-landing";
+import { getServerSessionUser } from "@/lib/auth";
+import { publicPlayFeatureMetadata,publicPlayFeatures } from "@/lib/public-play-features";
 
-export const metadata:Metadata={ title:"다담 타임캡슐",description:"오늘의 마음을 봉인하고 미래의 나에게 전해보세요.",...memberContentMetadata };
-export default async function TimeCapsulePage() { await requirePlayUser("/play/time-capsule");return <DadamTimeCapsule/>; }
+export const metadata=publicPlayFeatureMetadata("time-capsule");
+export default async function TimeCapsulePage() { if(!await getServerSessionUser()) return <PublicPlayFeatureLanding feature={publicPlayFeatures["time-capsule"]}/>;return <DadamTimeCapsule/>; }

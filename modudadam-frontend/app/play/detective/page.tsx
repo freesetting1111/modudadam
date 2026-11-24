@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
 import { DadamDetectiveRoom } from "@/components/dadam-time-detective";
-import { memberContentMetadata, requirePlayUser } from "@/lib/play-auth";
+import { PublicPlayFeatureLanding } from "@/components/public-play-feature-landing";
+import { getServerSessionUser } from "@/lib/auth";
+import { publicPlayFeatureMetadata,publicPlayFeatures } from "@/lib/public-play-features";
 
-export const metadata:Metadata={ title:"다담 추리방",description:"열 명의 용의자와 세 가지 단서 속에서 오늘의 사건을 해결해 보세요.",...memberContentMetadata };
-export default async function DetectivePage() { await requirePlayUser("/play/detective");return <DadamDetectiveRoom/>; }
+export const metadata=publicPlayFeatureMetadata("detective");
+export default async function DetectivePage() { if(!await getServerSessionUser()) return <PublicPlayFeatureLanding feature={publicPlayFeatures.detective}/>;return <DadamDetectiveRoom/>; }

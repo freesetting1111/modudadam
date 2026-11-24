@@ -4,7 +4,11 @@ import { CalendarHeart, UsersRound } from "lucide-react";
 import { API_SERVER_URL } from "@/lib/server-config";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "이벤트", description: "모두다담에서 진행 중인 이벤트를 확인하세요." };
+export const metadata: Metadata = {
+  title:"이벤트",description:"모두다담에서 진행 중인 이벤트와 참여 현황을 확인하세요.",
+  alternates:{ canonical:"/events" },robots:{ index:true,follow:true },
+  openGraph:{ type:"website",title:"이벤트 | 모두다담",description:"모두다담에서 진행 중인 이벤트와 참여 현황을 확인하세요.",url:"/events",siteName:"모두다담",locale:"ko_KR" },
+};
 
 type PublicEvent = {
   eventNo: string; slug: string; title: string; description: string | null;
