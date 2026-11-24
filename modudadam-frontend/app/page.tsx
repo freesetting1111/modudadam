@@ -33,6 +33,7 @@ export default async function Home() {
   }));
 
   return <div className="community-home">
+    <h1 className="sr-only">모두의 생활 정보 커뮤니티, 모두다담</h1>
     <HomeSearch />
 
     <section className="home-bounty-gateway" aria-labelledby="home-bounty-title">

@@ -57,7 +57,7 @@ export function DetailBoardList({ categoryCode, currentPostId, canWrite,writeHre
   const Icon = category.icon;
 
   return <section className="detail-board-section board-page">
-    <div className="category-hero"><span className={`category-icon category-icon-large category-${category.code}`}><Icon size={27} strokeWidth={1.8} /></span><div><small>{categoryCode==="bounty" ? "도움 요청" : "커뮤니티"}</small><h1>{category.name}</h1><p>{category.description}</p></div></div>
+    <div className="category-hero"><span className={`category-icon category-icon-large category-${category.code}`}><Icon size={27} strokeWidth={1.8} /></span><div><small>{categoryCode==="bounty" ? "도움 요청" : "커뮤니티"}</small><h2>{category.name}</h2><p>{category.description}</p></div></div>
     {canWrite && <div className="board-toolbar board-toolbar-compact board-toolbar-write-only"><Link className="write-button" href={writeHref||`/category/${categoryCode}/write`}><PenLine size={14} /> 글쓰기</Link></div>}
     {loading && !data && <div className="board-message">게시글을 불러오고 있어요.</div>}
     {error && <div className="board-message error">{error}</div>}

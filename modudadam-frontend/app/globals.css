@@ -101,7 +101,7 @@ a { color:inherit; text-decoration:none; }
 .content-page { min-height:70vh; padding:24px 18px 50px; }
 .content-page>h1 { margin:5px 0 24px; font-size:27px; }.content-page>h2{font-size:17px;margin-top:30px}
 .category-hero { display:flex; gap:16px; align-items:center; padding:22px; border-radius:18px; background:var(--soft); }
-.category-icon-large { width:66px; height:66px; flex:none; border-radius:21px; }.category-hero small{color:var(--brand);font-weight:750}.category-hero h1{margin:4px 0;font-size:25px}.category-hero p{margin:0;color:var(--muted);font-size:15px;line-height:1.5}
+.category-icon-large { width:66px; height:66px; flex:none; border-radius:21px; }.category-hero small{color:var(--brand);font-weight:750}.category-hero :is(h1,h2){margin:4px 0;font-size:25px}.category-hero p{margin:0;color:var(--muted);font-size:15px;line-height:1.5}
 .tab-row { display:flex; gap:28px; padding:24px 8px 14px; border-bottom:1px solid var(--line); color:#8a92a0; font-size:16px; }.tab-row b{color:var(--brand)}
 .empty-card { text-align:center; padding:54px 20px; margin-top:20px; border:1px dashed #cbd2df; border-radius:16px; background:#fafbfc; }.empty-card strong{display:block;font-size:17px}.empty-card p{color:var(--muted);font-size:16px;line-height:1.6}.empty-card a{display:inline-block;margin-top:12px;background:var(--brand);color:#fff;padding:12px 18px;border-radius:11px;font-weight:750;font-size:15px}
 .login-page { min-height:72vh; padding:40px 24px; display:flex; flex-direction:column; align-items:center; text-align:center; }.login-page img{object-fit:contain}.login-page h1{font-size:24px;margin:14px 0 8px}.login-page>p{max-width:360px;color:var(--muted);line-height:1.6;font-size:16px}.login-page>small{color:#9299a5;margin-top:20px}.login-error{width:100%;padding:10px;background:#fff0f0;color:#bf3e3e;border-radius:10px;font-size:15px;margin-top:8px}
@@ -173,7 +173,7 @@ textarea{resize:none}
 .board-page .category-hero{gap:13px;padding:15px 16px;border:1px solid #e8edf6;border-radius:14px;background:#f7f9fe}
 .board-page .category-icon-large{width:50px;height:50px;border-radius:15px}
 .board-page .category-hero small{font-size:13px;letter-spacing:.4px}
-.board-page .category-hero h1{margin:2px 0;font-size:20px;letter-spacing:-.5px}
+.board-page .category-hero :is(h1,h2){margin:2px 0;font-size:20px;letter-spacing:-.5px}
 .board-page .category-hero p{overflow:hidden;font-size:14px;text-overflow:ellipsis;white-space:nowrap}
 .board-toolbar-compact{min-height:58px;margin-top:8px;padding:9px 2px;border-bottom:1px solid #e7eaf0}
 .board-sort-control{display:flex;align-items:center;gap:8px}

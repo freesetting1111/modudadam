@@ -48,7 +48,7 @@ function CategoryPostPanel({ groups, variant }: { groups: WeeklyGroup[]; variant
 
   return <article className={`community-panel ${isHot ? "hot-panel" : "latest-panel"} weekly-hot-carousel`} aria-roledescription="carousel" aria-label={`카테고리별 ${isHot ? "주간 인기 TOP 5" : "NEW 게시글"}`}>
     <header>
-      <h1><span className={`board-preview-icon carousel-category-icon category-${category.code}`}><CategoryIcon size={16} style={{ color: categoryIconColor }} /></span><strong className="carousel-heading-text">{isHot ? "주간 인기 TOP 5" : "NEW 게시글"}</strong><span className="carousel-category-name">{category.name}</span></h1>
+      <h2><span className={`board-preview-icon carousel-category-icon category-${category.code}`}><CategoryIcon size={16} style={{ color: categoryIconColor }} /></span><strong className="carousel-heading-text">{isHot ? "주간 인기 TOP 5" : "NEW 게시글"}</strong><span className="carousel-category-name">{category.name}</span></h2>
       <span className="carousel-position" aria-label={`${groupCount}개 게시판 중 ${activeIndex + 1}번째`}>{activeIndex + 1}/{groupCount}</span>
     </header>
     <div className="portal-post-list weekly-hot-slide" key={`${variant}-${category.code}`}
