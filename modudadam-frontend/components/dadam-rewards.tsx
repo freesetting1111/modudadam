@@ -40,7 +40,7 @@ export function DadamAttendance({ mode="attendance" }: { mode?:"attendance"|"sho
   const calendar = data ? buildCalendar(data.month,data.checkins) : [];
   const pendingReward=data?.titles.find((title) => title.unlocked && !title.claimed);
   return <section className={`dadam-feature-page attendance-page ${mode === "shop" ? "stamp-shop-only" : "attendance-only"}`}>
-    <header className="reward-hero"><span><CalendarCheck2 size={27}/></span><div><small>오늘의 출석</small><h1>다담 출석부</h1><p>오늘 출석을 기록하세요.</p></div></header>
+    {mode==="attendance"&&<header className="reward-hero"><span><CalendarCheck2 size={27}/></span><div><small>오늘의 출석</small><h1>다담 출석부</h1><p>오늘 출석을 기록하세요.</p></div></header>}
     {loading || !data ? <div className="feature-loading">{mode === "shop" ? "도토리 상점을 준비하고 있어요." : "출석부를 펼치고 있어요."}</div> : <>
       <article className="acorn-wallet"><div><span>🌰</span><p><small>보유 도토리</small><strong>{data.wallet.balance.toLocaleString()}개</strong></p></div><dl><div><dt>연속 출석</dt><dd>{data.streak}일</dd></div><div><dt>모은 도토리</dt><dd>{data.wallet.lifetimeEarned.toLocaleString()}개</dd></div></dl></article>
       {mode==="shop"&&<nav className="stamp-store-tabs" aria-label="도토리 상점 메뉴"><button type="button" className={shopView==="stamps"?"active":""} aria-pressed={shopView==="stamps"} onClick={()=>{setShopView("stamps");setNotice("");}}><Gift size={18}/>스탬프 구매</button><button type="button" className={shopView==="misdeed"?"active":""} aria-pressed={shopView==="misdeed"} onClick={()=>{setShopView("misdeed");setNotice("");}}><ArrowRightLeft size={18}/>악행 포인트 전환</button></nav>}

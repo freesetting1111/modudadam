@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { ChevronRight, HandCoins, PenLine, Sparkles, TrendingUp } from "lucide-react";
@@ -9,6 +10,8 @@ import { API_SERVER_URL } from "@/lib/server-config";
 import { PostListMeta } from "@/components/post-list-meta";
 import { WeeklyReputationRankings } from "@/components/weekly-reputation-rankings";
 import { displayPostTitle } from "@/lib/post-display";
+
+export const metadata:Metadata={ robots:{ index:true,follow:true } };
 
 export type HomePost = {
   id: string; title: string; excerpt: string; authorName: string; authorStampEmoji: string | null;
