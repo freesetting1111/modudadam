@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
               WHEN 'challenge_checkin_days' THEN (
                 SELECT count(DISTINCT checkins.checkin_on) FROM challenge_checkins checkins
                 JOIN challenge_enrollments enrollments ON enrollments.id=checkins.enrollment_id
-                WHERE enrollments.user_id=$1
+                WHERE enrollments.user_id=$1 AND checkins.verification_status='verified'
               )
               ELSE 0
             END
